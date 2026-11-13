@@ -28,14 +28,16 @@ Any static host works too (Netlify, Vercel, Cloudflare Pages, itch.io as an HTML
 
 ## How online play works
 
-Rooms use [PeerJS](https://peerjs.com/) (WebRTC) and PeerJS's free public matchmaking server.
+Rooms run through free public MQTT message servers (EMQX, HiveMQ, Eclipse and Mosquitto) over normal secure WebSocket connections. That's the kind of traffic VPNs and strict networks almost never block. No accounts, and nothing to set up.
 
-- **The host runs the game.** The host's browser runs the table, including the bots, and sends each player only their own hand. Nobody can peek at other hands.
-- **Connections are direct.** After matchmaking, players connect browser to browser. No game data goes through a server you have to run.
-- **Leaving.** If the host closes the tab, the room ends. If a player drops, a bot takes over their hand. Players who go quiet for 45 seconds get an autopilot move.
-- **Strict networks.** Some strict networks (corporate or university Wi-Fi, some mobile carriers) block direct WebRTC connections. To make those work, you'd need to add a TURN server in the `new Peer(...)` options inside `openPeer()` in `index.html`.
+- **Encrypted.** Every message is encrypted in the browser (AES-GCM) with a key made from the room code. The public servers only see scrambled data on a random-looking channel.
+- **Hands stay private.** The host's browser runs the table, including the bots, and sends each player only their own hand.
+- **Redundant.** The host connects to all four servers at once. Each friend uses whichever one their network reaches first, so one server being down or blocked doesn't break the room.
+- **Self-healing.** The host re-sends each player's current view every 2 seconds, and every move is re-sent until the host confirms it. A lost message or a short disconnect fixes itself within a couple of seconds. Only an explicit Leave, or 30 seconds of silence, ends a seat or the room.
+- **Lobby controls.** Everyone can change their name in the lobby. The host sets the bots, bot speed, rules and extra cards there, and guests see the table rules live.
+- **Leaving.** If the host closes the tab, the room ends. If a player drops, a bot takes over their hand. Players who go quiet for 45 seconds get an autopilot move. Online games have no Mercy limit.
 
-The public PeerJS server is free but best-effort. For something you rely on, you can run your own [PeerServer](https://github.com/peers/peerjs-server) and point `new Peer(id, { host, port, path })` at it.
+The room code is the encryption key, and it's only 4 characters. That's plenty to keep casual snoopers out, but don't treat it as strong security. The public servers are free and best-effort. For something you rely on, you can run your own MQTT broker and change the `BROKERS` list in `index.html`.
 
 ## Credits
 

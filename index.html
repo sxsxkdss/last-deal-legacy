@@ -20,11 +20,12 @@
   --p:#ff4aa5; --t:#17c6b6; --o:#ff8a22; --v:#9550ff;
   --ri:#c4202a; --yi:#a87a00; --gi:#147a3a; --bi:#1452b0;
   --paper:#fbfaf6; --ink:#141412;
+  --frame:#ece7d8; /* table border: light side */
   --cw:76px; --ch:112px;
   --ease:cubic-bezier(.2,.7,.3,1);
   --f-ui:'Archivo',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
 }
-body.dark{ --bg:#0d0d0e; --s1:#151516; --s2:#1e1e20; --s3:#29292c; --line:#2f2f33; --muted:#8e8e94; }
+body.dark{ --frame:var(--p); --bg:#0d0d0e; --s1:#151516; --s2:#1e1e20; --s3:#29292c; --line:#2f2f33; --muted:#8e8e94; }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{font:400 14px/20px var(--f-ui);font-variation-settings:"wdth" 100;color:var(--text);background:var(--bg);overflow:hidden;user-select:none;-webkit-user-select:none;transition:background-color 180ms ease-out}
@@ -85,7 +86,7 @@ input[type=text]:focus{border-color:var(--text)}
 @media (max-width:520px){.field{grid-template-columns:1fr;gap:8px}.page{padding:32px 16px}.title{font-size:40px;line-height:38px}}
 
 /* ---------- game layout ---------- */
-#game{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:1fr 288px}
+#game{position:fixed;inset:0;border:6px solid var(--frame);transition:border-color 180ms ease-out;display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:1fr 288px}
 #opps{grid-column:1;display:flex;justify-content:center;gap:8px;padding:16px 16px 0;flex-wrap:wrap}
 #table{grid-column:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:0}
 #side{grid-column:2;grid-row:1/4;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
@@ -212,6 +213,7 @@ input[type=text]:focus{border-color:var(--text)}
   #side{grid-column:1;grid-row:4;max-height:88px;border-left:none;border-top:1px solid var(--line)}
   #side .sidehead{display:none}
   :root{--cw:60px;--ch:88px}
+  #game{border-width:4px}
   #opps{gap:4px;padding:8px 8px 0}
   .opp{width:auto;min-width:84px;padding:8px}
   .opp .fan{display:none}
@@ -865,128 +867,187 @@ function connectBroker(url, opts, timeout = 6000) {
     catch (e) { return rej(e); }
     const to = setTimeout(() => { try { c.end(true); } catch (e) {} rej({ type: 'timeout' }); }, timeout + 500);
     c.once('connect', () => { clearTimeout(to); res(c); });
+    c.on('offline', () => {}); c.on('close', () => {});
     c.on('error', () => {});
   });
 }
 // ordered async pipeline so encrypted messages keep their order
 function queue() { let p = Promise.resolve(); return fn => (p = p.then(fn).catch(() => {})); }
 
+// Reliability on top of lossy public brokers:
+//  - the host re-sends each player's current view every 2 s (lost updates heal themselves)
+//  - player moves carry an id and are re-sent until the host acknowledges them
+//  - only an explicit leave or 30 s of silence ends a seat or the room (no broker "last will")
+const RELAY_TIMEOUT = 30000;
 class RelayHost {
   constructor(h) { this.h = h; this.kind = 'relay'; this.redacts = true; this.selfId = 'host'; this.clients = new Map(); this.left = new Set(); this.links = []; this.q = queue(); this.rq = queue(); this.n = 0; }
   async start(code) {
     this.cx = await roomCrypto(code);
-    const T = this.cx.topic, will = await this.cx.seal({ t: 'gone' });
-    const tries = BROKERS.map(url => connectBroker(url, { clientId: 'h' + rid(), will: { topic: T + '/h', payload: will, qos: 0 } }).then(c => this.attach(c)).catch(() => null));
-    // a busy code would already have a host pinging on it
+    const tries = BROKERS.map((url, i) => connectBroker(url, { clientId: 'h' + rid() }).then(c => this.attach(c, i)).catch(() => null));
     const first = await Promise.race([Promise.any(tries).catch(() => null), new Promise(r => setTimeout(() => r(null), 9000))]);
     if (!first) throw { type: 'relay-down' };
-    this.busyCheck = true; this.pub('/h', { t: 'whohost', from: this.hostTag });
+    // a code already in use would answer this probe
+    this.busyCheck = true; this.broadcast({ t: 'whohost', from: this.hostTag });
     await new Promise(r => setTimeout(r, 1500)); this.busyCheck = false;
     if (this.collision) { this.close(); throw { type: 'unavailable-id' }; }
-    this.hb = setInterval(() => this.beat(), 4000);
+    this.hb = setInterval(() => this.beat(), 1000);
   }
-  attach(c) {
+  get hostTag() { return this._tag || (this._tag = rid()); }
+  attach(c, idx) {
+    if (!c) return null;
     if (this.closed) { c.end(true); return null; }
     const T = this.cx.topic;
+    c._idx = idx;
     c.subscribe([T + '/s', T + '/h']);
+    c.on('connect', () => c.subscribe([T + '/s', T + '/h'])); // after an auto-reconnect
     c.on('message', (topic, payload) => this.rq(async () => {
       const m = await this.cx.open(new TextDecoder().decode(payload)); if (!m) return;
       if (topic === T + '/h') {
         if (m.from === this.hostTag) return;
         if (m.t === 'ping' && this.busyCheck) this.collision = true;
-        if (m.t === 'whohost' && !this.busyCheck && !this.closed) this.pub('/h', { t: 'ping', from: this.hostTag });
+        if (m.t === 'whohost' && !this.busyCheck && !this.closed) this.broadcast({ t: 'ping', from: this.hostTag });
         return;
       }
-      const id = String(m.from || '').slice(0, 16); if (!id) return;
-      const known = this.clients.get(id);
-      if (m.t === 'leave') {
-        if (known && (!m.conn || !known.conn || m.conn === known.conn)) { this.clients.delete(id); this.left.add(id); this.h.leave(id); }
-        return;
-      }
-      if (this.left.has(id)) return; // said goodbye; late packets don't bring them back
-      if (m.t === 'hello' || !known) {
-        // a hello, or any message from a player we lost track of: (re)admit them
-        this.clients.set(id, { last: Date.now(), conn: m.conn || (known && known.conn) });
-        this.h.join(id, cleanName(m.nick) || 'Player');
-        if (m.t !== 'act') return;
-      }
-      const cl = this.clients.get(id); cl.last = Date.now(); if (m.conn) cl.conn = m.conn;
-      if (m.t === 'act' && m.a && typeof m.a === 'object') this.h.act(id, m.a);
+      this.handle(m, idx);
     }));
-    this.links.push(c);
+    this.links[idx] = c;
     return c;
   }
-  pub(sub, obj) {
+  handle(m, idx) {
+    const id = String(m.from || '').slice(0, 16); if (!id) return;
+    let cl = this.clients.get(id);
+    if (m.t === 'leave') {
+      if (cl && (!m.conn || !cl.conn || m.conn === cl.conn)) { this.drop(id); this.left.add(id); }
+      return;
+    }
+    if (this.left.has(id)) return;
+    if (m.t === 'hello' || !cl) {
+      const fresh = !cl;
+      if (!cl) { cl = { aid: m.aidBase || 0, sent: 0 }; this.clients.set(id, cl); }
+      cl.conn = m.conn || cl.conn;
+      this.h.join(id, cleanName(m.nick) || 'Player');
+      if (!fresh && cl.make) this.flush(id);
+    }
+    cl.last = Date.now(); cl.link = idx; // answer on the broker this player actually uses
+    if (m.conn) cl.conn = m.conn;
+    if (m.t === 'act' && typeof m.aid === 'number' && m.a && typeof m.a === 'object') {
+      if (m.aid > cl.aid) { cl.aid = m.aid; this.h.act(id, m.a); }
+      this.schedule(id, 0); // always acknowledge, even a move the rules rejected
+    }
+  }
+  drop(id) { const cl = this.clients.get(id); if (!cl) return; clearTimeout(cl.timer); this.clients.delete(id); this.h.leave(id); }
+  publishOn(links, sub, obj) {
     this.q(async () => {
       const p = await this.cx.seal(obj);
-      for (const c of this.links) if (c.connected) try { c.publish(this.cx.topic + sub, p); } catch (e) {}
+      for (const c of links) if (c && c.connected) try { c.publish(this.cx.topic + sub, p); } catch (e) {}
     });
   }
-  get hostTag() { return this._tag || (this._tag = rid()); }
+  broadcast(obj) { this.publishOn(this.links, '/h', obj); }
+  sendTo(id, obj) {
+    const cl = this.clients.get(id); if (!cl) return;
+    const c = this.links[cl.link];
+    this.publishOn(c && c.connected ? [c] : this.links, '/c/' + id, obj);
+  }
+  schedule(id, wait = 90) {
+    const cl = this.clients.get(id); if (!cl || cl.timer) return;
+    cl.timer = setTimeout(() => { cl.timer = null; this.flush(id); }, wait);
+  }
+  flush(id) {
+    const cl = this.clients.get(id); if (!cl || !cl.make) return;
+    const obj = cl.make(); obj.ack = cl.aid; obj.n = ++this.n;
+    cl.sent = Date.now();
+    this.sendTo(id, obj);
+  }
   beat() {
     const now = Date.now();
-    for (const [id, c] of [...this.clients]) if (now - c.last > 16000) { this.clients.delete(id); this.h.leave(id); }
-    this.pub('/h', { t: 'ping', from: this.hostTag });
+    for (const [id, cl] of [...this.clients]) {
+      if (now - cl.last > RELAY_TIMEOUT) { this.drop(id); continue; }
+      if (cl.make && now - cl.sent > 2000) this.flush(id);
+    }
+    // keep-alive: the lobby is re-sent only while no game is running; during a game it's just a ping
+    if (!this._lb || now - this._lb > 3000) { this._lb = now; if (this.lastLobby && !this.inGame) this.broadcast({ t: 'lobby', l: this.lastLobby, n: ++this.n }); else this.broadcast({ t: 'ping', from: this.hostTag }); }
   }
-  lobby(l) { this.lastLobby = l; this.pub('/h', { t: 'lobby', l, n: ++this.n }); }
+  lobby(l) {
+    this.lastLobby = l; this.inGame = false; this._lb = Date.now();
+    for (const cl of this.clients.values()) cl.make = null;
+    this.broadcast({ t: 'lobby', l, n: ++this.n });
+  }
   state(viewFor, seatOf, lobby) {
-    for (const id of this.clients.keys()) {
+    this.inGame = true;
+    for (const [id, cl] of this.clients) {
       const seat = seatOf(id);
-      this.pub('/c/' + id, seat == null ? { t: 'lobby', l: lobby, n: ++this.n } : { t: 'state', st: viewFor(seat), n: ++this.n });
+      cl.make = seat == null ? () => ({ t: 'lobby', l: lobby }) : () => ({ t: 'state', st: viewFor(seat) });
+      this.schedule(id);
     }
   }
   close() {
     this.closed = true; clearInterval(this.hb);
-    if (this.cx) this.q(async () => { const p = await this.cx.seal({ t: 'gone' }); for (const c of this.links) try { c.publish(this.cx.topic + '/h', p); } catch (e) {} });
-    this.q(async () => { for (const c of this.links) try { c.end(false); } catch (e) {} });
+    for (const cl of this.clients.values()) clearTimeout(cl.timer);
+    if (this.cx) this.broadcast({ t: 'gone', from: this.hostTag });
+    this.q(async () => { await new Promise(r => setTimeout(r, 150)); for (const c of this.links) try { c && c.end(false); } catch (e) {} });
   }
 }
 class RelayClient {
-  constructor(h) { this.h = h; this.kind = 'relay'; this.selfId = rid(); this.q = queue(); this.rq = queue(); this.lastN = 0; }
+  constructor(h) { this.h = h; this.kind = 'relay'; this.selfId = rid(); this.q = queue(); this.rq = queue(); this.lastN = 0; this.aid = Date.now() % 1e9; this.outbox = []; }
   async start(code, nick) {
-    this.cx = await roomCrypto(code); this.nick = nick;
+    this.cx = await roomCrypto(code); this.nick = nick; this.conn = rid();
     const T = this.cx.topic;
-    // race every broker; keep the first that answers and drop the rest.
-    // Each connection's leave-notice carries its own tag, so a dropped spare can't kick us out.
-    const tags = BROKERS.map(() => rid());
-    const wills = await Promise.all(tags.map(tag => this.cx.seal({ t: 'leave', from: this.selfId, conn: tag })));
-    const tries = BROKERS.map((url, i) => connectBroker(url, { clientId: 'c' + rid(), will: { topic: T + '/s', payload: wills[i], qos: 0 } }, 6000).then(c => { c._tag = tags[i]; return c; }));
+    // race every broker; keep the first that answers and drop the rest
+    const tries = BROKERS.map(url => connectBroker(url, { clientId: 'c' + rid() }, 6000));
     let c = null;
     try { c = await Promise.any(tries); } catch (e) { throw { type: 'relay-down' }; }
-    this.conn = c._tag;
     tries.forEach(p => p.then(x => { if (x !== c) try { x.end(false); } catch (e) {} }, () => {}));
     this.c = c;
-    c.subscribe([T + '/h', T + '/c/' + this.selfId]);
+    const subs = [T + '/h', T + '/c/' + this.selfId];
+    c.subscribe(subs);
+    c.on('connect', () => { c.subscribe(subs); this.send({ t: 'hello' }); }); // re-announce after a reconnect
     return new Promise((res, rej) => {
       let found = false;
-      const hello = () => this.send({ t: 'hello', nick: this.nick });
+      const hello = () => this.send({ t: 'hello', aidBase: this.aid });
       hello(); this.helloTimer = setInterval(() => { if (!found) hello(); }, 1500);
-      const to = setTimeout(() => { if (!found) { this.close(); rej({ type: 'peer-unavailable' }); } }, 10000);
+      const to = setTimeout(() => { if (!found) { this.close(); rej({ type: 'peer-unavailable' }); } }, 12000);
       c.on('message', (topic, payload) => this.rq(async () => {
+        if (this.dead) return;
         const m = await this.cx.open(new TextDecoder().decode(payload)); if (!m) return;
         this.last = Date.now();
         if (m.t === 'gone') { if (found) this.gone(); return; }
-        if (this.dead) return;
         if (m.t === 'ping') { if (found) this.send({ t: 'pong' }); return; }
         if (m.t !== 'lobby' && m.t !== 'state') return;
         if (typeof m.n === 'number') { if (m.n <= this.lastN) return; this.lastN = m.n; }
-        if (!found) { found = true; clearTimeout(to); clearInterval(this.helloTimer); this.wd = setInterval(() => { if (Date.now() - this.last > 16000) this.gone(); }, 3000); res(this); }
+        if (typeof m.ack === 'number') this.outbox = this.outbox.filter(x => x.aid > m.ack);
+        if (!found) {
+          found = true; clearTimeout(to); clearInterval(this.helloTimer);
+          this.wd = setInterval(() => {
+            if (Date.now() - this.last > RELAY_TIMEOUT) this.gone();
+            for (const x of this.outbox.slice(0, 6)) this.send({ t: 'act', aid: x.aid, a: x.a }); // re-send unconfirmed moves
+            if (Date.now() - (this.lastPong || 0) > 4000) { this.lastPong = Date.now(); this.send({ t: 'pong' }); }
+          }, 1000);
+          res(this);
+        }
         if (m.t === 'lobby' && m.l) {
-          const seated = Array.isArray(m.l.seats) && m.l.seats.some(s => s[2] === this.selfId);
-          if (!seated && !m.l.live && (m.l.seats || []).length < 6 && Date.now() - (this.lastHello || 0) > 1500) { this.lastHello = Date.now(); this.send({ t: 'hello' }); }
+          const mine = Array.isArray(m.l.seats) ? m.l.seats.find(s => s[2] === this.selfId) : null;
+          // not listed yet, or listed under an old name: say hello again (it may have been lost)
+          const stale = mine ? mine[0] !== this.nick : (!m.l.live && (m.l.seats || []).length < 6);
+          if (stale && Date.now() - (this.lastHello || 0) > 1500) { this.lastHello = Date.now(); this.send({ t: 'hello' }); }
           this.h.lobby(m.l);
         } else if (m.st) this.h.state(m.st);
       }));
     });
   }
-  send(obj) { if (this.dead && obj.t !== 'leave') return; this.q(async () => { const p = await this.cx.seal(Object.assign({ from: this.selfId, conn: this.conn, nick: this.nick }, obj)); if (this.c && this.c.connected) try { this.c.publish(this.cx.topic + '/s', p); } catch (e) {} }); }
-  rename(nick) { this.nick = nick; this.send({ t: 'hello', nick }); }
-  act(a) { this.send({ t: 'act', a }); }
+  send(obj) {
+    if (this.dead && obj.t !== 'leave') return;
+    this.q(async () => {
+      const p = await this.cx.seal(Object.assign({ from: this.selfId, conn: this.conn, nick: this.nick }, obj));
+      if (this.c && this.c.connected) try { this.c.publish(this.cx.topic + '/s', p); } catch (e) {}
+    });
+  }
+  rename(nick) { this.nick = nick; this.send({ t: 'hello' }); }
+  act(a) { const x = { aid: ++this.aid, a }; this.outbox.push(x); if (this.outbox.length > 20) this.outbox.shift(); this.send({ t: 'act', aid: x.aid, a }); }
   gone() { if (this.dead) return; this.dead = true; clearInterval(this.wd); this.h.gone(); }
   close() {
-    this.dead = true; clearInterval(this.wd); clearInterval(this.helloTimer);
     this.send({ t: 'leave' });
-    this.q(async () => { try { this.c && this.c.end(false); } catch (e) {} });
+    this.dead = true; clearInterval(this.wd); clearInterval(this.helloTimer);
+    this.q(async () => { await new Promise(r => setTimeout(r, 150)); try { this.c && this.c.end(false); } catch (e) {} });
   }
 }
 
