@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNO Flip · No Mercy</title>
+<meta name="description" content="UNO Flip and No Mercy rules in the browser. Endless deck, stacking, light and dark sides. Play bots or friends online, no account needed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  /* one warm-neutral scale; the dark side shifts it two steps darker */
+  --bg:#1a1a18; --s1:#222220; --s2:#2b2b28; --s3:#363632; --line:#3d3d39;
+  --text:#f2f1ec; --muted:#9c9b94;
+  --accent:#c8f03c; --accent-hi:#d6f86a; --on-accent:#141412;
+  /* card colors are game content, not UI chrome */
+  --r:#e2343d; --y:#f4c21b; --g:#23a352; --b:#2069d8;
+  --p:#ff4aa5; --t:#17c6b6; --o:#ff8a22; --v:#9550ff;
+  --ri:#c4202a; --yi:#a87a00; --gi:#147a3a; --bi:#1452b0;
+  --paper:#fbfaf6; --ink:#141412;
+  --cw:76px; --ch:112px;
+  --ease:cubic-bezier(.2,.7,.3,1);
+  --f-ui:'Archivo',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+body.dark{ --bg:#0d0d0e; --s1:#151516; --s2:#1e1e20; --s3:#29292c; --line:#2f2f33; --muted:#8e8e94; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:400 14px/20px var(--f-ui);font-variation-settings:"wdth" 100;color:var(--text);background:var(--bg);overflow:hidden;user-select:none;-webkit-user-select:none;transition:background-color 180ms ease-out}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+.hidden{display:none!important}
+.mono{font-family:var(--f-mono)}
+.label{font:500 12px/16px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- controls ---------- */
+.btn{height:40px;padding:0 16px;border-radius:4px;background:var(--s2);font-weight:600;font-size:14px;transition:background-color 150ms ease-out,transform 80ms ease-out,opacity 150ms ease-out;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--s3)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.primary:hover:not(:disabled){background:var(--accent-hi)}
+.btn.quiet{background:transparent;color:var(--muted)}
+.btn.quiet:hover:not(:disabled){background:var(--s2);color:var(--text)}
+.btn.wide{width:100%;height:48px;font-size:16px}
+.btn.uno.ready{background:var(--text);color:var(--bg)}
+.btn.uno.called{background:var(--s3);color:var(--muted)}
+input[type=text]{height:40px;padding:0 12px;border-radius:4px;background:var(--s1);border:1px solid var(--line);color:var(--text);font:inherit;outline:none;transition:border-color 150ms ease-out;min-width:0}
+input[type=text]:focus{border-color:var(--text)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{height:32px;padding:0 12px;color:var(--muted);font:500 13px/32px var(--f-mono);transition:background-color 150ms ease-out,color 150ms ease-out}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--s3);color:var(--text)}
+
+/* ---------- menu pages ---------- */
+.screen{position:fixed;inset:0;overflow:auto}
+.page{max-width:560px;margin:0 auto;padding:48px 24px}
+.title{font:900 48px/44px var(--f-ui);font-variation-settings:"wdth" 70;text-transform:uppercase;letter-spacing:-.01em}
+.title span{color:var(--muted)}
+.lede{color:var(--muted);font-size:16px;line-height:24px;margin:16px 0 32px;max-width:440px}
+.field{display:grid;grid-template-columns:136px 1fr;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+.field>.label{align-self:center}
+.section{margin-top:32px}
+.section>.label{display:block;margin-bottom:8px}
+.opt{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.opt input{width:16px;height:16px;margin-top:2px;accent-color:var(--text)}
+.opt b{font-weight:600;display:block}
+.opt span{color:var(--muted)}
+.actions-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.code-in{width:96px;text-align:center;font:500 16px var(--f-mono);letter-spacing:.2em;text-transform:uppercase}
+.msg{color:var(--muted);min-height:20px;margin-top:8px}
+.textlink{color:var(--muted);text-decoration:underline;text-underline-offset:3px;margin-top:24px;display:inline-block}
+.textlink:hover{color:var(--text)}
+.code{font:500 48px/56px var(--f-mono);letter-spacing:.24em;cursor:pointer}
+.seatrow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.seatrow:last-child{border-bottom:1px solid var(--line)}
+.seatrow .who{display:flex;gap:8px;align-items:center;font-weight:600}
+.seatrow.me .who{text-decoration:underline;text-underline-offset:4px}
+.ini{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:4px;background:var(--s3);font:500 11px var(--f-mono);color:var(--text);flex:none}
+@media (max-width:520px){.field{grid-template-columns:1fr;gap:8px}.page{padding:32px 16px}.title{font-size:40px;line-height:38px}}
+
+/* ---------- game layout ---------- */
+#game{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:1fr 288px}
+#opps{grid-column:1;display:flex;justify-content:center;gap:8px;padding:16px 16px 0;flex-wrap:wrap}
+#table{grid-column:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:0}
+#side{grid-column:2;grid-row:1/4;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#bottom{grid-column:1;padding:0 16px 16px}
+
+/* seats */
+.opp{position:relative;width:136px;background:var(--s1);border:1px solid transparent;border-radius:4px;padding:8px 12px;transition:border-color 150ms ease-out,opacity 150ms ease-out}
+.opp.turn{border-color:var(--text)}
+.opp.out{opacity:.4}
+.opp .top{display:flex;align-items:center;gap:8px}
+.opp .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opp .meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}
+.opp .cnt{font:900 24px/24px var(--f-ui);font-variation-settings:"wdth" 75}
+.opp .tags{font:500 11px/16px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.opp .tags b{color:var(--text);font-weight:500}
+.fan{position:relative;height:16px;margin-top:8px}
+.fan i{position:absolute;top:0;width:10px;height:16px;border-radius:2px}
+.fan i.w{background:conic-gradient(var(--r) 0 90deg,var(--b) 0 180deg,var(--y) 0 270deg,var(--g) 0)}
+.fan i.w.D{background:conic-gradient(var(--p) 0 90deg,var(--t) 0 180deg,var(--o) 0 270deg,var(--v) 0)}
+.bar{height:2px;background:var(--s3);margin-top:8px}
+.bar>div{height:100%;background:var(--muted);transition:width 180ms ease-out}
+.bar.hot>div{background:var(--text)}
+.timer{height:2px;margin-top:8px;background:var(--text);transform-origin:left;animation:timer linear forwards}
+@keyframes timer{to{transform:scaleX(0)}}
+.catch{margin-top:8px;width:100%;height:28px;font-size:12px}
+
+/* table */
+#banner{font-weight:500;color:var(--muted);text-align:center;min-height:20px}
+#banner.you{color:var(--text);font-weight:700}
+.center{display:flex;align-items:center;gap:48px}
+.pile{position:relative;width:calc(var(--cw)*1.3);height:calc(var(--ch)*1.3)}
+.pile .card{position:absolute;inset:0;width:100%;height:100%}
+#drawpile{cursor:pointer}
+#drawpile .card:nth-child(1){transform:translate(-6px,6px);filter:brightness(.55)}
+#drawpile .card:nth-child(2){transform:translate(-3px,3px);filter:brightness(.75)}
+#drawpile.can .card:nth-child(3){outline:2px solid var(--text);outline-offset:4px}
+#discard .card{outline:2px solid var(--cc-now,transparent);outline-offset:6px;transition:outline-color 180ms ease-out}
+#discard.drop .card{outline-color:var(--text)}
+.hud{display:flex;flex-direction:column;gap:8px;min-width:136px}
+.hud .row{display:flex;align-items:center;gap:8px}
+.chip{width:12px;height:12px;border-radius:2px;background:var(--cc-now,var(--muted))}
+.stack{font:900 48px/44px var(--f-ui);font-variation-settings:"wdth" 70}
+
+/* me */
+.me{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px;flex-wrap:wrap}
+.me .who{display:flex;align-items:center;gap:8px;font-weight:600}
+.me .cnt{font:900 20px/20px var(--f-ui);font-variation-settings:"wdth" 75}
+.me .bar{width:96px;margin:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+#hand{display:flex;justify-content:center;padding:16px 8px 0;min-height:calc(var(--ch) + 24px);overflow-x:auto}
+#hand .card{flex:none;cursor:grab;transition:transform 150ms ease-out,opacity 150ms ease-out;touch-action:none}
+#hand .card.dim{opacity:.45}
+#hand .card.ok{transform:translateY(-4px)}
+#hand .card.ok:hover{transform:translateY(-12px)}
+#hand .card.jump{outline:2px solid var(--text);outline-offset:2px;transform:translateY(-4px)}
+#hand .card.new{animation:in 160ms ease-out backwards}
+#hand .card.flipin{animation:fade 180ms ease-out backwards}
+#hand .card.lifted{opacity:.25}
+#hand .card.nope{animation:nope 160ms ease-out}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+@keyframes fade{from{opacity:0}}
+@keyframes nope{50%{transform:translateX(-4px)}}
+
+/* cards */
+.card{width:var(--cw);height:var(--ch);border-radius:calc(var(--cw)*.12);background:var(--cc);border:calc(var(--cw)*.06) solid var(--paper);position:relative;overflow:hidden;color:var(--on,#fff)}
+.card.s-D{border-color:#0b0b0c}
+.card.c-r{--cc:var(--r);--gl:var(--ri)}.card.c-y{--cc:var(--y);--gl:var(--yi);--on:var(--ink)}.card.c-g{--cc:var(--g);--gl:var(--gi)}.card.c-b{--cc:var(--b);--gl:var(--bi)}
+.card.c-p{--cc:var(--p);--gl:var(--p)}.card.c-t{--cc:var(--t);--gl:var(--t);--on:var(--ink)}.card.c-o{--cc:var(--o);--gl:var(--o);--on:var(--ink)}.card.c-v{--cc:var(--v);--gl:var(--v)}
+.card.c-w{--cc:#161614}.card.s-D.c-w{--cc:#0b0b0c}
+.card .oval{position:absolute;left:50%;top:50%;width:84%;height:62%;background:var(--paper);border-radius:50%;transform:translate(-50%,-50%) rotate(28deg);display:flex;align-items:center;justify-content:center}
+.card.s-D .oval{background:#0b0b0c}
+.card.c-w .oval{background:conic-gradient(var(--r) 0 90deg,var(--b) 0 180deg,var(--y) 0 270deg,var(--g) 0)}
+.card.s-D.c-w .oval{background:conic-gradient(var(--p) 0 90deg,var(--t) 0 180deg,var(--o) 0 270deg,var(--v) 0)}
+.card .mid{transform:rotate(-28deg);font:900 calc(var(--cw)*.46)/1 var(--f-ui);font-variation-settings:"wdth" 70;color:var(--gl);display:flex;flex-direction:column;align-items:center}
+.card.c-w .mid{color:var(--paper);background:#161614;padding:2px 6px;border-radius:4px;font-size:calc(var(--cw)*.32)}
+.card .mid.sm{font-size:calc(var(--cw)*.3)}
+.card .mid em{font:500 calc(var(--cw)*.105)/1.2 var(--f-mono);font-style:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--ink);margin-top:2px;white-space:nowrap}
+.card.s-D .mid em,.card.c-w .mid em{color:var(--paper)}
+.card .cor{position:absolute;font:900 calc(var(--cw)*.18)/1 var(--f-ui);font-variation-settings:"wdth" 70}
+.card .cor.tl{top:6%;left:8%}.card .cor.br{bottom:6%;right:8%;transform:rotate(180deg)}
+
+/* fx */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
+#fx .card{position:fixed;left:0;top:0;margin:0;will-change:transform}
+#toast{height:48px;margin:-16px 0 -8px;pointer-events:none;font:900 40px/48px var(--f-ui);font-variation-settings:"wdth" 70;text-transform:uppercase;opacity:0;transition:opacity 150ms ease-out;white-space:nowrap}
+#toast.show{opacity:1}
+.float{position:absolute;left:50%;top:8px;transform:translate(-50%,4px);font:500 13px/16px var(--f-mono);background:var(--text);color:var(--bg);padding:2px 8px;border-radius:4px;pointer-events:none;z-index:5;white-space:nowrap;opacity:0;transition:opacity 150ms ease-out,transform 150ms ease-out}
+.float.in{opacity:1;transform:translate(-50%,0)}
+
+/* log */
+.sidehead{height:48px;padding:0 16px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+#log{flex:1;overflow-y:auto;padding:0 16px;font:400 12px/16px var(--f-mono);color:var(--muted);display:flex;flex-direction:column-reverse}
+#log div{padding:8px 0;border-top:1px solid var(--line)}
+#log div.n{color:var(--text)}
+#log div.win{color:var(--text);font-weight:500}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;animation:fade 150ms ease-out}
+.dialog{background:var(--s2);border-radius:8px;padding:24px;width:100%;max-width:400px}
+.dialog h2{font:800 20px/24px var(--f-ui);margin-bottom:8px}
+.dialog p{color:var(--muted);margin-bottom:16px}
+.colors{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.colors button{height:64px;border-radius:4px;font-weight:700;transition:transform 80ms ease-out,filter 150ms ease-out}
+.colors button:hover{filter:brightness(1.08)}
+.colors button:active{transform:translateY(1px)}
+.list{display:flex;flex-direction:column}
+.list button,.list .li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 0;border-top:1px solid var(--line);font-weight:600;text-align:left;transition:color 150ms ease-out}
+.list button:hover:not(:disabled){color:var(--muted)}
+.list .li:last-child,.list button:last-child{border-bottom:1px solid var(--line)}
+.list .mono{font-weight:500;color:var(--muted)}
+.rulestext{max-height:60vh;overflow:auto;color:var(--text)}
+.rulestext h3{font:500 12px/16px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.rulestext h3:first-child{margin-top:0}
+.rulestext li{margin:0 0 8px 16px;color:var(--muted)}
+.rulestext b{color:var(--text);font-weight:600}
+.dialog .btn.wide{margin-top:16px}
+.pick{display:flex;flex-wrap:wrap;gap:8px;--cw:56px;--ch:82px}
+.pick .card{cursor:pointer;transition:opacity 150ms ease-out}
+.pick .card.lead{cursor:default;outline:2px solid var(--text);outline-offset:2px}
+.pick .card.off{opacity:.3}
+
+@media (max-width:820px){
+  #game{grid-template-columns:1fr;grid-template-rows:auto 1fr auto auto}
+  #side{grid-column:1;grid-row:4;max-height:88px;border-left:none;border-top:1px solid var(--line)}
+  #side .sidehead{display:none}
+  :root{--cw:60px;--ch:88px}
+  #opps{gap:4px;padding:8px 8px 0}
+  .opp{width:auto;min-width:84px;padding:8px}
+  .opp .fan{display:none}
+  .center{gap:24px}
+  .hud{min-width:0}
+  .stack{font-size:32px;line-height:32px}
+  #toast{font-size:28px;line-height:40px;height:40px}
+  #table{gap:16px}
+  #bottom{padding:0 8px 8px}
+  .btn{height:36px;padding:0 12px;font-size:13px}
+  .me .bar{width:64px}
+}
+</style>
+</head>
+<body>
+
+<div id="start" class="screen">
+  <div class="page">
+    <h1 class="title">UNO Flip<br><span>No Mercy</span></h1>
+    <p class="lede">Classic, Flip and No Mercy cards in one endless deck. Play against bots, or open a room for friends.</p>
+    <div class="field"><span class="label">Name</span><input id="pname" type="text" maxlength="14" value="You"></div>
+    <div class="field"><span class="label">Bots</span><div class="seg" id="segBots"></div></div>
+    <div class="field"><span class="label">Bot speed</span><div class="seg" id="segSpeed"></div></div>
+    <div class="field"><span class="label">Mercy limit</span><div class="seg" id="segMercy"></div></div>
+    <div class="section"><span class="label">Rules</span><div id="ruleBox"></div></div>
+    <div class="section"><span class="label">Extra cards</span><div id="cardBox"></div></div>
+    <div class="section"><button class="btn primary wide" id="btnStart">Play against bots</button></div>
+    <div class="section">
+      <span class="label">Online · no account needed</span>
+      <div class="actions-row">
+        <button class="btn" id="btnCreate">Create room</button>
+        <input id="joinCode" class="code-in" type="text" maxlength="4" placeholder="CODE" autocomplete="off">
+        <button class="btn" id="btnJoin">Join</button>
+      </div>
+      <div class="msg" id="startMsg"></div>
+    </div>
+    <button class="textlink" data-rules>How to play</button>
+  </div>
+</div>
+
+<div id="lobby" class="screen hidden">
+  <div class="page">
+    <span class="label">Room code</span>
+    <div class="code" id="lbCode" title="Copy code">----</div>
+    <p class="lede" id="lbHint" style="margin:8px 0 24px"></p>
+    <div class="actions-row hidden" id="shareBox" style="margin-bottom:24px"><input type="text" id="shareLink" readonly style="flex:1"><button class="btn" id="btnCopyLink">Copy link</button></div>
+    <span class="label">Players</span>
+    <div id="lbSeats" style="margin-top:8px"></div>
+    <div id="lbHost">
+      <div class="field" style="border-top:none"><span class="label">Bots</span><div class="seg" id="segRoomBots"></div></div>
+      <button class="btn primary wide" id="btnRoomStart">Start game</button>
+    </div>
+    <div class="msg" id="lbWait"></div>
+    <button class="textlink" id="btnLeave">Leave room</button>
+  </div>
+</div>
+
+<div id="game" class="hidden">
+  <div id="opps"></div>
+  <div id="table">
+    <div id="banner"></div>
+    <div id="toast"></div>
+    <div class="center" id="center">
+      <div class="pile" id="drawpile" title="Draw pile: you can see the back of the next card"></div>
+      <div class="pile" id="discard"></div>
+      <div class="hud" id="hud"></div>
+    </div>
+  </div>
+  <div id="bottom">
+    <div class="me">
+      <div class="who"><span class="ini" id="meIni"></span><span id="meName"></span><span class="cnt" id="meCnt"></span><span class="tags label" id="meTags"></span><div class="bar" id="meBarWrap"><div id="meDanger"></div></div></div>
+      <div class="actions">
+        <button class="btn primary" id="btnDraw">Draw</button>
+        <button class="btn" id="btnPass">Pass</button>
+        <button class="btn uno" id="btnUno">UNO</button>
+        <button class="btn quiet" id="btnSort">Sort</button>
+        <button class="btn quiet" data-rules>Rules</button>
+        <button class="btn quiet" id="btnQuit">Quit</button>
+      </div>
+    </div>
+    <div id="hand"></div>
+  </div>
+  <div id="side"><div class="sidehead"><span class="label">Log</span><span class="label" id="netTag"></span><button class="btn quiet" id="btnSound" style="height:32px;padding:0 8px">Sound on</button></div><div id="log"></div></div>
+</div>
+
+<div id="fx"></div>
+<div id="modal" class="modal hidden"><div class="dialog" id="modalBody"></div></div>
+
+<script>
+// ===== ENGINE: UNO Flip × No Mercy × Classic (no DOM) =====
+const SIDE_COLORS = { L: ['r', 'y', 'g', 'b'], D: ['p', 't', 'o', 'v'] };
+const COLOR_NAME = { r: 'Red', y: 'Yellow', g: 'Green', b: 'Blue', p: 'Pink', t: 'Teal', o: 'Orange', v: 'Purple', w: 'Wild' };
+const VALUE_NAME = {
+  skip: 'Skip', rev: 'Reverse', d1: 'Draw 1', d2: 'Draw 2', d4: 'Draw 4', d5: 'Draw 5', flip: 'Flip',
+  discall: 'Discard All', skipall: 'Skip Everyone', wild: 'Wild', wd2: 'Wild Draw 2', wd4: 'Wild Draw 4',
+  wrd4: 'Wild Reverse Draw 4', wd6: 'Wild Draw 6', wd10: 'Wild Draw 10', wrd8: 'Wild Reverse Draw 8',
+  wdc: 'Wild Draw Color', roul: 'Wild Color Roulette',
+  mirror: 'Mirror', shield: 'Shield', dflip: 'Double Flip', duel: 'Wild Duel', wd15: 'Wild Draw 15', bhole: 'Black Hole'
+};
+const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'duel', 'wd15', 'bhole'];
+const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
+// Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
+const SIDE_WEIGHTS = {
+  L: { colored: { '0': 1, '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1 },
+       wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, duel: 2 } },
+  D: { colored: { '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1 },
+       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1 } }
+};
+const FACES = {}, FACE_W = {};
+for (const s of ['L', 'D']) {
+  FACES[s] = []; FACE_W[s] = [];
+  for (const c of SIDE_COLORS[s]) for (const [v, w] of Object.entries(SIDE_WEIGHTS[s].colored)) { FACES[s].push({ c, v }); FACE_W[s].push(w); }
+  for (const [v, w] of Object.entries(SIDE_WEIGHTS[s].wild)) { FACES[s].push({ c: 'w', v }); FACE_W[s].push(w); }
+}
+// Safe printable chars ('#'..'~' minus backslash, then Latin-1 ¡..ÿ) index faces on the wire: 1 char per side.
+const ALPHA = (Array.from({ length: 92 }, (_, i) => String.fromCharCode(35 + i)).filter(ch => ch !== '\\').join('') + Array.from({ length: 95 }, (_, i) => String.fromCharCode(161 + i)).join(''));
+const faceIdx = (s, f) => FACES[s].findIndex(x => x.c === f.c && x.v === f.v);
+let CARD_ID = 1;
+function randFace(s) {
+  const w = FACE_W[s]; let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < w.length; i++) if ((r -= w[i]) < 0) return Object.assign({}, FACES[s][i]);
+  return Object.assign({}, FACES[s][0]);
+}
+function randCard() { return { id: CARD_ID++, L: randFace('L'), D: randFace('D') }; }
+const cardCode = card => ALPHA[faceIdx('L', card.L)] + ALPHA[faceIdx('D', card.D)];
+const codeCard = code => ({ id: CARD_ID++, L: Object.assign({}, FACES.L[ALPHA.indexOf(code[0])]), D: Object.assign({}, FACES.D[ALPHA.indexOf(code[1])]) });
+const other = s => s === 'L' ? 'D' : 'L';
+function faceName(f) { return f.c === 'w' ? VALUE_NAME[f.v] : COLOR_NAME[f.c] + ' ' + (VALUE_NAME[f.v] || f.v); }
+
+class Game {
+  constructor(names, humans, rules) {
+    rules = Object.assign({}, rules);
+    if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
+    delete rules.sevenZero;
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true }, rules);
+    this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
+    // card values that never get dealt at this table
+    this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
+    const hum = Array.isArray(humans) ? humans : [humans];
+    this.gid = Math.random().toString(36).slice(2, 8);
+    this.side = 'L';
+    this.next = this.newCard();
+    this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, unoCalled: false, vulnerable: false, shield: false, av: '', peer: '' }));
+    for (const p of this.players) for (let i = 0; i < this.rules.handSize; i++) p.hand.push(this.newCard());
+    let top;
+    do { top = this.newCard(); } while (top.L.c === 'w' || isNaN(+top.L.v));
+    this.top = top; this.color = top.L.c; this.dir = 1;
+    this.turn = Math.floor(Math.random() * names.length);
+    this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.roulette = null; this.flipBack = null;
+    this.drewBy = -1; this.winner = null; this.log = []; this.seq = 0;
+    this.events = []; this.evSeq = 0;
+    this.addLog(`First card: ${faceName(top.L)}. ${this.players[this.turn].name} starts.`);
+    this.ev('start');
+  }
+  newCard() {
+    const c = randCard(), off = this.rules.off || [];
+    for (const s of ['L', 'D']) { let g = 0; while (off.includes(c[s].v) && g++ < 60) c[s] = randFace(s); }
+    return c;
+  }
+  f(card) { return card[this.side]; }
+  back(card) { return card[other(this.side)]; }
+  colors() { return SIDE_COLORS[this.side]; }
+  addLog(msg, cls = '') { this.log.push({ msg, cls }); if (this.log.length > 200) this.log.shift(); }
+  ev(type, data = {}) { this.events.push(Object.assign({ type, n: ++this.evSeq }, data)); if (this.events.length > 24) this.events.shift(); }
+  active() { return this.players.filter(p => !p.out); }
+  nextIdx(from, steps = 1) {
+    let i = from; const n = this.players.length;
+    for (let s = 0; s < steps; s++) { let g = 0; do { i = (i + this.dir + n) % n; } while (this.players[i].out && ++g < n); }
+    return i;
+  }
+  canPlay(card) {
+    if (this.roulette !== null || card.hidden) return false;
+    const f = this.f(card), t = this.f(this.top);
+    if (this.pending > 0) return f.v === 'mirror' || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
+    return f.c === 'w' || f.c === this.color || f.v === t.v;
+  }
+  canJumpIn(pi, card) {
+    if (!this.rules.jumpIn || this.winner !== null || this.roulette !== null || pi === this.turn || this.players[pi].out || card.hidden) return false;
+    const f = this.f(card), t = this.f(this.top);
+    return f.c !== 'w' && f.c === t.c && f.v === t.v;
+  }
+  playable(pi) { return this.players[pi].hand.filter(c => this.canPlay(c)); }
+  validColor(c, pi) { return this.colors().includes(c) ? c : Bot.bestColor(this, this.players[pi].hand, this.side); }
+  give(pi, k, until) {
+    const p = this.players[pi]; const got = [];
+    while (true) {
+      if (until) { if (got.length && until(got[got.length - 1])) break; }
+      else if (got.length >= k) break;
+      const c = this.next; this.next = this.newCard();
+      p.hand.push(c); got.push(c);
+      if (this.rules.mercy && p.hand.length >= this.rules.mercy) break;
+      if (got.length > 300) break;
+    }
+    if (p.hand.length !== 1) p.vulnerable = false;
+    if (got.length) this.ev('draw', { pi, k: got.length });
+    return got;
+  }
+  mercyCheck() {
+    if (this.rules.mercy) for (const p of this.players) {
+      if (!p.out && p.hand.length >= this.rules.mercy) {
+        p.out = true; p.elim = true;
+        this.addLog(`${p.name} hit ${p.hand.length} cards and is knocked out by the Mercy Rule.`, 'bad');
+        this.ev('ko', { pi: this.players.indexOf(p) });
+      }
+    }
+    const act = this.active();
+    if (act.length === 1 && this.winner === null) {
+      this.winner = this.players.indexOf(act[0]);
+      this.addLog(`${act[0].name} is the last one standing.`, 'win');
+      this.ev('win', { pi: this.winner });
+    }
+    if (this.winner === null && this.players[this.turn].out) this.turn = this.nextIdx(this.turn, 1);
+    if (this.roulette !== null && this.players[this.roulette].out) { this.roulette = null; }
+  }
+  play(pi, cardId, opts = {}) {
+    const p = this.players[pi];
+    const idx = p.hand.findIndex(c => c.id === cardId);
+    if (idx < 0 || this.winner !== null) return false;
+    const card = p.hand[idx];
+    const jump = pi !== this.turn;
+    if (jump ? !this.canJumpIn(pi, card) : !this.canPlay(card)) return false;
+    const face = this.f(card);
+    // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
+    const chain = [card];
+    if (this.rules.multi && face.c !== 'w' && Array.isArray(opts.extra)) {
+      for (const id of opts.extra) {
+        const c = p.hand.find(x => x.id === id);
+        if (c && !chain.includes(c) && this.f(c).c !== 'w' && this.f(c).v === face.v) chain.push(c);
+      }
+    }
+    const k = chain.length;
+    p.hand = p.hand.filter(c => !chain.includes(c));
+    const last = chain[k - 1];
+    this.top = last;
+    this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
+    this.seq++; this.drawRun = 0;
+    let extra = '';
+    if (face.v === 'discall') {
+      const cols = new Set(chain.map(c => this.f(c).c));
+      const same = p.hand.filter(c => cols.has(this.f(c).c));
+      p.hand = p.hand.filter(c => !cols.has(this.f(c).c));
+      if (same.length) extra = ` and discards ${same.length} more card${same.length > 1 ? 's' : ''} of ${k > 1 ? 'those colors' : 'that color'}`;
+    }
+    const showColor = face.c === 'w' && face.v !== 'roul';
+    const what = k > 1 ? chain.map(c => faceName(this.f(c))).join(', ') : faceName(face);
+    this.addLog(`${jump ? p.name + ' jumps in with' : p.name + ' plays'} ${what}${showColor ? ' → ' + COLOR_NAME[this.color] : ''}${extra}.`, jump ? 'jump' : '');
+    this.ev('play', { pi, code: cardCode(last), side: this.side, jump, k });
+    if (k > 1) this.ev('multi', { pi, k });
+    if (showColor) this.ev('color', { c: this.color });
+    this.turn = pi;
+    this.drewBy = -1;
+    if (p.hand.length === 1) { p.vulnerable = this.rules.uno && !p.unoCalled; if (p.unoCalled) { this.addLog(`${p.name} calls UNO.`, 'uno'); this.ev('uno', { pi }); } }
+    else p.vulnerable = false;
+    p.unoCalled = false;
+    if (p.hand.length === 0) {
+      this.winner = pi; p.out = true;
+      this.addLog(`${p.name} empties their hand and wins.`, 'win');
+      this.ev('win', { pi });
+      return true;
+    }
+    let steps = 1;
+    const n = this.active().length;
+    switch (face.v) {
+      case '7':
+        if (this.rules.seven && opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out) {
+          const t = this.players[opts.target];
+          [p.hand, t.hand] = [t.hand, p.hand];
+          this.addLog(`${p.name} swaps hands with ${t.name} (${p.hand.length} ↔ ${t.hand.length}).`, 'swap');
+          this.ev('swap', { a: pi, b: opts.target });
+          for (const q of [p, t]) if (q.hand.length !== 1) q.vulnerable = false;
+        }
+        break;
+      case '0':
+        if (this.rules.zero) {
+          const order = []; let i = pi;
+          do { order.push(i); i = this.nextIdx(i, 1); } while (i !== pi && order.length < 20);
+          const hands = order.map(j => this.players[j].hand);
+          order.forEach((j, k) => { this.players[order[(k + 1) % order.length]].hand = hands[k]; });
+          for (const q of this.players) q.vulnerable = false;
+          this.addLog(`Everyone passes their hand ${this.dir === 1 ? 'clockwise' : 'counter-clockwise'}!`, 'swap');
+          this.ev('rotate', {});
+        }
+        break;
+      case 'skip':
+        steps = 1 + k;
+        for (let s = 1; s <= k; s++) this.ev('skip', { pi: this.nextIdx(pi, s) });
+        break;
+      case 'rev':
+        if (k % 2) { this.dir *= -1; steps = n === 2 ? 2 : 1; this.ev('reverse', { dir: this.dir }); }
+        break;
+      case 'skipall': steps = 0; this.ev('skipall', { pi }); break;
+      case 'd1': case 'd2': case 'd4': case 'd5': case 'wd2': case 'wd4': case 'wd6': case 'wd10': case 'wd15':
+        this.pending += DRAW_VAL[face.v] * k; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; break;
+      case 'wrd4': case 'wrd8':
+        this.dir *= -1; this.pending += DRAW_VAL[face.v]; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; this.ev('reverse', { dir: this.dir }); break;
+      case 'mirror':
+        if (this.pending > 0) {
+          const back = this.stackFrom;
+          if (back >= 0 && back !== pi && !this.players[back].out) {
+            this.addLog(`${p.name} mirrors the +${this.pending} stack back to ${this.players[back].name}.`, 'swap');
+            this.ev('mirror', { a: pi, b: back, k: this.pending });
+            this.stackFrom = pi; this.turn = back; steps = -1;
+          }
+        }
+        break;
+      case 'shield':
+        if (!p.shield) { p.shield = true; this.addLog(`${p.name} raises a shield. The next stack that reaches them breaks.`, 'swap'); this.ev('shieldup', { pi }); }
+        break;
+      case 'duel': {
+        const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
+        const flipNum = () => { const got = []; let n = null; while (n === null && got.length < 40) { const c = this.newCard(); got.push(c); const fv = this.f(c).v; if (!isNaN(+fv)) n = +fv; } return { got, n: n || 0 }; };
+        let pool = [], a, b, rounds = 0;
+        do { a = flipNum(); b = flipNum(); pool = pool.concat(a.got, b.got); rounds++; } while (a.n === b.n && rounds < 5);
+        const loser = a.n < b.n ? pi : tgt;
+        this.players[loser].hand.push(...pool);
+        this.addLog(`${p.name} duels ${this.players[tgt].name}: ${a.n} vs ${b.n}. ${this.players[loser].name} takes all ${pool.length} flipped cards.`, 'bad');
+        this.ev('duel', { a: pi, b: tgt, na: a.n, nb: b.n, loser, k: pool.length });
+        this.ev('draw', { pi: loser, k: pool.length });
+        if (this.players[loser].hand.length !== 1) this.players[loser].vulnerable = false;
+        break;
+      }
+      case 'bhole': {
+        const act = this.players.map((q, i) => i).filter(i => !this.players[i].out);
+        const all = act.flatMap(i => this.players[i].hand);
+        if (all.length >= act.length * 2) {
+          for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+          const order = []; let i = this.nextIdx(pi, 1);
+          for (let k = 0; k < act.length; k++) { order.push(i); i = this.nextIdx(i, 1); }
+          for (const j of act) this.players[j].hand = [];
+          all.forEach((c, k) => this.players[order[k % order.length]].hand.push(c));
+          for (const q of this.players) q.vulnerable = false;
+          this.addLog(`Black hole. Every hand is pooled and dealt back out: ${act.map(j => this.players[j].name + ' ' + this.players[j].hand.length).join(', ')}.`, 'swap');
+          this.ev('bhole', {});
+        }
+        break;
+      }
+      case 'roul':
+        this.roulette = this.nextIdx(pi, 1); this.ev('roulette', { pi: this.roulette }); break;
+      case 'wdc': {
+        const vi = this.nextIdx(pi, 1), col = this.color;
+        const got = this.give(vi, 0, c => c && this.f(c).c === col);
+        this.addLog(`${this.players[vi].name} must draw until ${COLOR_NAME[col]}: +${got.length} cards.`, 'bad');
+        steps = 2; break;
+      }
+      case 'dflip':
+      case 'flip': {
+        if (k % 2 === 0) { this.addLog(`${k} flips cancel out. The table stays on the ${this.side === 'D' ? 'dark' : 'light'} side.`, 'flip'); break; }
+        this.side = other(this.side);
+        this.flipBack = face.v === 'dflip' ? { pi: this.nextIdx(pi, 1), seq: this.seq } : null;
+        const nf = this.f(this.top);
+        this.color = nf.c === 'w' ? this.validColor(opts.flipColor, pi) : nf.c;
+        this.addLog(`Flip. Everything turns to the ${this.side === 'D' ? 'dark' : 'light'} side. Top card is now ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip');
+        this.ev('flip', { side: this.side });
+        if (face.v === 'dflip') this.addLog(`Double flip: it turns back after ${this.players[this.nextIdx(pi, 1)].name}'s turn.`, 'flip');
+        break;
+      }
+    }
+    if (face.v === 'roul') this.turn = this.roulette;
+    else if (steps >= 0) this.turn = steps === 0 ? pi : this.nextIdx(pi, steps);
+    this.applyShield();
+    this.checkFlipBack();
+    if (this.pending > 0 && DRAW_VAL[face.v]) {
+      this.addLog(`Stack is now +${this.pending}. ${this.players[this.turn].name} must stack or take it.`, 'stack');
+      this.ev('stack', { k: this.pending, pi: this.turn });
+    }
+    this.mercyCheck();
+    return true;
+  }
+  // Double Flip: once the player after the flipper has acted, the table turns back.
+  checkFlipBack() {
+    const fb = this.flipBack;
+    if (!fb || this.winner !== null) return;
+    if (this.seq > fb.seq && this.turn !== fb.pi) {
+      this.flipBack = null;
+      this.side = other(this.side);
+      const nf = this.f(this.top);
+      this.color = nf.c === 'w' ? Bot.bestColor(this, this.players[this.turn].hand, this.side) : nf.c;
+      this.addLog(`The double flip wears off. Back to the ${this.side === 'D' ? 'dark' : 'light'} side: ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip');
+      this.ev('flip', { side: this.side });
+    }
+  }
+  applyShield() {
+    const t = this.players[this.turn];
+    if (this.pending > 0 && t && t.shield && !t.out) {
+      t.shield = false;
+      this.addLog(`${t.name}'s shield breaks the +${this.pending} stack.`, 'swap');
+      this.ev('shield', { pi: this.turn, k: this.pending });
+      this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
+    }
+  }
+  draw(pi) {
+    if (pi !== this.turn || this.roulette !== null || this.winner !== null) return null;
+    const p = this.players[pi];
+    if (this.pending > 0) {
+      const k = this.pending;
+      const got = this.give(pi, k);
+      this.addLog(`${p.name} takes the stack: +${got.length} card${got.length === 1 ? '' : 's'} (now ${p.hand.length}).`, 'bad');
+      this.ev('took', { pi, k: got.length });
+      this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
+      this.turn = this.nextIdx(pi, 1); this.seq++;
+      this.mercyCheck(); this.checkFlipBack();
+      return got;
+    }
+    if (this.drewBy === pi) return null;
+    const got = this.give(pi, 1);
+    this.seq++;
+    if (!this.rules.drawUntil) {
+      this.drewBy = pi;
+      this.addLog(`${p.name} draws a card.`);
+    } else {
+      // one card per draw: the player keeps drawing by hand until something is playable
+      this.drawRun = (this.drawRunPi === pi ? this.drawRun || 0 : 0) + got.length; this.drawRunPi = pi;
+      if (got[0] && this.canPlay(got[0])) {
+        this.drewBy = pi;
+        this.addLog(`${p.name} draws ${this.drawRun} card${this.drawRun > 1 ? 's' : ''} before finding a playable one.`);
+        this.drawRun = 0;
+      }
+    }
+    this.mercyCheck();
+    return got;
+  }
+  pass(pi) {
+    if (pi !== this.turn || this.drewBy !== pi || this.pending > 0) return false;
+    this.addLog(`${this.players[pi].name} passes.`);
+    this.drewBy = -1; this.drawRun = 0; this.seq++;
+    this.turn = this.nextIdx(pi, 1);
+    this.checkFlipBack();
+    return true;
+  }
+  resolveRoulette(color) {
+    const vi = this.roulette; if (vi === null) return null;
+    if (!this.colors().includes(color)) color = Bot.bestColor(this, this.players[vi].hand, this.side);
+    const got = this.give(vi, 0, c => c && this.f(c).c === color);
+    this.color = color;
+    this.addLog(`${this.players[vi].name} calls ${COLOR_NAME[color]} and flips ${got.length} card${got.length > 1 ? 's' : ''} before hitting it.`, 'bad');
+    this.ev('color', { c: color });
+    this.roulette = null; this.seq++;
+    this.turn = this.nextIdx(vi, 1);
+    this.mercyCheck(); this.checkFlipBack();
+    return got;
+  }
+  callUno(pi) {
+    const p = this.players[pi];
+    if (p.out) return false;
+    if (p.hand.length === 1 && p.vulnerable) { p.vulnerable = false; this.addLog(`${p.name} calls UNO just in time`, 'uno'); this.ev('uno', { pi }); return true; }
+    if ((p.hand.length <= 2 || (this.rules.multi && this.unoReach(pi))) && !p.unoCalled) { p.unoCalled = true; this.ev('uno', { pi }); return true; }
+    return false;
+  }
+  // can this player get down to one card in a single same-number drop?
+  unoReach(pi) {
+    const h = this.players[pi].hand, cnt = {};
+    for (const c of h) { const f = this.f(c); if (f.c !== 'w') cnt[f.v] = (cnt[f.v] || 0) + 1; }
+    return Object.values(cnt).some(n => n >= h.length - 1);
+  }
+  catchUno(catcher, target) {
+    const t = this.players[target];
+    if (!t || !t.vulnerable || t.hand.length !== 1 || t.out || catcher === target) return false;
+    t.vulnerable = false;
+    this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO: +2 cards.`, 'bad');
+    this.ev('caught', { pi: target, by: catcher });
+    this.give(target, 2); this.seq++;
+    this.mercyCheck();
+    return true;
+  }
+}
+
+// ===== BOT BRAIN =====
+const Bot = {
+  strength(f) { if (!f) return 0; if (f.c === 'w') return 3 + (DRAW_VAL[f.v] || 0) / 2; if (DRAW_VAL[f.v]) return 1.5 + DRAW_VAL[f.v] / 2; return isNaN(+f.v) ? 2 : 1; },
+  bestColor(g, hand, side) {
+    const cols = SIDE_COLORS[side]; const cnt = Object.fromEntries(cols.map(c => [c, 0]));
+    for (const c of hand) { if (c.hidden) continue; const f = c[side]; if (f.c !== 'w') cnt[f.c] += 1 + (isNaN(+f.v) ? 0.5 : 0); }
+    let best = cols[Math.floor(Math.random() * 4)], bv = 0;
+    for (const k of cols) if (cnt[k] > bv) { bv = cnt[k]; best = k; }
+    return best;
+  },
+  choose(g, pi) {
+    const p = g.players[pi];
+    const opts = g.playable(pi);
+    if (!opts.length) return null;
+    const nextI = g.nextIdx(pi, 1), nl = g.players[nextI].hand.length;
+    const others = g.players.map((q, i) => ({ q, i })).filter(o => o.i !== pi && !o.q.out);
+    const minOther = others.reduce((a, b) => (b.q.hand.length < a.q.hand.length ? b : a), others[0]);
+    const colorCount = c => p.hand.filter(x => g.f(x).c === c).length;
+    let best = null, bestScore = -Infinity;
+    for (const card of opts) {
+      const f = g.f(card);
+      let s = 10 + Math.random() * 3;
+      if (g.pending > 0) {
+        if (f.v === 'mirror') s += g.pending >= 4 ? 30 : -2;
+        else { s -= DRAW_VAL[f.v]; if (f.c === 'w') s -= 3; }
+      }
+      else {
+        const dv = DRAW_VAL[f.v] || 0;
+        if (f.c === 'w') s -= p.hand.length > 3 ? 8 : 0;
+        if (dv) s += dv * 1.5 + (nl <= 3 ? 20 : 0);
+        if (f.v === 'skip' || f.v === 'rev') s += nl <= 3 ? 12 : 3;
+        if (f.v === 'skipall') s += 6 + (nl <= 3 ? 10 : 0);
+        if (f.v === 'discall') s += 5 * (colorCount(f.c) - 1);
+        if (f.v === 'roul' || f.v === 'wdc') s += nl <= 3 ? 18 : 6;
+        if (f.v === 'mirror') s -= 6; // save it for a stack
+        if (f.v === 'shield') s += p.shield ? -8 : 4;
+        if (f.v === 'duel') s += minOther.q.hand.length <= 3 ? 16 : 5;
+        if (f.v === 'bhole') { const avg = others.reduce((a, o) => a + o.q.hand.length, p.hand.length) / (others.length + 1); s += (p.hand.length - 1 - avg) * 3; }
+        if (f.v === 'dflip') s += nl <= 3 ? 8 : 1;
+        if (f.v === 'flip') {
+          const rest = p.hand.filter(c => c !== card);
+          const gain = rest.reduce((a, c) => a + Bot.strength(g.back(c)) - Bot.strength(g.f(c)), 0);
+          s += gain * 0.7 + (nl <= 3 ? 5 : 0);
+        }
+        if (f.v === '7' && g.rules.seven) { const diff = p.hand.length - 1 - minOther.q.hand.length; s += diff >= 2 ? 6 * diff : 0; }
+        if (f.v === '0' && g.rules.zero) {
+          const n = g.players.length; let j = pi;
+          do { j = (j - g.dir + n) % n; } while (g.players[j].out);
+          s += (p.hand.length - 1 - g.players[j].hand.length) * 5;
+        }
+        if (f.c !== 'w') s += colorCount(f.c) * 0.8;
+      }
+      if (s > bestScore) { bestScore = s; best = card; }
+    }
+    const bf = g.f(best);
+    // drop every matching card when the table allows it
+    const extra = g.rules.multi && bf.c !== 'w' ? p.hand.filter(c => c !== best && g.f(c).c !== 'w' && g.f(c).v === bf.v) : [];
+    const rest = p.hand.filter(c => c !== best && !extra.includes(c));
+    const swapGain = minOther ? rest.length - minOther.q.hand.length : 0;
+    return {
+      cardId: best.id, extra: extra.map(c => c.id),
+      color: bf.c === 'w' ? this.bestColor(g, rest, g.side) : null,
+      flipColor: (bf.v === 'flip' || bf.v === 'dflip') ? this.bestColor(g, rest, other(g.side)) : null,
+      target: bf.v === 'duel' ? minOther.i : (bf.v === '7' && g.rules.seven && swapGain >= 2 ? minOther.i : null)
+    };
+  },
+  jumpCandidate(g) {
+    if (!g.rules.jumpIn || g.winner !== null || g.roulette !== null) return null;
+    for (let i = 0; i < g.players.length; i++) {
+      const p = g.players[i];
+      if (p.human || p.out || i === g.turn) continue;
+      const c = p.hand.find(c => g.canJumpIn(i, c));
+      if (c && Math.random() < 0.35) return { pi: i, card: c };
+    }
+    return null;
+  }
+};
+
+// ===== WIRE FORMAT =====
+// viewer = -1 → everything; otherwise other players' hands carry only their visible backs (as in real UNO Flip).
+function serialize(g, viewer = -1, logN = 8) {
+  const ob = other(g.side);
+  return {
+    gid: g.gid, ru: g.rules, sd: g.side,
+    p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
+      (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
+      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0)]),
+    t: cardCode(g.top), nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+    o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
+    l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 160), l.cls]),
+    ev: g.events.slice(-12), es: g.evSeq
+  };
+}
+function deserialize(st) {
+  const g = Object.create(Game.prototype);
+  g.gid = String(st.gid); g.rules = st.ru; g.side = st.sd === 'D' ? 'D' : 'L';
+  const ob = other(g.side);
+  g.players = st.p.map(a => {
+    const hs = String(a[3] || '');
+    let hand;
+    if (hs[0] === '!') hand = [...hs.slice(1)].map(ch => { const c = { id: CARD_ID++, hidden: true }; c[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(ch)] || { c: 'w', v: 'wild' }); return c; });
+    else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
+    return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
+      out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32) };
+  });
+  g.top = codeCard(st.t);
+  g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
+  g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
+  g.roulette = st.o < 0 ? null : st.o; g.drewBy = st.w; g.winner = st.x < 0 ? null : st.x; g.seq = st.s;
+  g.log = (st.l || []).map(([msg, cls]) => ({ msg: String(msg), cls: String(cls || '') }));
+  g.events = Array.isArray(st.ev) ? st.ev : []; g.evSeq = st.es || 0;
+  return g;
+}
+
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES };
+
+</script>
+<script>
+// ===== NETWORK: peer-to-peer rooms (PeerJS, no accounts) with claude.ai room fallback =====
+const PEER_PREFIX = 'unoflipnomercy-';
+const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
+let _roomNS;
+async function getRoomNS() {
+  if (_roomNS !== undefined) return _roomNS;
+  try { _roomNS = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('room') : null; } catch (e) { _roomNS = null; }
+  return _roomNS;
+}
+const inClaude = () => !!(window.claude && typeof window.claude.use === 'function');
+function loadPeerJS() {
+  return new Promise(res => {
+    if (window.Peer) return res(true);
+    let done = false; const fin = ok => { if (!done) { done = true; res(ok); } };
+    const add = (src, next) => { const s = document.createElement('script'); s.src = src; s.onload = () => fin(!!window.Peer); s.onerror = next; document.head.appendChild(s); };
+    add('https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js', () => add('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', () => fin(false)));
+    setTimeout(() => fin(!!window.Peer), 10000);
+  });
+}
+function openPeer(id) {
+  return new Promise((res, rej) => {
+    let p, opened = false;
+    try { p = id ? new Peer(id, { debug: 0 }) : new Peer({ debug: 0 }); } catch (e) { return rej({ type: 'browser-incompatible' }); }
+    const to = setTimeout(() => { if (!opened) { try { p.destroy(); } catch (e) {} rej({ type: 'timeout' }); } }, 10000);
+    p.on('open', () => { opened = true; clearTimeout(to); res(p); });
+    p.on('error', e => { if (!opened) { clearTimeout(to); try { p.destroy(); } catch (x) {} rej(e || { type: 'error' }); } });
+  });
+}
+
+// ---- P2P host: keeps one data channel per friend, sends each one a private view ----
+class PeerHost {
+  constructor(h) { this.h = h; this.conns = new Map(); this.kind = 'p2p'; this.redacts = true; this.selfId = 'host'; }
+  async start(code) {
+    this.peer = await openPeer(PEER_PREFIX + code);
+    this.peer.on('connection', conn => this.add(conn));
+    this.peer.on('error', () => {});
+    this.peer.on('disconnected', () => { try { if (!this.closed) this.peer.reconnect(); } catch (e) {} });
+    this.hb = setInterval(() => this.beat(), 4000);
+  }
+  add(conn) {
+    this.conns.set(conn.peer, { conn, last: Date.now() });
+    conn.on('data', d => {
+      const c = this.conns.get(conn.peer); if (!c || !d || typeof d !== 'object') return;
+      c.last = Date.now();
+      if (d.t === 'hello') this.h.join(conn.peer, cleanName(d.nick) || 'Player');
+      else if (d.t === 'act' && d.a && typeof d.a === 'object') this.h.act(conn.peer, d.a);
+    });
+    const gone = () => { if (this.conns.has(conn.peer)) { this.conns.delete(conn.peer); this.h.leave(conn.peer); } };
+    conn.on('close', gone); conn.on('error', gone);
+  }
+  beat() {
+    const now = Date.now();
+    for (const [id, c] of [...this.conns]) {
+      if (now - c.last > 16000) { try { c.conn.close(); } catch (e) {} this.conns.delete(id); this.h.leave(id); }
+      else this.send(id, { t: 'ping' });
+    }
+  }
+  send(id, msg) { const c = this.conns.get(id); if (c && c.conn.open) try { c.conn.send(msg); } catch (e) {} }
+  lobby(l) { for (const id of this.conns.keys()) this.send(id, { t: 'lobby', l }); }
+  state(viewFor, seatOf, lobby) {
+    for (const id of this.conns.keys()) {
+      const seat = seatOf(id);
+      this.send(id, seat == null ? { t: 'lobby', l: lobby } : { t: 'state', st: viewFor(seat) });
+    }
+  }
+  close() { this.closed = true; clearInterval(this.hb); try { this.peer.destroy(); } catch (e) {} }
+}
+class PeerClient {
+  constructor(h) { this.h = h; this.kind = 'p2p'; }
+  async start(code, nick) {
+    this.peer = await openPeer();
+    this.selfId = this.peer.id;
+    return new Promise((res, rej) => {
+      let opened = false;
+      const conn = this.peer.connect(PEER_PREFIX + code, { reliable: true, serialization: 'json' });
+      this.conn = conn;
+      const to = setTimeout(() => { if (!opened) { this.close(); rej({ type: 'peer-unavailable' }); } }, 12000);
+      this.peer.on('error', e => { if (!opened) { clearTimeout(to); this.close(); rej(e || { type: 'error' }); } });
+      conn.on('open', () => {
+        opened = true; clearTimeout(to); this.last = Date.now();
+        conn.send({ t: 'hello', nick });
+        this.wd = setInterval(() => { if (Date.now() - this.last > 16000) this.gone(); }, 3000);
+        res(this);
+      });
+      conn.on('data', d => {
+        this.last = Date.now(); if (!d || typeof d !== 'object') return;
+        if (d.t === 'ping') { try { conn.send({ t: 'pong' }); } catch (e) {} }
+        else if (d.t === 'lobby' && d.l) this.h.lobby(d.l);
+        else if (d.t === 'state' && d.st) this.h.state(d.st);
+      });
+      conn.on('close', () => { if (opened) this.gone(); });
+    });
+  }
+  gone() { if (this.dead) return; this.dead = true; clearInterval(this.wd); this.h.gone(); }
+  act(a) { try { this.conn.send({ t: 'act', a }); } catch (e) {} }
+  close() { this.dead = true; clearInterval(this.wd); try { this.peer.destroy(); } catch (e) {} }
+}
+
+// ---- claude.ai room (used only when the page runs inside Claude, where WebRTC is unavailable) ----
+class RoomHost {
+  constructor(h) { this.h = h; this.kind = 'room'; this.redacts = false; this.selfId = 'host'; this.known = new Map(); this.lastAct = {}; this.lastSent = ''; }
+  async start(code) {
+    const ns = await getRoomNS(); if (!ns) throw { type: 'no-room' };
+    this.R = await ns.join('uno-' + code);
+    this.R.onPeers(ch => this.onPeers(ch), () => {});
+  }
+  onPeers(ch) {
+    const live = new Set();
+    for (const p of ch.peers) {
+      if (p.sameTab || p.kind !== 'viewer') continue;
+      const pr = p.presence || {}; const nick = cleanName(pr.nick);
+      if (pr.join !== true || !nick) continue;
+      live.add(p.peer);
+      if (!this.known.has(p.peer)) {
+        this.known.set(p.peer, nick);
+        this.lastAct[p.peer] = pr.act && typeof pr.act.id === 'number' ? pr.act.id : 0;
+        this.h.join(p.peer, nick);
+      }
+      const a = pr.act;
+      if (a && typeof a.id === 'number' && a.id > (this.lastAct[p.peer] || 0)) { this.lastAct[p.peer] = a.id; this.h.act(p.peer, a); }
+    }
+    for (const id of [...this.known.keys()]) if (!live.has(id)) { this.known.delete(id); this.h.leave(id); }
+  }
+  lobby(l) { this.R.presence({ role: 'host', phase: 'lobby', l, st: null }).catch(() => {}); }
+  state(viewFor) {
+    let n = 8, st = null, txt = '';
+    do { st = viewFor(-1, n); txt = JSON.stringify(st); n -= 2; } while (new TextEncoder().encode(txt).length > 3800 && n >= 0);
+    if (txt === this.lastSent) return; this.lastSent = txt;
+    this.R.presence({ role: 'host', phase: 'game', l: null, st }).catch(() => {});
+  }
+  close() { try { this.R.leave(); } catch (e) {} }
+}
+class RoomClient {
+  constructor(h) { this.h = h; this.kind = 'room'; this.actId = 0; this.hostPeer = null; this.lastPr = null; }
+  get selfId() { const me = this.R && this.R.peers().find(p => p.sameTab); return me ? me.peer : null; }
+  async start(code, nick) {
+    const ns = await getRoomNS(); if (!ns) throw { type: 'no-room' };
+    this.R = await ns.join('uno-' + code);
+    this.R.presence({ nick, join: true }).catch(() => {});
+    return new Promise((res, rej) => {
+      let found = false;
+      const to = setTimeout(() => { if (!found) { this.close(); rej({ type: 'peer-unavailable' }); } }, 9000);
+      this.R.onPeers(ch => {
+        if (!this.hostPeer) { const h = ch.peers.find(p => !p.sameTab && p.presence && p.presence.role === 'host'); if (h) this.hostPeer = h.peer; }
+        const h = this.hostPeer && ch.peers.find(p => p.peer === this.hostPeer);
+        if (!h) { if (found && ch.left.some(p => p.peer === this.hostPeer)) this.h.gone(); return; }
+        if (!found) { found = true; clearTimeout(to); res(this); }
+        const pr = h.presence; if (pr === this.lastPr) return; this.lastPr = pr;
+        if (pr.phase === 'lobby' && pr.l) this.h.lobby(pr.l);
+        else if (pr.phase === 'game' && pr.st) this.h.state(pr.st);
+      }, () => {});
+    });
+  }
+  act(a) { this.actId = Math.max(this.actId + 1, Date.now() % 1e9); this.R.presence({ act: Object.assign({ id: this.actId }, a) }).catch(() => {}); }
+  close() { try { this.R.leave(); } catch (e) {} }
+}
+
+async function openHost(code, h) {
+  if (inClaude()) { const t = new RoomHost(h); await t.start(code); return t; }
+  if (!(await loadPeerJS()) || !window.RTCPeerConnection) throw { type: 'no-p2p' };
+  const t = new PeerHost(h); await t.start(code); return t;
+}
+async function openClient(code, nick, h, onCreate) {
+  if (inClaude()) { const t = new RoomClient(h); onCreate(t); return t.start(code, nick); }
+  if (!(await loadPeerJS()) || !window.RTCPeerConnection) throw { type: 'no-p2p' };
+  const t = new PeerClient(h); onCreate(t); return t.start(code, nick);
+}
+
+</script>
+<script>
+// ===== UI / CONTROLLER =====
+let ME = 0, MODE = 'local'; // 'local' | 'host' | 'client'
+const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap'];
+const RULES = [
+  ['flip', 'Flip cards', 'Flip turns every card to its dark side, and back.'],
+  ['stacking', 'Stacking', 'Answer a draw card with one of equal or higher value.'],
+  ['multi', 'Same-number drops', 'Play every card with the same number or symbol at once: red 7, then blue 7 and green 7 on top.'],
+  ['drawUntil', 'Draw until playable', 'With nothing to play, you draw one card at a time and can\'t pass until one fits.'],
+  ['seven', '7 swaps hands', 'Playing a 7 lets you trade hands with any player, if you want to.'],
+  ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
+  ['jumpIn', 'Jump-in', 'Play an exact match of the top card out of turn.'],
+  ['uno', 'UNO penalty', 'Get caught at one card without calling UNO: draw 2.'],
+];
+const EXTRA_INFO = [
+  ['mirror', 'Mirror', 'Sends a draw stack back to whoever fed it last.'],
+  ['shield', 'Shield', 'Breaks the next stack that reaches you.'],
+  ['dflip', 'Double Flip', 'Flips the table for one turn, then flips it back.'],
+  ['duel', 'Wild Duel', 'You and a chosen player turn over cards; the lower number takes them all.'],
+  ['wd15', 'Wild Draw 15', 'Dark side. The top of the stack ladder.'],
+  ['bhole', 'Black Hole', 'Dark side. Pools every hand and deals the cards back out evenly.'],
+];
+const IDLE_MS = 45000;
+const CVAR = { r: 'var(--r)', y: 'var(--y)', g: 'var(--g)', b: 'var(--b)', p: 'var(--p)', t: 'var(--t)', o: 'var(--o)', v: 'var(--v)' };
+const S = loadSettings();
+let G = null, token = 0, busy = false, sortMode = 'color', lastHandIds = new Set(), unoTimers = {};
+let lastLogKey = '', lastLogMsgs = [], lastEvN = 0, lastPlayRect = null, dragging = false, turnKey = '', turnStartedAt = 0, lastPushKey = '';
+// online
+let net = null, roomCode = '', roomPeers = new Map(), peerSeat = {}, lastGid = null, rouletteOpen = false, roulettePrompted = -1;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function loadSettings() {
+  const d = { bots: 3, roomBots: 1, speed: 'normal', mercy: 25, name: 'You', sound: true, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
+  try {
+    const s = JSON.parse(localStorage.getItem('unoFlipNoMercy') || 'null');
+    if (s) {
+      const r = Object.assign({}, s.rules || {});
+      if ('sevenZero' in r) { if (!('seven' in r)) r.seven = r.sevenZero; if (!('zero' in r)) r.zero = r.sevenZero; delete r.sevenZero; }
+      return Object.assign(d, s, { rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
+    }
+  } catch (e) {}
+  return d;
+}
+function saveSettings() { try { localStorage.setItem('unoFlipNoMercy', JSON.stringify(S)); } catch (e) {} }
+
+// ================= SOUND (synthesized, no files) =================
+const SFX = {
+  ctx: null,
+  init() { if (this.ctx) return; try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} },
+  tone(f1, f2, dur, type = 'sine', vol = 0.12, delay = 0) {
+    if (!S.sound || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime + delay, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(this.ctx.destination); o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
+  },
+  play(name, k = 1) {
+    switch (name) {
+      case 'play': this.tone(620, 380, 0.07, 'triangle', 0.15); break;
+      case 'draw': for (let i = 0; i < Math.min(k, 5); i++) this.tone(340, 220, 0.06, 'sine', 0.08, i * 0.06); break;
+      case 'flip': this.tone(180, 1400, 0.45, 'sawtooth', 0.05); this.tone(1400, 180, 0.45, 'sine', 0.06, 0.45); break;
+      case 'stack': this.tone(660, 660, 0.09, 'square', 0.06); this.tone(880 + Math.min(k, 30) * 12, 880, 0.12, 'square', 0.06, 0.1); break;
+      case 'took': this.tone(420, 90, 0.4, 'sawtooth', 0.08); break;
+      case 'uno': this.tone(880, 880, 0.08, 'square', 0.07); this.tone(1320, 1320, 0.12, 'square', 0.07, 0.09); break;
+      case 'skip': this.tone(500, 900, 0.12, 'triangle', 0.1); break;
+      case 'swap': this.tone(300, 700, 0.15, 'sine', 0.1); this.tone(700, 300, 0.15, 'sine', 0.1, 0.15); break;
+      case 'turn': this.tone(990, 990, 0.12, 'sine', 0.07); this.tone(1480, 1480, 0.18, 'sine', 0.05, 0.1); break;
+      case 'ko': this.tone(160, 50, 0.7, 'sawtooth', 0.1); break;
+      case 'win': [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, f, 0.2, 'triangle', 0.1, i * 0.11)); break;
+      case 'bad': this.tone(200, 160, 0.15, 'square', 0.05); break;
+      case 'click': this.tone(900, 700, 0.03, 'triangle', 0.05); break;
+    }
+  }
+};
+document.addEventListener('pointerdown', () => SFX.init(), { capture: true });
+
+// ================= FX (short, ease-out, no overshoot) =================
+function rectOf(el) { return el ? el.getBoundingClientRect() : null; }
+function centerRect(r, w, h) { return { left: r.left + r.width / 2 - w / 2, top: r.top + r.height / 2 - h / 2, width: w, height: h }; }
+function fly(html, from, to, { dur = 180, delay = 0, onDone } = {}) {
+  if (!from || !to) { if (onDone) onDone(); return; }
+  const wrap = document.createElement('div'); wrap.innerHTML = html; const el = wrap.firstElementChild;
+  if (!el) return;
+  el.style.width = from.width + 'px'; el.style.height = from.height + 'px';
+  $('fx').appendChild(el);
+  const sx = to.width / from.width, sy = to.height / from.height;
+  const tx = to.left + (to.width - from.width) / 2, ty = to.top + (to.height - from.height) / 2;
+  const a = el.animate([
+    { transform: `translate(${from.left}px,${from.top}px)` },
+    { transform: `translate(${tx}px,${ty}px) scale(${sx},${sy})` }
+  ], { duration: dur, delay, easing: 'ease-out', fill: 'backwards' });
+  a.onfinish = () => { el.remove(); if (onDone) onDone(); };
+  setTimeout(() => { if (el.isConnected) el.remove(); }, dur + delay + 400);
+}
+let toastTimer;
+function toast(text) {
+  const t = $('toast'); t.textContent = text; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 900);
+}
+function floatText(pi, txt) {
+  const host = pi === ME ? $('hand') : $('opp' + pi); if (!host) return;
+  host.style.position = 'relative';
+  const f = document.createElement('div'); f.className = 'float'; f.textContent = txt;
+  host.appendChild(f);
+  requestAnimationFrame(() => f.classList.add('in'));
+  setTimeout(() => f.classList.remove('in'), 900);
+  setTimeout(() => f.remove(), 1100);
+}
+function initials(name) {
+  const w = String(name || '?').trim().split(/\s+/);
+  return esc((w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase());
+}
+
+// ================= START SCREEN =================
+function seg(el, opts, key, fmt, after) {
+  el.innerHTML = '';
+  for (const o of opts) {
+    const b = document.createElement('button'); b.textContent = fmt ? fmt(o) : o;
+    if (S[key] === o) b.className = 'on';
+    b.onclick = () => { S[key] = o; SFX.play('click'); seg(el, opts, key, fmt, after); if (after) after(); };
+    el.appendChild(b);
+  }
+}
+seg($('segBots'), [1, 2, 3, 4, 5], 'bots');
+seg($('segSpeed'), ['slow', 'normal', 'fast'], 'speed');
+seg($('segMercy'), [25, 35, 50, 0], 'mercy', v => v ? v + ' cards' : 'Off');
+$('ruleBox').innerHTML = RULES.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
+$('ruleBox').addEventListener('change', e => { if (e.target.dataset.rule) { S.rules[e.target.dataset.rule] = e.target.checked; saveSettings(); } });
+$('cardBox').innerHTML = EXTRA_INFO.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
+$('cardBox').addEventListener('change', e => { if (e.target.dataset.card) { S.cards[e.target.dataset.card] = e.target.checked; saveSettings(); } });
+const tableRules = extra => Object.assign({}, S.rules, { cards: Object.assign({}, S.cards) }, extra);
+$('pname').value = S.name;
+$('btnStart').onclick = startLocal;
+$('btnCreate').onclick = createRoom;
+$('btnJoin').onclick = () => joinRoom($('joinCode').value);
+$('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom($('joinCode').value); });
+document.querySelectorAll('[data-rules]').forEach(b => b.onclick = showRules);
+$('btnSound').onclick = () => { S.sound = !S.sound; saveSettings(); $('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off'; };
+$('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off';
+(function readHash() { const m = /^#join-([a-z0-9]{4})$/i.exec(location.hash || ''); if (m) { $('joinCode').value = m[1].toUpperCase(); startMsg('Enter your name, then Join.'); } })();
+function readName() { S.name = cleanName($('pname').value) || 'You'; saveSettings(); return S.name; }
+function show(screen) { for (const id of ['start', 'lobby', 'game']) $(id).classList.toggle('hidden', id !== screen); if (screen !== 'game') document.body.classList.remove('dark'); }
+function startMsg(t) { $('startMsg').textContent = t; }
+
+function startLocal() {
+  readName(); MODE = 'local'; ME = 0;
+  const pool = BOT_NAMES.slice().sort(() => Math.random() - .5).slice(0, S.bots);
+  G = new Game([S.name, ...pool], 0, tableRules({ mercy: S.mercy }));
+  beginGameView();
+}
+function beginGameView() {
+  lastHandIds = new Set(); busy = false; unoTimers = {}; lastEvN = Math.max(0, G.evSeq - 1); lastPushKey = '';
+  show('game'); closeModal();
+  $('netTag').textContent = MODE === 'local' ? '' : `Room ${roomCode.toUpperCase()}`;
+  tick();
+}
+
+// ================= ONLINE: HOST =================
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const randCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+function netErr(e) {
+  const t = e && e.type;
+  if (t === 'peer-unavailable') return 'No room with that code. Check the code, or ask the host to create the room first.';
+  if (t === 'no-p2p' || t === 'browser-incompatible') return 'Online play is not available in this browser.';
+  if (t === 'no-room') return 'Online rooms are not available in this view.';
+  if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'timeout') return 'Could not reach the matchmaking server. Check your connection and try again.';
+  return 'Could not connect (' + (t || 'error') + '). Try again.';
+}
+const hostHandlers = {
+  join(id, nick) { if (!roomPeers.has(id)) roomPeers.set(id, { nick }); hostRefresh(true); },
+  leave(id) {
+    roomPeers.delete(id);
+    if (G && peerSeat[id] != null) {
+      const i = peerSeat[id]; delete peerSeat[id];
+      const pl = G.players[i];
+      if (pl.human) { pl.human = false; pl.peer = ''; G.addLog(`${pl.name} left. A bot plays their hand from here.`, 'swap'); tick(); return; }
+    }
+    hostRefresh(true);
+  },
+  act(id, a) { if (!G || G.winner !== null) return; const i = peerSeat[id]; if (i == null || !G.players[i].human) return; applyAct(i, a); tick(); }
+};
+async function createRoom() {
+  readName(); startMsg('Opening a room…');
+  let code, t = null;
+  for (let tries = 0; tries < 3 && !t; tries++) {
+    code = randCode();
+    try { t = await openHost(code.toLowerCase(), hostHandlers); }
+    catch (e) { if (!e || e.type !== 'unavailable-id') { startMsg(netErr(e)); return; } }
+  }
+  if (!t) { startMsg('Could not open a room. Try again.'); return; }
+  startMsg(''); net = t; roomCode = code; MODE = 'host'; roomPeers = new Map(); peerSeat = {}; G = null; ME = 0;
+  seg($('segRoomBots'), [0, 1, 2, 3, 4], 'roomBots', null, () => hostRefresh(true));
+  if (net.kind === 'p2p') { $('shareBox').classList.remove('hidden'); $('shareLink').value = location.href.split('#')[0] + '#join-' + code; }
+  else $('shareBox').classList.add('hidden');
+  hostRefresh(true);
+  show('lobby');
+}
+function hostSeats() {
+  const humans = [{ nick: S.name, av: '', id: 'host' }];
+  for (const [id, p] of roomPeers) { if (humans.length >= 6) break; humans.push({ nick: p.nick, av: '', id }); }
+  return { humans, bots: Math.min(S.roomBots, 6 - humans.length) };
+}
+function lobbyObj() { const { humans, bots } = hostSeats(); return { code: roomCode, seats: humans.map(h => [h.nick, h.av, h.id]), bots, live: !!(G && G.winner === null) }; }
+function hostRefresh(force) {
+  if (MODE !== 'host' || !net) return;
+  const l = lobbyObj();
+  if (!G) { net.lobby(l); renderLobby(l, true); }
+  else push(force);
+}
+function push(force) {
+  if (MODE !== 'host' || !net || !G) return;
+  const key = [G.seq, G.evSeq, G.log.length, G.turn, G.roulette, G.drewBy, G.side, G.color, G.winner, G.players.map(p => p.hand.length + (p.vulnerable ? 'v' : '') + (p.unoCalled ? 'u' : '') + (p.human ? 'h' : '') + (p.out ? 'o' : '')).join()].join('|');
+  if (!force && key === lastPushKey) return;
+  lastPushKey = key;
+  net.state((seat, n) => serialize(G, net.redacts ? seat : -1, n || 8), id => peerSeat[id], lobbyObj());
+}
+function hostStartGame() {
+  const { humans, bots } = hostSeats();
+  if (humans.length + bots < 2) return;
+  const pool = BOT_NAMES.slice().sort(() => Math.random() - .5).slice(0, bots);
+  const used = new Set(); const names = humans.map(h => { let n = h.nick, k = 2; while (used.has(n)) n = h.nick.slice(0, 11) + ' ' + k++; used.add(n); return n; });
+  G = new Game(names.concat(pool), humans.map((_, i) => i), tableRules({ mercy: 0 }));
+  peerSeat = {};
+  humans.forEach((h, i) => { G.players[i].peer = i === 0 ? '' : h.id; if (i > 0) peerSeat[h.id] = i; });
+  ME = 0;
+  beginGameView();
+}
+$('btnRoomStart').onclick = () => { if (MODE === 'host') hostStartGame(); };
+$('btnCopyLink').onclick = () => copyText($('shareLink').value, $('btnCopyLink'));
+$('lbCode').onclick = () => copyText(roomCode, null);
+function copyText(txt, btn) {
+  try { navigator.clipboard.writeText(txt).then(() => { if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy link', 1500); } else $('lbHint').textContent = 'Code copied!'; }, () => {}); } catch (e) {}
+}
+
+// ================= ONLINE: CLIENT =================
+const clientHandlers = {
+  lobby(l) { if (G) { G = null; busy = false; rouletteOpen = false; closeModal(); } renderLobby(l, false); show('lobby'); },
+  state(st) {
+    let g; try { g = deserialize(st); } catch (e) { return; }
+    const me = net && net.selfId;
+    const idx = g.players.findIndex(p => p.peer && p.peer === me);
+    if (idx < 0) { G = null; $('lbSeats').innerHTML = ''; $('lbWait').textContent = 'A game is in progress. You\'ll get a seat when the host deals the next round.'; show('lobby'); return; }
+    // keep card ids stable so only genuinely new cards animate in
+    if (G && G.players[ME] && g.gid === lastGid) {
+      const pool = {}; for (const c of G.players[ME].hand) (pool[cardCode(c)] = pool[cardCode(c)] || []).push(c.id);
+      for (const c of g.players[idx].hand) { const l = pool[cardCode(c)]; if (l && l.length) c.id = l.shift(); }
+    }
+    const fresh = g.gid !== lastGid;
+    G = g; ME = idx; lastGid = g.gid;
+    if (fresh) beginGameView(); else tick();
+  },
+  gone() { hostLeft(); }
+};
+async function joinRoom(raw) {
+  const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 4) { startMsg('Enter the 4-character room code.'); return; }
+  readName(); startMsg('Joining…');
+  G = null; lastGid = null; $('lbSeats').innerHTML = '';
+  try { await openClient(code.toLowerCase(), S.name, clientHandlers, t => { net = t; MODE = 'client'; roomCode = code; }); }
+  catch (e) { net = null; MODE = 'local'; startMsg(netErr(e)); return; }
+  startMsg('');
+  if (!$('start').classList.contains('hidden')) { renderLobby(null, false); $('lbWait').textContent = 'Connected. Waiting for the host.'; show('lobby'); }
+}
+function hostLeft() {
+  token++; busy = false;
+  openModal(`<h2>The host left</h2><p>The room closed because the host disconnected.</p><button class="btn primary wide" id="hl">Back to menu</button>`);
+  $('hl').onclick = leaveRoom;
+}
+async function leaveRoom() {
+  token++;
+  if (net) { try { net.close(); } catch (e) {} }
+  net = null; G = null; MODE = 'local'; busy = false; roomPeers = new Map();
+  closeModal(); show('start');
+}
+$('btnLeave').onclick = leaveRoom;
+function renderLobby(l, isHost) {
+  $('lbCode').textContent = roomCode.toUpperCase();
+  $('lbHost').classList.toggle('hidden', !isHost);
+  if (!isHost) $('shareBox').classList.add('hidden');
+  $('lbHint').textContent = isHost ? 'Friends open this page, enter the code and press Join.' : 'Connected.';
+  if (!l) { $('lbSeats').innerHTML = ''; return; }
+  const me = MODE === 'client' && net ? net.selfId : 'host';
+  const rows = l.seats.map((s, i) => `<div class="seatrow ${s[2] === me ? 'me' : ''}"><span class="who"><span class="ini">${initials(s[0])}</span>${esc(s[0])}</span><span class="label">${i === 0 ? 'Host' : 'Player'}</span></div>`);
+  for (let k = 0; k < l.bots; k++) rows.push(`<div class="seatrow"><span class="who"><span class="ini">B${k + 1}</span>Bot</span><span class="label">Bot</span></div>`);
+  $('lbSeats').innerHTML = rows.join('');
+  const total = l.seats.length + l.bots;
+  if (isHost) { $('btnRoomStart').disabled = total < 2; $('lbWait').textContent = total < 2 ? 'Add a bot or wait for a friend to join.' : `${total} of 6 seats. Online games have no Mercy limit.`; }
+  else if (l.live) $('lbWait').textContent = 'A game is in progress. You\'ll get a seat when the host deals the next round.';
+  else $('lbWait').textContent = l.seats.some(s => s[2] === me) ? 'You have a seat. Waiting for the host to start.' : 'The room is full (6 seats). You get a seat if someone leaves.';
+}
+
+// ================= ACTIONS =================
+function act(k, a = {}) {
+  if (MODE === 'client') { net.act(Object.assign({ k }, a)); return; }
+  applyAct(ME, Object.assign({ k }, a));
+  tick();
+}
+function applyAct(pi, a) {
+  const target = Number.isInteger(a.target) && a.target >= 0 && a.target < G.players.length ? a.target : null;
+  const col = typeof a.color === 'string' ? a.color : null, fcol = typeof a.flipColor === 'string' ? a.flipColor : null;
+  switch (a.k) {
+    case 'play': {
+      if (typeof a.card !== 'string' || a.card.length !== 2) return;
+      const hand = G.players[pi].hand;
+      const c = hand.find(c => cardCode(c) === a.card);
+      if (!c) return;
+      const used = new Set([c]), extra = [];
+      if (Array.isArray(a.extra)) for (const code of a.extra.slice(0, 20)) {
+        const x = hand.find(h => !used.has(h) && cardCode(h) === code);
+        if (x) { used.add(x); extra.push(x.id); }
+      }
+      G.play(pi, c.id, { color: col, flipColor: fcol, target, extra });
+      break;
+    }
+    case 'draw': G.draw(pi); break;
+    case 'pass': G.pass(pi); break;
+    case 'uno': G.callUno(pi); break;
+    case 'catch': if (target !== null) G.catchUno(pi, target); break;
+    case 'roul': if (G.roulette === pi) G.resolveRoulette(col); break;
+  }
+}
+
+// ================= LOOP =================
+function delay() { return { slow: 1500, normal: 950, fast: 450 }[S.speed] * (0.8 + Math.random() * 0.5); }
+function schedule(fn, ms) { const t = token; setTimeout(() => { if (t === token && G && !busy) fn(); }, ms); }
+function tick() {
+  token++;
+  render();
+  if (!G) return;
+  if (G.winner !== null) { setTimeout(showEnd, 1400); return; }
+  if (MODE === 'client') { clientPrompts(); return; }
+  watchUno();
+  if (G.roulette !== null) {
+    const v = G.roulette, vp = G.players[v];
+    if (v === ME && vp.human) {
+      if (!busy) { busy = true; pickColor('Color roulette', 'Name a color. You turn over cards until it appears and keep all of them.', G.side).then(c => { busy = false; act('roul', { color: c }); }); }
+      if (MODE === 'host') idleGuard(v);
+    } else if (vp.human) idleGuard(v);
+    else schedule(() => { G.resolveRoulette(Bot.bestColor(G, vp.hand, G.side)); tick(); }, delay());
+    return;
+  }
+  if (G.players[G.turn].human) {
+    schedule(() => { const j = Bot.jumpCandidate(G); if (j && Math.random() < 0.5) { botPlay(j.pi, j.card); tick(); } }, 1400 + Math.random() * 1500);
+    if (MODE === 'host') idleGuard(G.turn);
+    return;
+  }
+  schedule(() => botStep(G.turn), delay());
+}
+function idleGuard(pi) {
+  const seq = G.seq, turn = G.turn, roul = G.roulette, gid = G.gid;
+  setTimeout(() => {
+    if (!G || MODE !== 'host' || G.gid !== gid || G.winner !== null || G.seq !== seq || G.turn !== turn || G.roulette !== roul) return;
+    const p = G.players[pi]; if (!p || p.out) return;
+    if (pi === ME && busy) { busy = false; closeModal(); }
+    G.addLog(`${p.name} ran out of time. Autopilot moved for them.`, 'stk');
+    if (G.roulette === pi) G.resolveRoulette(Bot.bestColor(G, p.hand, G.side)); else botStep(pi, true);
+    tick();
+  }, IDLE_MS);
+}
+function clientPrompts() {
+  if (G.roulette === ME && roulettePrompted !== G.seq && !busy) {
+    roulettePrompted = G.seq; busy = true; rouletteOpen = true;
+    pickColor('Color roulette', 'Name a color. You turn over cards until it appears and keep all of them.', G.side).then(c => { busy = false; rouletteOpen = false; act('roul', { color: c }); });
+  }
+  if (rouletteOpen && G.roulette !== ME) { rouletteOpen = false; busy = false; closeModal(); }
+}
+function botPlay(pi, card) {
+  const p = G.players[pi], f = G.f(card);
+  const extra = G.rules.multi ? p.hand.filter(c => c !== card && G.f(c).c !== 'w' && G.f(c).v === f.v) : [];
+  const rest = p.hand.filter(c => c !== card && !extra.includes(c));
+  const others = G.players.map((q, i) => ({ q, i })).filter(o => o.i !== pi && !o.q.out);
+  const min = others.reduce((a, b) => b.q.hand.length < a.q.hand.length ? b : a, others[0]);
+  const target = rest.length - min.q.hand.length >= 2 ? min.i : null;
+  botUno(pi, 1 + extra.length);
+  G.play(pi, card.id, { color: Bot.bestColor(G, rest, G.side), flipColor: Bot.bestColor(G, rest, G.side === 'L' ? 'D' : 'L'), target, extra: extra.map(c => c.id) });
+}
+function botUno(pi, playing) { const p = G.players[pi]; if (p.hand.length - playing <= 1 && Math.random() < 0.82) G.callUno(pi); }
+const drawGap = () => ({ slow: 420, normal: 260, fast: 140 }[S.speed]);
+function botStep(pi, instant) {
+  if (!instant) { const j = Bot.jumpCandidate(G); if (j) { botPlay(j.pi, j.card); tick(); return; } }
+  const p = G.players[pi];
+  const m = Bot.choose(G, pi);
+  if (m) { botUno(pi, 1 + m.extra.length); G.play(pi, m.cardId, m); if (!instant) tick(); return; }
+  // nothing playable: draw one card at a time, like a human has to
+  const drawOne = () => {
+    G.draw(pi);
+    if (G.turn !== pi || p.out || G.winner !== null) return 'done';
+    const m2 = Bot.choose(G, pi);
+    if (m2) { botUno(pi, 1 + m2.extra.length); G.play(pi, m2.cardId, m2); return 'done'; }
+    if (G.drewBy === pi) { G.pass(pi); return 'done'; }
+    return 'again';
+  };
+  if (instant) { let g = 0; while (drawOne() === 'again' && ++g < 400); return; }
+  const loop = () => { if (drawOne() === 'again') { render(); schedule(loop, drawGap()); } else tick(); };
+  loop();
+}
+function watchUno() {
+  if (!G.rules.uno) return;
+  G.players.forEach((p, i) => {
+    const key = i + ':' + G.seq;
+    if (!p.vulnerable || unoTimers[i] === key) return;
+    unoTimers[i] = key;
+    const g = G, wait = p.human ? 1700 + Math.random() * 900 : 2600 + Math.random() * 2500;
+    setTimeout(() => {
+      if (G !== g || !p.vulnerable || p.hand.length !== 1 || G.winner !== null) return;
+      const catchers = G.players.map((q, k) => k).filter(k => k !== i && !G.players[k].human && !G.players[k].out);
+      if (!catchers.length || (!p.human && Math.random() < 0.45)) return;
+      G.catchUno(catchers[Math.floor(Math.random() * catchers.length)], i);
+      if (!busy) tick(); else render();
+    }, wait);
+  });
+}
+
+// ================= INPUT =================
+function myTurnNow() { return !!(G && G.turn === ME && G.roulette === null && G.winner === null && G.players[ME] && !G.players[ME].out); }
+function usable(card) { if (!G || busy || G.winner !== null || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
+async function useCard(card, el, fromRect) {
+  if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
+  const me = G.players[ME], face = G.f(card), back = G.back(card);
+  busy = true; if (MODE !== 'client') token++;
+  let color = null, flipColor = null, target = null, extra = [];
+  if (G.rules.multi && face.c !== 'w') {
+    const same = me.hand.filter(c => c !== card && G.f(c).c !== 'w' && G.f(c).v === face.v);
+    if (same.length) {
+      extra = await pickExtras(card, same);
+      if (extra === null) { busy = false; tick(); return; }
+    }
+  }
+  if (face.c === 'w' && face.v !== 'roul') color = await pickColor('Pick a color', faceName(face), G.side);
+  if ((face.v === 'flip' || face.v === 'dflip') && back.c === 'w') flipColor = await pickColor('The flip lands on a wild', 'The back of this card is ' + faceName(back) + '. Choose its color.', G.side === 'L' ? 'D' : 'L');
+  const keep = me.hand.length - 1 - extra.length;
+  if (face.v === '7' && G.rules.seven && keep > 0 && G.active().length > 1) target = await pickTarget('Swap hands?', `You keep ${keep} card${keep === 1 ? '' : 's'} after this play. Trade with someone, or keep your hand.`, 'Keep my hand');
+  if (face.v === 'duel' && G.active().length > 1) target = await pickTarget('Duel', 'You and this player turn over cards until each hits a number. The lower number takes every card turned over.');
+  busy = false;
+  if (!G || !me.hand.includes(card)) { tick(); return; }
+  lastPlayRect = fromRect || rectOf(el);
+  act('play', { card: cardCode(card), color, flipColor, target, extra: extra.map(cardCode) });
+}
+function overDiscard(x, y) { const r = rectOf($('discard')); return r && x > r.left - 40 && x < r.right + 40 && y > r.top - 40 && y < r.bottom + 40; }
+function attachCard(el, card) {
+  el.onpointerdown = e => {
+    if (e.button > 0) return;
+    const sx = e.clientX, sy = e.clientY, r0 = el.getBoundingClientRect();
+    let ghost = null;
+    try { el.setPointerCapture(e.pointerId); } catch (x) {}
+    const move = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!ghost && Math.hypot(dx, dy) > 10 && usable(card)) {
+        dragging = true;
+        const w = document.createElement('div'); w.innerHTML = el.outerHTML; ghost = w.firstElementChild;
+        ghost.className = ghost.className.replace(/\b(ok|dim|jump|new|flipin|nope)\b/g, '');
+        Object.assign(ghost.style, { margin: '0', width: r0.width + 'px', height: r0.height + 'px', zIndex: 99, transition: 'none' });
+        $('fx').appendChild(ghost); el.classList.add('lifted');
+      }
+      if (ghost) { ghost.style.transform = `translate(${r0.left + dx}px,${r0.top + dy}px)`; $('discard').classList.toggle('drop', overDiscard(ev.clientX, ev.clientY)); }
+    };
+    const up = ev => {
+      el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+      $('discard').classList.remove('drop');
+      if (ghost) {
+        const gr = ghost.getBoundingClientRect(), hit = ev.type === 'pointerup' && overDiscard(ev.clientX, ev.clientY);
+        dragging = false;
+        if (hit) { ghost.remove(); el.classList.remove('lifted'); useCard(card, el, gr); }
+        else {
+          const a = ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${r0.left}px,${r0.top}px)` }], { duration: 150, easing: 'ease-out' });
+          a.onfinish = () => { ghost.remove(); el.classList.remove('lifted'); render(); };
+        }
+      } else if (ev.type === 'pointerup' && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) useCard(card, el);
+    };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  };
+}
+$('btnDraw').onclick = () => { if (!busy && myTurnNow() && (G.pending > 0 || G.drewBy !== ME)) act('draw'); };
+$('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
+$('btnUno').onclick = () => { if (!G || !G.players[ME]) return; if (MODE === 'client') { act('uno'); return; } if (G.callUno(ME)) tick(); };
+$('drawpile').onclick = () => $('btnDraw').onclick();
+$('btnSort').onclick = () => { sortMode = { color: 'value', value: 'none', none: 'color' }[sortMode]; render(); };
+$('btnQuit').onclick = () => { if (MODE !== 'local') { leaveRoom(); return; } token++; G = null; busy = false; closeModal(); show('start'); };
+$('opps').addEventListener('click', e => { const b = e.target.closest('[data-catch]'); if (b && G) act('catch', { target: +b.dataset.catch }); });
+document.addEventListener('keydown', e => {
+  if (!G || $('game').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
+  if (e.key === 'd' || e.key === ' ') { e.preventDefault(); $('btnDraw').onclick(); }
+  else if (e.key === 'u') $('btnUno').onclick();
+  else if (e.key === 'p') $('btnPass').onclick();
+});
+
+// ================= RENDER =================
+const SYM = {
+  skip: ['⊘'], rev: ['⇄'], d1: ['+1'], d2: ['+2'], d4: ['+4'], d5: ['+5'], flip: ['⟲', 'flip'], dflip: ['⟲⟲', 'double flip', 'sm'],
+  discall: ['ALL', 'discard', 'sm'], skipall: ['⊘', 'everyone'], mirror: ['↩', 'mirror'], shield: ['▲', 'shield'],
+  wild: ['W', 'wild'], wd2: ['+2'], wd4: ['+4'], wrd4: ['+4', 'reverse'], wd6: ['+6'], wd10: ['+10'], wd15: ['+15'],
+  wrd8: ['+8', 'reverse'], wdc: ['+?', 'draw color'], roul: ['?', 'roulette'], duel: ['VS', 'duel'], bhole: ['●', 'black hole']
+};
+const CORNER = { skip: '⊘', rev: '⇄', d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: '⟲', dflip: '⟲⟲', discall: 'A', skipall: '⊘⊘', mirror: '↩', shield: '▲', wild: 'W', wd2: '+2', wd4: '+4', wrd4: '⇄4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '⇄8', wdc: '+?', roul: '?', duel: 'VS', bhole: '●' };
+function faceHTML(f, side, cls = '', id = '') {
+  const [m, sub, sz] = SYM[f.v] || [esc(f.v)];
+  const cor = CORNER[f.v] || esc(f.v);
+  return `<div class="card s-${side} c-${esc(f.c)} ${cls}" ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span></div>`;
+}
+const otherSide = () => G.side === 'L' ? 'D' : 'L';
+function sortedHand(h) {
+  const order = { r: 0, y: 1, g: 2, b: 3, p: 0, t: 1, o: 2, v: 3, w: 4 }, keys = Object.keys(SYM);
+  const vr = v => isNaN(+v) ? 10 + keys.indexOf(v) : +v;
+  const a = h.slice(), F = c => G.f(c);
+  if (sortMode === 'color') a.sort((x, y) => order[F(x).c] - order[F(y).c] || vr(F(x).v) - vr(F(y).v));
+  else if (sortMode === 'value') a.sort((x, y) => vr(F(x).v) - vr(F(y).v) || order[F(x).c] - order[F(y).c]);
+  return a;
+}
+function render() {
+  if (!G) return;
+  if (MODE === 'host') push();
+  const me = G.players[ME];
+  document.body.classList.toggle('dark', G.side === 'D');
+  const ob = otherSide();
+  const tk = `${G.turn}:${G.roulette}:${G.seq}:${G.gid}`;
+  if (tk !== turnKey) { turnKey = tk; turnStartedAt = Date.now(); if (myTurnNow()) SFX.play('turn'); }
+  const elapsed = (Date.now() - turnStartedAt) / 1000;
+  const cc = G.roulette !== null ? 'var(--muted)' : CVAR[G.color];
+  document.documentElement.style.setProperty('--cc-now', cc);
+  // seats
+  $('opps').innerHTML = G.players.map((p, i) => {
+    if (i === ME) return '';
+    const n = p.hand.length, fanN = Math.min(n, 12);
+    const fan = p.hand.slice(-fanN).map((c, k) => { const bf = c[ob] || { c: 'w' }; return `<i class="${ob} ${bf.c === 'w' ? 'w' : ''}" style="left:${k * 9}px;${bf.c !== 'w' ? `background:${CVAR[bf.c]}` : ''}"></i>`; }).join('');
+    const turn = (G.roulette !== null ? G.roulette === i : G.turn === i) && G.winner === null;
+    const tags = [];
+    if (p.elim) tags.push('<b>Out</b>'); else if (G.winner === i) tags.push('<b>Winner</b>'); else if (n === 1) tags.push('<b>UNO</b>');
+    if (p.shield) tags.push('<b>Shield</b>');
+    if (!tags.length) tags.push(MODE === 'local' || !p.human ? 'Bot' : 'Player');
+    const pct = G.rules.mercy ? Math.min(100, n / G.rules.mercy * 100) : 0;
+    const timer = turn && MODE !== 'local' && p.human ? `<div class="timer" style="animation-duration:${IDLE_MS / 1000}s;animation-delay:-${elapsed}s"></div>` : '';
+    return `<div class="opp ${turn ? 'turn' : ''} ${p.out && G.winner !== i ? 'out' : ''}" id="opp${i}">
+      <div class="top"><span class="ini">${initials(p.name)}</span><span class="nm">${esc(p.name)}</span></div>
+      <div class="fan">${fan}</div>
+      <div class="meta"><span class="cnt">${n}</span><span class="tags">${tags.join(' · ')}</span></div>
+      ${G.rules.mercy ? `<div class="bar ${pct >= 80 ? 'hot' : ''}"><div style="width:${pct}%"></div></div>` : ''}${timer}
+      ${p.vulnerable && n === 1 && G.rules.uno && me && !me.out ? `<button class="btn catch" data-catch="${i}">Catch: +2</button>` : ''}</div>`;
+  }).join('');
+  // piles: the draw pile shows the back of the next card, as in UNO Flip
+  const nb = G.next && G.next[ob] ? G.next[ob] : { c: 'w', v: 'wild' };
+  const back = faceHTML(nb, ob);
+  $('drawpile').innerHTML = back + back + back;
+  const myTurn = myTurnNow();
+  const canDraw = myTurn && (G.pending > 0 || G.drewBy !== ME);
+  $('drawpile').classList.toggle('can', canDraw && G.playable(ME).length === 0);
+  $('discard').innerHTML = faceHTML(G.f(G.top), G.side);
+  // hud
+  $('hud').innerHTML = `<span class="label">${G.side === 'L' ? 'Light side' : 'Dark side'}</span>
+    <span class="row"><span class="chip"></span><span>${G.roulette !== null ? 'Color pending' : COLOR_NAME[G.color]}</span></span>
+    <span class="row mono">${G.dir === 1 ? '↻ Clockwise' : '↺ Counter'}</span>
+    ${G.pending > 0 ? `<span class="label" style="margin-top:8px">Stack</span><span class="stack">+${G.pending}</span>` : ''}`;
+  // banner
+  const ban = $('banner');
+  let txt, you = false;
+  if (G.winner !== null) txt = G.winner === ME ? 'You win' : `${G.players[G.winner].name} wins`;
+  else if (me.out) txt = 'You are out. Watching the rest of the game.';
+  else if (G.roulette !== null) txt = G.roulette === ME ? 'Roulette: name a color' : `${G.players[G.roulette].name} is naming a color`;
+  else if (myTurn) { you = true; txt = G.pending > 0 ? (G.playable(ME).length ? `Stack +${G.stackMin} or higher, mirror it, or take +${G.pending}` : `Take +${G.pending}`) : (G.drewBy === ME ? 'Play the card you drew, or pass' : (G.playable(ME).length ? 'Your turn: tap or drag a card' : (G.rules.drawUntil ? 'Nothing fits. Keep drawing until something does.' : 'Nothing fits. Draw a card.'))); }
+  else txt = `${G.players[G.turn].name}'s turn`;
+  ban.textContent = txt; ban.className = you ? 'you' : '';
+  // me
+  $('meIni').innerHTML = initials(me.name);
+  $('meName').textContent = me.name;
+  $('meCnt').textContent = me.hand.length;
+  $('meTags').textContent = [me.elim ? 'Out' : '', me.shield ? 'Shield' : ''].filter(Boolean).join(' · ');
+  $('meBarWrap').style.display = G.rules.mercy ? '' : 'none';
+  const mpct = G.rules.mercy ? Math.min(100, me.hand.length / G.rules.mercy * 100) : 0;
+  $('meDanger').style.width = mpct + '%'; $('meBarWrap').classList.toggle('hot', mpct >= 80);
+  const bd = $('btnDraw');
+  const digging = myTurn && G.rules.drawUntil && G.pending === 0 && G.drewBy !== ME && G.playable(ME).length === 0 && (G.drawRunPi === ME && G.drawRun > 0);
+  bd.disabled = !canDraw; bd.textContent = G.pending > 0 && myTurn ? `Take +${G.pending}` : (digging ? `Draw again (${G.drawRun})` : 'Draw');
+  $('btnPass').disabled = !(myTurn && G.drewBy === ME && G.pending === 0);
+  const ub = $('btnUno');
+  ub.disabled = !((me.hand.length <= 2 || (G.rules.multi && G.unoReach(ME))) && !me.out && G.winner === null) || !G.rules.uno;
+  ub.classList.toggle('called', me.unoCalled);
+  ub.classList.toggle('ready', !ub.disabled && !me.unoCalled);
+  ub.textContent = me.unoCalled ? 'UNO called' : 'UNO';
+  $('btnSort').textContent = 'Sort: ' + sortMode;
+  $('btnQuit').textContent = MODE === 'local' ? 'Quit' : 'Leave';
+  // hand (left alone while a card is being dragged)
+  if (!dragging) {
+    const hand = sortedHand(me.hand);
+    const wrap = $('hand');
+    const cw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cw')) || 76;
+    const avail = wrap.clientWidth - 32;
+    const overlap = hand.length > 1 ? Math.min(8, (avail - cw) / (hand.length - 1) - cw) : 0;
+    let newIdx = 0;
+    wrap.innerHTML = hand.map((c, k) => {
+      let cls = '';
+      if (myTurn) cls = G.canPlay(c) ? 'ok' : 'dim';
+      else if (!me.out && G.canJumpIn(ME, c)) cls = 'jump';
+      let st = `margin-left:${k ? Math.max(overlap, -cw * .74) : 0}px;z-index:${k}`;
+      if (!lastHandIds.has(c.id)) { cls += ' new'; st += `;animation-delay:${Math.min(newIdx++, 7) * 20}ms`; }
+      return faceHTML(G.f(c), G.side, cls, c.id).replace('class="card', `style="${st}" class="card`);
+    }).join('');
+    wrap.style.justifyContent = hand.length * cw > avail ? 'flex-start' : 'center';
+    const byId = Object.fromEntries(me.hand.map(c => [c.id, c]));
+    wrap.querySelectorAll('.card').forEach(el => attachCard(el, byId[el.dataset.id]));
+    lastHandIds = new Set(me.hand.map(c => c.id));
+  }
+  // log
+  const logKey = G.gid + ':' + (G.log.length ? G.log[G.log.length - 1].msg : '') + ':' + G.log.length;
+  if (logKey !== lastLogKey) {
+    const prev = new Set(lastLogMsgs); lastLogKey = logKey;
+    const rows = G.log.slice(-60);
+    lastLogMsgs = rows.map(l => l.msg);
+    $('log').innerHTML = rows.slice().reverse().map(l => `<div class="${l.cls === 'win' ? 'win' : ''}${prev.has(l.msg) ? '' : ' n'}">${esc(youify(l.msg))}</div>`).join('');
+  }
+  processEvents();
+}
+function youify(m) {
+  if (!G.players[ME] || G.players[ME].name !== 'You' || !/^You /.test(m)) return m.replace(/You starts/, 'You start');
+  return m.replace(/\bYou (plays|takes|draws|passes|calls|swaps|flips|empties|hit|is|jumps|must|mirrors|raises|duels|ran)\b/g, (a, v) =>
+    'You ' + ({ plays: 'play', takes: 'take', draws: 'draw', passes: 'pass', calls: 'call', swaps: 'swap', flips: 'flip', empties: 'empty', hit: 'hit', is: 'are', jumps: 'jump', must: 'must', mirrors: 'mirror', raises: 'raise', duels: 'duel', ran: 'ran' }[v]))
+    .replace(/(You (?:play|draw|flip|empty|swap)[^.]*?)\btheir\b/g, '$1your').replace(/until they can/g, 'until you can').replace(/reaches them/, 'reaches you');
+}
+
+// ================= EVENTS → FEEDBACK =================
+const TOAST_PRI = { multi: 5, win: 9, flip: 8, ko: 7, bhole: 7, took: 6, mirror: 6, shield: 6, duel: 5, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, jump: 3, reverse: 2 };
+function seatRect(pi) { return pi === ME ? rectOf($('hand')) : rectOf($('opp' + pi)); }
+function nm(pi) { return pi === ME ? 'You' : (G.players[pi] ? G.players[pi].name : ''); }
+function processEvents() {
+  const evs = (G.events || []).filter(e => e.n > lastEvN);
+  if (!evs.length) return;
+  lastEvN = evs[evs.length - 1].n;
+  const recent = evs.slice(-8);
+  const cw = rectOf($('discard'));
+  let best = null; const bump = (pri, text) => { if (!best || pri > best.pri) best = { pri, text }; };
+  const lastPlay = [...recent].reverse().find(e => e.type === 'play');
+  for (const e of recent) {
+    switch (e.type) {
+      case 'play': {
+        SFX.play('play');
+        if (e.jump) bump(TOAST_PRI.jump, 'Jump-in');
+        if (e !== lastPlay) break;
+        const card = codeCard(e.code), face = card[e.side];
+        const disc = document.querySelector('#discard .card');
+        const from = e.pi === ME && lastPlayRect ? lastPlayRect : centerRect(seatRect(e.pi) || cw, cw.width * 0.6, cw.height * 0.6);
+        if (disc) disc.style.opacity = '0';
+        fly(faceHTML(face, e.side), from, cw, { onDone: () => { const d = document.querySelector('#discard .card'); if (d) d.style.opacity = ''; } });
+        lastPlayRect = null;
+        break;
+      }
+      case 'draw': {
+        SFX.play('draw', e.k);
+        const p = G.players[e.pi]; if (!p) break;
+        const to = seatRect(e.pi), from = rectOf($('drawpile'));
+        if (!to || !from) break;
+        const ob = otherSide(), tail = p.hand.slice(-Math.min(e.k, 5));
+        tail.forEach((c, k) => fly(faceHTML(c[ob] || { c: 'w', v: 'wild' }, ob), from, centerRect(to, from.width * 0.5, from.height * 0.5), { delay: k * 30 }));
+        floatText(e.pi, '+' + e.k);
+        break;
+      }
+      case 'took': SFX.play('took'); if (e.k >= 10) bump(TOAST_PRI.took, `+${e.k}`); break;
+      case 'stack': SFX.play('stack', e.k); bump(TOAST_PRI.stack, `Stack +${e.k}`); break;
+      case 'skip': SFX.play('skip'); floatText(e.pi, 'Skipped'); break;
+      case 'skipall': SFX.play('skip'); bump(TOAST_PRI.skipall, 'Skip everyone'); break;
+      case 'reverse': SFX.play('skip'); bump(TOAST_PRI.reverse, 'Reverse'); break;
+      case 'swap': SFX.play('swap'); bump(TOAST_PRI.swap, 'Hands swapped'); break;
+      case 'rotate': SFX.play('swap'); bump(TOAST_PRI.rotate, 'Hands rotate'); break;
+      case 'roulette': SFX.play('stack', 3); bump(TOAST_PRI.roulette, 'Roulette'); break;
+      case 'uno': SFX.play('uno'); floatText(e.pi, 'UNO'); break;
+      case 'multi': bump(TOAST_PRI.multi, `${e.k} at once`); break;
+      case 'caught': SFX.play('bad'); floatText(e.pi, 'Caught: +2'); break;
+      case 'ko': SFX.play('ko'); bump(TOAST_PRI.ko, `${nm(e.pi)} is out`); break;
+      case 'win': SFX.play('win'); bump(TOAST_PRI.win, e.pi === ME ? 'You win' : `${nm(e.pi)} wins`); break;
+      case 'mirror': SFX.play('swap'); bump(TOAST_PRI.mirror, `Mirrored to ${nm(e.b)}`); break;
+      case 'shieldup': SFX.play('click'); floatText(e.pi, 'Shield up'); break;
+      case 'shield': SFX.play('swap'); bump(TOAST_PRI.shield, `Shield breaks +${e.k}`); break;
+      case 'duel': SFX.play('stack', 2); bump(TOAST_PRI.duel, `${e.na} vs ${e.nb}`); break;
+      case 'bhole': SFX.play('flip'); bump(TOAST_PRI.bhole, 'Black hole'); break;
+      case 'flip':
+        SFX.play('flip'); bump(TOAST_PRI.flip, e.side === 'D' ? 'Dark side' : 'Light side');
+        document.querySelectorAll('#hand .card').forEach(el => { el.classList.remove('new'); el.classList.add('flipin'); });
+        break;
+    }
+  }
+  if (best) toast(best.text);
+}
+window.addEventListener('resize', () => render());
+
+// ================= DIALOGS =================
+function openModal(html) { $('modalBody').innerHTML = html; $('modal').classList.remove('hidden'); }
+function closeModal() { $('modal').classList.add('hidden'); }
+const ON_COLOR = { y: 'var(--ink)', t: 'var(--ink)', o: 'var(--ink)' };
+function pickColor(title, sub, side) {
+  return new Promise(res => {
+    openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p><div class="colors">${SIDE_COLORS[side].map(c => `<button data-c="${c}" style="background:${CVAR[c]};color:${ON_COLOR[c] || '#fff'}">${COLOR_NAME[c]}</button>`).join('')}</div>`);
+    $('modalBody').querySelectorAll('[data-c]').forEach(b => b.onclick = () => { SFX.play('click'); closeModal(); res(b.dataset.c); });
+  });
+}
+function pickTarget(title, sub, skipLabel) {
+  return new Promise(res => {
+    const list = G.players.map((p, i) => ({ p, i })).filter(o => o.i !== ME && !o.p.out);
+    openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p>
+      <div class="list">${list.map(o => `<button data-t="${o.i}"><span style="display:flex;gap:8px;align-items:center"><span class="ini">${initials(o.p.name)}</span>${esc(o.p.name)}</span><span class="mono">${o.p.hand.length} cards</span></button>`).join('')}</div>
+      ${skipLabel ? `<button class="btn wide" id="skipT" style="margin-top:16px">${esc(skipLabel)}</button>` : ''}`);
+    $('modalBody').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { SFX.play('click'); closeModal(); res(+b.dataset.t); });
+    if (skipLabel) $('skipT').onclick = () => { SFX.play('click'); closeModal(); res(null); };
+  });
+}
+// choose which matching cards go down together; resolves to the cards, or null to cancel
+function pickExtras(card, same) {
+  return new Promise(res => {
+    const sel = new Set(same);
+    const draw = () => {
+      openModal(`<h2>Play them together?</h2><p>Tap a card to leave it in your hand. The last card played sets the color.</p>
+        <div class="pick">${faceHTML(G.f(card), G.side, 'lead')}${same.map((c, k) => faceHTML(G.f(c), G.side, sel.has(c) ? 'on' : 'off').replace('class="card', `data-k="${k}" class="card`)).join('')}</div>
+        <button class="btn primary wide" id="pxGo">Play ${sel.size + 1} card${sel.size ? 's' : ''}</button>
+        <button class="textlink" id="pxCancel">Cancel</button>`);
+      $('modalBody').querySelectorAll('[data-k]').forEach(el => el.onclick = () => { const c = same[+el.dataset.k]; sel.has(c) ? sel.delete(c) : sel.add(c); SFX.play('click'); draw(); });
+      $('pxGo').onclick = () => { closeModal(); res(same.filter(c => sel.has(c))); };
+      $('pxCancel').onclick = () => { closeModal(); res(null); };
+    };
+    draw();
+  });
+}
+function showEnd() {
+  if (!G || G.winner === null || !$('modal').classList.contains('hidden') && $('modalBody').querySelector('#again,#menu')) return;
+  const w = G.players[G.winner], meP = G.players[ME];
+  const ranked = G.players.map((p, i) => ({ p, i })).sort((a, b) => (a.i === G.winner ? -1 : b.i === G.winner ? 1 : 0) || (a.p.elim - b.p.elim) || a.p.hand.length - b.p.hand.length);
+  const won = G.winner === ME;
+  const controls = MODE === 'client'
+    ? `<p style="margin:16px 0 0">Waiting for the host to deal the next round.</p><button class="textlink" id="menu">Leave room</button>`
+    : `<button class="btn primary wide" id="again">Play again</button><button class="textlink" id="menu">${MODE === 'host' ? 'Back to lobby' : 'Change settings'}</button>`;
+  openModal(`<h2>${won ? 'You win' : esc(w.name) + ' wins'}</h2>
+    <p>${won ? 'Hand emptied.' : (meP.elim ? 'You hit the Mercy limit.' : 'Final card counts:')}</p>
+    <div class="list">${ranked.map((o, k) => `<div class="li"><span>${k + 1}. ${esc(o.p.name)}</span><span class="mono">${o.i === G.winner ? 'winner' : o.p.elim ? 'out' : o.p.hand.length + ' cards'}</span></div>`).join('')}</div>
+    ${controls}`);
+  if ($('again')) $('again').onclick = () => MODE === 'host' ? hostStartGame() : startLocal();
+  $('menu').onclick = () => {
+    if (MODE === 'client') return leaveRoom();
+    if (MODE === 'host') { closeModal(); G = null; hostRefresh(true); show('lobby'); return; }
+    $('btnQuit').onclick();
+  };
+}
+function showRules() {
+  openModal(`<h2>How to play</h2><div class="rulestext">
+    <h3>Basics</h3><ul><li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
+    <li>The deck never runs out. Cards come from a mix of classic, Flip and No Mercy cards.</li>
+    <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> UNO, <b>P</b> pass.</li>
+    <li>Extra cards (Mirror, Shield, Double Flip, Wild Duel, Wild Draw 15, Black Hole) can each be switched off on the start screen.</li></ul>
+    <h3>Flip</h3><ul><li>Every card has a light side and a dark side. <b>Flip</b> turns every card over at once.</li>
+    <li>You can see the backs of other players' cards and of the next draw card, but not your own backs.</li>
+    <li><b>Double Flip</b> turns the table for one turn. It flips back after the next player acts.</li></ul>
+    <h3>Stacks</h3><ul><li>Answer a draw card with one of equal or higher value: +1, +2, +4, +5, +6, +8, +10, +15. If you can't, take the whole stack and lose your turn.</li>
+    <li><b>Mirror</b> sends the whole stack back to whoever fed it last.</li>
+    <li><b>Shield</b> stays in front of you and breaks the next stack that reaches you.</li></ul>
+    <h3>Other rules</h3><ul>
+    <li><b>Draw until playable</b>: with nothing to play, you draw one card at a time and can't pass until one fits.</li>
+    <li><b>Mercy limit</b> (solo only): reach it and you are out.</li>
+    <li><b>7</b> lets you swap hands with one player, or keep yours. <b>0</b> passes every hand along. Each can be turned off separately.</li>
+    <li><b>Same-number drops</b>: play every card with the same number or symbol together. Draw cards add up, skips skip that many players, and an even number of reverses or flips cancels out.</li>
+    <li><b>Jump-in</b>: play an exact match of the top card out of turn. Outlined cards qualify.</li>
+    <li><b>UNO</b>: call it at two cards or right after dropping to one. If you're caught, you draw 2.</li></ul>
+    <h3>Action cards</h3><ul>
+    <li><b>Skip</b>, <b>Reverse</b>, <b>Skip Everyone</b> (you go again), <b>Discard All</b> (discard every card of that color).</li>
+    <li><b>Color Roulette</b>: the next player names a color and turns over cards until it appears, keeping them all.</li>
+    <li><b>Wild Draw Color</b> (dark): you name the color. The next player draws until they hit it.</li>
+    <li><b>Wild Duel</b>: you and a chosen player turn over cards until each hits a number. The lower number takes every card turned over.</li>
+    <li><b>Black Hole</b> (dark): every hand is pooled, shuffled and dealt back out evenly.</li></ul>
+    <h3>Online</h3><ul><li>Create a room and share the code or link. Friends join from this page without an account. Empty seats can be bots (6 seats).</li>
+    <li>The host's browser runs the game, so the host's rules apply and the host must keep the page open.</li>
+    <li>After 45 seconds without a move, autopilot plays for you. If you leave, a bot takes your hand.</li></ul>
+    </div><button class="btn primary wide" id="closeR">Close</button>`);
+  $('closeR').onclick = () => { closeModal(); if (G && G.winner !== null) showEnd(); };
+}
+
+</script>
+</body>
+</html>
