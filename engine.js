@@ -51,13 +51,15 @@ class Game {
     this.gid = Math.random().toString(36).slice(2, 8);
     this.side = 'L';
     this.next = this.newCard();
-    this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, unoCalled: false, vulnerable: false, shield: false, av: '', peer: '' }));
+    this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, unoCalled: false, vulnerable: false, shield: false, oweN: 0, owed: [], av: '', peer: '' }));
     for (const p of this.players) for (let i = 0; i < this.rules.handSize; i++) p.hand.push(this.newCard());
     let top;
     do { top = this.newCard(); } while (top.L.c === 'w' || isNaN(+top.L.v));
     this.top = top; this.color = top.L.c; this.dir = 1;
+    this.pile = [cardCode(top)]; this.pileN = 1; // recent discards, so the pile can show a few cards underneath
     this.turn = Math.floor(Math.random() * names.length);
     this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.roulette = null; this.flipBack = null;
+    this.debt = null; // cards someone must draw by hand before play moves on: { pi, n | until, got, kind }
     this.drewBy = -1; this.winner = null; this.log = []; this.seq = 0;
     this.events = []; this.evSeq = 0;
     this.addLog(`First card: ${faceName(top.L)}. ${this.players[this.turn].name} starts.`);
@@ -79,14 +81,15 @@ class Game {
     for (let s = 0; s < steps; s++) { let g = 0; do { i = (i + this.dir + n) % n; } while (this.players[i].out && ++g < n); }
     return i;
   }
+  owes(pi) { const p = this.players[pi]; return !!p && !p.out && ((p.oweN || 0) > 0 || (p.owed && p.owed.length > 0)); }
   canPlay(card) {
-    if (this.roulette !== null || card.hidden) return false;
+    if (this.roulette !== null || this.debt || card.hidden || this.owes(this.turn)) return false;
     const f = this.f(card), t = this.f(this.top);
     if (this.pending > 0) return f.v === 'mirror' || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
     return f.c === 'w' || f.c === this.color || f.v === t.v;
   }
   canJumpIn(pi, card) {
-    if (!this.rules.jumpIn || this.winner !== null || this.roulette !== null || pi === this.turn || this.players[pi].out || card.hidden) return false;
+    if (!this.rules.jumpIn || this.winner !== null || this.roulette !== null || this.debt || pi === this.turn || this.players[pi].out || card.hidden || this.owes(pi)) return false;
     const f = this.f(card), t = this.f(this.top);
     return f.c !== 'w' && f.c === t.c && f.v === t.v;
   }
@@ -122,6 +125,7 @@ class Game {
     }
     if (this.winner === null && this.players[this.turn].out) this.turn = this.nextIdx(this.turn, 1);
     if (this.roulette !== null && this.players[this.roulette].out) { this.roulette = null; }
+    if (this.debt && this.players[this.debt.pi].out) this.debt = null;
   }
   play(pi, cardId, opts = {}) {
     const p = this.players[pi];
@@ -143,6 +147,8 @@ class Game {
     p.hand = p.hand.filter(c => !chain.includes(c));
     const last = chain[k - 1];
     this.top = last;
+    for (const c of chain) { this.pile.push(cardCode(c)); this.pileN++; }
+    if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
     this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
     this.seq++; this.drawRun = 0;
     let extra = '';
@@ -223,11 +229,9 @@ class Game {
         let pool = [], a, b, rounds = 0;
         do { a = flipNum(); b = flipNum(); pool = pool.concat(a.got, b.got); rounds++; } while (a.n === b.n && rounds < 5);
         const loser = a.n < b.n ? pi : tgt;
-        this.players[loser].hand.push(...pool);
-        this.addLog(`${p.name} duels ${this.players[tgt].name}: ${a.n} vs ${b.n}. ${this.players[loser].name} takes all ${pool.length} flipped cards.`, 'bad');
+        this.players[loser].owed = (this.players[loser].owed || []).concat(pool);
+        this.addLog(`${p.name} duels ${this.players[tgt].name}: ${a.n} vs ${b.n}. ${this.players[loser].name} must pick up all ${pool.length} turned-over cards.`, 'bad');
         this.ev('duel', { a: pi, b: tgt, na: a.n, nb: b.n, loser, k: pool.length });
-        this.ev('draw', { pi: loser, k: pool.length });
-        if (this.players[loser].hand.length !== 1) this.players[loser].vulnerable = false;
         break;
       }
       case 'bhole': {
@@ -249,9 +253,9 @@ class Game {
         this.roulette = this.nextIdx(pi, 1); this.ev('roulette', { pi: this.roulette }); break;
       case 'wdc': {
         const vi = this.nextIdx(pi, 1), col = this.color;
-        const got = this.give(vi, 0, c => c && this.f(c).c === col);
-        this.addLog(`${this.players[vi].name} must draw until ${COLOR_NAME[col]}: +${got.length} cards.`, 'bad');
-        steps = 2; break;
+        this.debt = { pi: vi, until: col, got: 0, kind: 'wdc' };
+        this.addLog(`${this.players[vi].name} must draw until they hit ${COLOR_NAME[col]}.`, 'bad');
+        this.turn = vi; steps = -1; break;
       }
       case 'dflip':
       case 'flip': {
@@ -299,18 +303,44 @@ class Game {
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
     }
   }
+  // Every draw is one card by hand. Owed cards (UNO penalty, a lost duel) can be paid any time;
+  // a debt (a taken stack, roulette, draw-color) has to be paid before play moves on.
   draw(pi) {
-    if (pi !== this.turn || this.roulette !== null || this.winner !== null) return null;
     const p = this.players[pi];
-    if (this.pending > 0) {
-      const k = this.pending;
-      const got = this.give(pi, k);
-      this.addLog(`${p.name} takes the stack: +${got.length} card${got.length === 1 ? '' : 's'} (now ${p.hand.length}).`, 'bad');
-      this.ev('took', { pi, k: got.length });
-      this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
-      this.turn = this.nextIdx(pi, 1); this.seq++;
-      this.mercyCheck(); this.checkFlipBack();
+    if (!p || p.out || this.winner !== null) return null;
+    if (this.owes(pi)) {
+      let got;
+      if (p.owed && p.owed.length) { const c = p.owed.shift(); p.hand.push(c); got = [c]; this.ev('draw', { pi, k: 1 }); }
+      else { got = this.give(pi, 1); p.oweN--; }
+      if (p.hand.length !== 1) p.vulnerable = false;
+      this.seq++; this.mercyCheck();
       return got;
+    }
+    if (pi !== this.turn || this.roulette !== null) return null;
+    const d = this.debt;
+    if (d && d.pi === pi) {
+      const got = this.give(pi, 1); this.seq++; d.got += got.length;
+      let done = false;
+      if (d.n) { d.n--; done = d.n <= 0; }
+      else if (d.until) done = !!(got[0] && this.f(got[0]).c === d.until);
+      if (d.got >= 300) done = true;
+      if (done) {
+        this.addLog(d.kind === 'stack' ? `${p.name} picked up all ${d.got} cards (now ${p.hand.length}).`
+          : `${p.name} drew ${d.got} card${d.got > 1 ? 's' : ''} before hitting ${COLOR_NAME[d.until]}.`, 'bad');
+        if (d.got >= 10) this.ev('took', { pi, k: d.got });
+        this.debt = null; this.drewBy = -1; this.drawRun = 0;
+        this.turn = this.nextIdx(pi, 1);
+        this.applyShield(); this.checkFlipBack();
+      }
+      this.mercyCheck();
+      return got;
+    }
+    if (this.pending > 0) {
+      // taking the stack: the cards are picked up one by one
+      this.debt = { pi, n: this.pending, got: 0, kind: 'stack' };
+      this.addLog(`${p.name} takes the +${this.pending} stack.`, 'bad');
+      this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
+      return this.draw(pi);
     }
     if (this.drewBy === pi) return null;
     const got = this.give(pi, 1);
@@ -333,7 +363,7 @@ class Game {
     return got;
   }
   pass(pi) {
-    if (pi !== this.turn || this.drewBy !== pi || this.pending > 0) return false;
+    if (pi !== this.turn || this.drewBy !== pi || this.pending > 0 || this.debt || this.owes(pi)) return false;
     this.addLog(`${this.players[pi].name} passes.`);
     this.drewBy = -1; this.drawRun = 0; this.seq++;
     this.turn = this.nextIdx(pi, 1);
@@ -343,14 +373,13 @@ class Game {
   resolveRoulette(color) {
     const vi = this.roulette; if (vi === null) return null;
     if (!this.colors().includes(color)) color = Bot.bestColor(this, this.players[vi].hand, this.side);
-    const got = this.give(vi, 0, c => c && this.f(c).c === color);
     this.color = color;
-    this.addLog(`${this.players[vi].name} calls ${COLOR_NAME[color]} and flips ${got.length} card${got.length > 1 ? 's' : ''} before hitting it.`, 'bad');
+    this.addLog(`${this.players[vi].name} calls ${COLOR_NAME[color]} and must draw until it shows up.`, 'bad');
     this.ev('color', { c: color });
     this.roulette = null; this.seq++;
-    this.turn = this.nextIdx(vi, 1);
-    this.mercyCheck(); this.checkFlipBack();
-    return got;
+    this.turn = vi;
+    this.debt = { pi: vi, until: color, got: 0, kind: 'roulette' };
+    return [];
   }
   callUno(pi) {
     const p = this.players[pi];
@@ -358,6 +387,32 @@ class Game {
     if (p.hand.length === 1 && p.vulnerable) { p.vulnerable = false; this.addLog(`${p.name} calls UNO just in time`, 'uno'); this.ev('uno', { pi }); return true; }
     if ((p.hand.length <= 2 || (this.rules.multi && this.unoReach(pi))) && !p.unoCalled) { p.unoCalled = true; this.ev('uno', { pi }); return true; }
     return false;
+  }
+  // A player who leaves (or stays disconnected too long) is out of this match; everyone else plays on.
+  removePlayer(pi, why = 'left') {
+    const p = this.players[pi];
+    if (!p || p.out || this.winner !== null) return false;
+    p.out = true; p.left = true; p.vulnerable = false; p.shield = false;
+    this.addLog(`${p.name} ${why === 'left' ? 'left the match' : 'was away too long and is out of the match'}. Everyone else plays on.`, 'bad');
+    this.ev('ko', { pi });
+    if (this.roulette === pi) this.roulette = null;
+    if (this.debt && this.debt.pi === pi) this.debt = null;
+    p.oweN = 0; p.owed = [];
+    if (this.stackFrom === pi) this.stackFrom = -1;
+    if (this.flipBack && this.flipBack.pi === pi) this.flipBack.pi = this.nextIdx(pi, 1);
+    if (this.turn === pi) {
+      if (this.pending > 0) { this.addLog(`The +${this.pending} stack aimed at ${p.name} is discarded.`, 'stk'); this.pending = 0; this.stackMin = 0; this.stackFrom = -1; }
+      this.drewBy = -1; this.drawRun = 0;
+      this.turn = this.nextIdx(pi, 1);
+    }
+    this.seq++;
+    const act = this.active();
+    if (act.length === 1) {
+      this.winner = this.players.indexOf(act[0]);
+      this.addLog(`${act[0].name} is the last player left and wins.`, 'win');
+      this.ev('win', { pi: this.winner });
+    }
+    return true;
   }
   // A player who is away (disconnected, or idle too long) has their turn skipped.
   // If a stack is waiting on them, they take it, so nobody else is punished for their absence.
@@ -371,7 +426,12 @@ class Game {
       return true;
     }
     if (this.turn !== pi) return false;
-    if (this.pending > 0) { this.addLog(`${p.name} is away and takes the stack.`, 'stk'); this.draw(pi); return true; }
+    if (this.pending > 0 || (this.debt && this.debt.pi === pi)) {
+      if (this.pending > 0) this.addLog(`${p.name} is away and takes the stack.`, 'stk');
+      let g = 0; while (this.turn === pi && this.winner === null && ++g < 400 && this.draw(pi));
+      return true;
+    }
+    while (this.owes(pi)) this.draw(pi);
     this.addLog(`${p.name} is away. Turn skipped.`, 'stk');
     this.drewBy = -1; this.drawRun = 0; this.seq++;
     this.ev('skip', { pi });
@@ -389,10 +449,9 @@ class Game {
     const t = this.players[target];
     if (!t || !t.vulnerable || t.hand.length !== 1 || t.out || catcher === target) return false;
     t.vulnerable = false;
-    this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO: +2 cards.`, 'bad');
+    this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO. ${t.name} must draw 2.`, 'bad');
     this.ev('caught', { pi: target, by: catcher });
-    this.give(target, 2); this.seq++;
-    this.mercyCheck();
+    t.oweN = (t.oweN || 0) + 2; this.seq++;
     return true;
   }
 }
@@ -483,8 +542,8 @@ function serialize(g, viewer = -1, logN = 8) {
     gid: g.gid, ru: g.rules, sd: g.side,
     p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
-      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0)]),
-    t: cardCode(g.top), nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0)]),
+    t: cardCode(g.top), db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 160), l.cls]),
     ev: g.events.slice(-12), es: g.evSeq
@@ -500,9 +559,9 @@ function deserialize(st) {
     if (hs[0] === '!') hand = [...hs.slice(1)].map(ch => { const c = { id: CARD_ID++, hidden: true }; c[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(ch)] || { c: 'w', v: 'wild' }); return c; });
     else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
-      out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32) };
+      out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), oweN: a[5] || 0, owed: [] };
   });
-  g.top = codeCard(st.t);
+  g.top = codeCard(st.t); g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
   g.roulette = st.o < 0 ? null : st.o; g.drewBy = st.w; g.winner = st.x < 0 ? null : st.x; g.seq = st.s;

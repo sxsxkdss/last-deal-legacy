@@ -14,6 +14,7 @@ const MAX_SEATS = 6;
 const AWAY_SKIP_MS = 15000;   // a disconnected player's turn is skipped after this
 const IDLE_SKIP_MS = 60000;   // a connected but idle player's turn is skipped after this
 const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
+const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const EXTRA = ['mirror', 'shield', 'dflip', 'duel', 'wd15', 'bhole'];
 const RULE_KEYS = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno'];
@@ -144,7 +145,7 @@ wss.on('connection', ws => {
   ws.on('close', () => {
     const room = ws.room && rooms.get(ws.room); if (!room) return;
     const m = room.members.get(ws.token); if (!m || m.ws !== ws) return;
-    m.ws = null;
+    m.ws = null; m.offSince = Date.now();
     if (!room.G || room.G.winner !== null) { /* lobby: keep the seat briefly so a refresh doesn't lose it */ }
     sync(room);
   });
@@ -159,7 +160,7 @@ function attach(ws, room, token, name) {
     m = { token, name: name || 'Player', ws };
     room.members.set(token, m); room.order.push(token);
   }
-  ws.room = room.code; ws.token = token;
+  ws.room = room.code; ws.token = token; m.offSince = null;
   room.emptySince = null;
   return m;
 }
@@ -219,13 +220,12 @@ function handle(ws, msg) {
       sync(room); return;
     }
     case 'leave': {
-      // a seat in a live match is kept so the player can come back; in the lobby they are removed
-      const live = room.G && room.G.winner === null && seatOf(room, m.token) !== null;
+      // leaving a live match takes you out of it; everyone else keeps playing
+      const seat = seatOf(room, m.token);
+      if (room.G && room.G.winner === null && seat !== null) room.G.removePlayer(seat, 'left');
       m.ws = null; ws.room = null;
-      if (!live) {
-        room.members.delete(m.token); room.order = room.order.filter(t => t !== m.token);
-        if (room.host === m.token && room.order.length) room.host = room.order[0];
-      }
+      room.members.delete(m.token); room.order = room.order.filter(t => t !== m.token);
+      if (room.host === m.token && room.order.length) room.host = room.order[0];
       send(ws, { t: 'left' });
       sync(room); return;
     }
@@ -235,6 +235,15 @@ function handle(ws, msg) {
 setInterval(() => {
   const now = Date.now();
   for (const [code, room] of rooms) {
+    // disconnected for a full minute in a live match: out, so the others aren't held up
+    if (room.G && room.G.winner === null) {
+      let changed = false;
+      room.seats.forEach((t, i) => {
+        const m = room.members.get(t);
+        if ((!m || (!online(m) && m.offSince && now - m.offSince > DROP_OUT_MS)) && !room.G.players[i].out) changed = room.G.removePlayer(i, 'away') || changed;
+      });
+      if (changed) sync(room);
+    }
     const anyOnline = [...room.members.values()].some(online);
     if (!anyOnline) { room.emptySince = room.emptySince || now; if (now - room.emptySince > ROOM_TTL_MS) { clearTimeout(room.timer); rooms.delete(code); } continue; }
     const host = room.members.get(room.host);
