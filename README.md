@@ -1,43 +1,57 @@
-# UNO Flip × No Mercy — Ultimate Edition
+# UNO Flip × No Mercy
 
-A browser card game that mashes classic UNO, UNO Flip and UNO Show 'Em No Mercy into one brutal ruleset. Play against bots, or open a room and play friends online. No accounts and no server of your own: everything lives in a single `index.html`.
+An online card game that mashes classic UNO, UNO Flip and UNO Show 'Em No Mercy into one ruleset. Play friends in rooms of up to 6. No accounts needed. A small Node server runs every match, so everyone always sees the same table and anyone who drops out can rejoin their seat.
 
-## Features
+## What's in the box
 
-- **Endless two-sided deck.** Every card has a light side and a dark side, drawn at random from a mix of classic, Flip and No Mercy cards, plus a few originals: Mirror, Shield, Double Flip, Wild Duel, Wild Draw 15 and Black Hole. Each original can be switched off.
-- **Flip.** Flip cards turn the whole table over. You can see the backs of other players' cards and of the next card on the draw pile.
-- **No Mercy rules, each one switchable:**
-  - draw until playable, one card per tap, with no passing until one fits
-  - stacking (+1 → +2 → +4 → +5 → +6 → +8 → +10 → +15), with Mirror and Shield as counters
-  - 7 swaps hands (optional each time), 0 rotates hands, as separate toggles
-  - same-number drops: play every card of one number or symbol at once
-  - jump-in
-  - Skip Everyone, Discard All, Color Roulette and Wild Draw Color
-  - the Mercy Rule (solo only)
-- **Bots** that stack, flip, swap and hold their wilds.
-- **Online rooms** with 4-character codes and shareable `#join-CODE` links. Up to 6 seats, and empty ones can be filled with bots.
-- **Interface:** drag-to-play, short card movements, a darker palette on the dark side, synthesized sounds, and keyboard shortcuts (D/Space draw, U UNO, P pass).
+| File | What it is |
+| --- | --- |
+| `index.html` | The whole game client (one file). |
+| `server.js` | The game server. It serves `index.html` and runs the matches over WebSockets. |
+| `engine.js` | The rules engine, used by the server (and built into `index.html`). |
+| `package.json` | Tells the host to install `ws` and run `node server.js`. |
+| `render.yaml` | Optional one-click setup for Render. |
 
-## Publish on GitHub Pages
+## Deploy on Render (free)
 
-1. Create a new repository and add `index.html` (and this README) to it.
-2. Go to **Settings → Pages**, set **Source** to "Deploy from a branch", and choose `main` and `/ (root)`.
-3. After a minute your game is live at `https://<your-username>.github.io/<repo-name>/`.
+1. Put all the files above in a GitHub repository (replace what's there).
+2. Sign in at [render.com](https://render.com) with GitHub.
+3. Click **New → Web Service** and pick your repository.
+4. Set:
+   - **Runtime:** Node
+   - **Build command:** `npm install`
+   - **Start command:** `npm start`
+   - **Instance type:** Free
+5. Click **Create Web Service**. After a minute or two you get a link like `https://uno-flip-no-mercy.onrender.com`. That link is the game: share it with friends.
 
-Any static host works too (Netlify, Vercel, Cloudflare Pages, itch.io as an HTML game). Opening the file straight from disk works for solo play. For online rooms, serve it over `https://` (or `localhost`).
+Render redeploys automatically every time you push to the repo.
 
-## How online play works
+**About the free plan:** after 15 minutes with nobody connected, the server goes to sleep. The next visitor waits about a minute while it wakes up. Rooms live in memory, so a sleeping or redeployed server forgets them. A live game keeps the server awake.
 
-Rooms run through free public MQTT message servers (EMQX, HiveMQ, Eclipse and Mosquitto) over normal secure WebSocket connections. That's the kind of traffic VPNs and strict networks almost never block. No accounts, and nothing to set up.
+Any host that runs Node and supports WebSockets works the same way (Railway, Fly.io, a VPS): `npm install`, then `npm start`. The server listens on the `PORT` environment variable (default 3000).
 
-- **Encrypted.** Every message is encrypted in the browser (AES-GCM) with a key made from the room code. The public servers only see scrambled data on a random-looking channel.
-- **Hands stay private.** The host's browser runs the table, including the bots, and sends each player only their own hand.
-- **Redundant.** The host connects to all four servers at once. Each friend uses whichever one their network reaches first, so one server being down or blocked doesn't break the room.
-- **Self-healing.** The host re-sends each player's current view every 2 seconds, and every move is re-sent until the host confirms it. A lost message or a short disconnect fixes itself within a couple of seconds. Only an explicit Leave, or 30 seconds of silence, ends a seat or the room.
-- **Lobby controls.** Everyone can change their name in the lobby. The host sets the bots, bot speed, rules and extra cards there, and guests see the table rules live.
-- **Leaving.** If the host closes the tab, the room ends. If a player drops, a bot takes over their hand. Players who go quiet for 45 seconds get an autopilot move. Online games have no Mercy limit.
+### Keeping GitHub Pages (optional)
 
-The room code is the encryption key, and it's only 4 characters. That's plenty to keep casual snoopers out, but don't treat it as strong security. The public servers are free and best-effort. For something you rely on, you can run your own MQTT broker and change the `BROKERS` list in `index.html`.
+The simplest setup is to use the Render link for everything. If you'd rather keep the GitHub Pages address, open `index.html`, find `const SERVER_URL = '';` near the top of the last script, and set it to your server, for example `const SERVER_URL = 'wss://uno-flip-no-mercy.onrender.com/ws';`. The Pages copy will then play on your server.
+
+## How a room works
+
+- **Create and join.** One player creates a room and shares the 4-character code or the link. Friends open the page, type a name and join.
+- **Lobby.** Everyone can change their name. The host switches rules and extra cards on or off, and guests see the table rules live. At least 2 players are needed to start.
+- **Server-run matches.** The server deals, checks every move and sends each player only their own hand.
+- **Rejoining.** Each browser gets a private ID. Lose your connection, refresh, close the tab or press Leave, and your seat and cards stay. Opening the page again puts you straight back in. Brief connection drops reconnect on their own.
+- **Away players.** No bots take over. While a player is away, their turn is skipped after 15 seconds (60 seconds if they're connected but idle). A skipped player takes any stack that was waiting on them.
+- **Host.** If the host is away for 20 seconds, the host role passes to the next connected player, so someone can always start the next round.
+- **Cleanup.** Rooms with nobody connected are removed after 30 minutes.
+
+## Rules
+
+- **Deck:** endless and two-sided. Each card has a light and a dark face, drawn from a mix of classic, Flip and No Mercy cards, plus a few originals: Mirror, Shield, Double Flip, Wild Duel, Wild Draw 15 and Black Hole. The host can switch each original off.
+- **Flip:** turns every card over. You see the backs of other players' cards and of the next draw card.
+- **Stacking:** +1 → +2 → +4 → +5 → +6 → +8 → +10 → +15. Mirror sends a stack back, and Shield breaks one.
+- **Same-number drops:** play every card of one number or symbol at once.
+- **Draw until playable:** one card per tap, and you can't pass until one fits.
+- **Other rules:** 7 swaps hands (optional each time), 0 rotates hands, jump-in, and the UNO penalty. Each rule can be switched on or off.
 
 ## Credits
 

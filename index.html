@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNO Flip · No Mercy</title>
-<meta name="description" content="UNO Flip and No Mercy rules in the browser. Endless deck, stacking, light and dark sides. Play bots or friends online, no account needed.">
+<meta name="description" content="UNO Flip and No Mercy rules in the browser. Endless deck, stacking, light and dark sides. Play friends online, no account needed.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -168,6 +168,8 @@ input[type=text]:focus{border-color:var(--text)}
 .card .cor{position:absolute;font:900 calc(var(--cw)*.18)/1 var(--f-ui);font-variation-settings:"wdth" 70}
 .card .cor.tl{top:6%;left:8%}.card .cor.br{bottom:6%;right:8%;transform:rotate(180deg)}
 
+/* connection notice */
+#netBanner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:120;background:var(--text);color:var(--bg);font:500 13px/20px var(--f-mono);padding:4px 12px;border-radius:4px}
 /* fx */
 #fx{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
 #fx .card{position:fixed;left:0;top:0;margin:0;will-change:transform}
@@ -233,23 +235,17 @@ input[type=text]:focus{border-color:var(--text)}
 <div id="start" class="screen">
   <div class="page">
     <h1 class="title">UNO Flip<br><span>No Mercy</span></h1>
-    <p class="lede">Classic, Flip and No Mercy cards in one endless deck. Play against bots, or open a room for friends.</p>
-    <div class="field"><span class="label">Name</span><input id="pname" type="text" maxlength="14" value="You"></div>
-    <div class="field"><span class="label">Bots</span><div class="seg" id="segBots"></div></div>
-    <div class="field"><span class="label">Bot speed</span><div class="seg" id="segSpeed"></div></div>
-    <div class="field"><span class="label">Mercy limit</span><div class="seg" id="segMercy"></div></div>
-    <div class="section"><span class="label">Rules</span><div id="ruleBox"></div></div>
-    <div class="section"><span class="label">Extra cards</span><div id="cardBox"></div></div>
-    <div class="section"><button class="btn primary wide" id="btnStart">Play against bots</button></div>
+    <p class="lede">Classic, Flip and No Mercy cards in one endless deck, played online with friends. No accounts. Drop out and you can rejoin your seat.</p>
+    <div class="field"><span class="label">Name</span><input id="pname" type="text" maxlength="14" value="Player"></div>
+    <div class="section"><button class="btn primary wide" id="btnCreate">Create room</button></div>
     <div class="section">
-      <span class="label">Online · no account needed</span>
+      <span class="label">Have a code?</span>
       <div class="actions-row">
-        <button class="btn" id="btnCreate">Create room</button>
         <input id="joinCode" class="code-in" type="text" maxlength="4" placeholder="CODE" autocomplete="off">
-        <button class="btn" id="btnJoin">Join</button>
+        <button class="btn" id="btnJoin">Join room</button>
       </div>
-      <div class="msg" id="startMsg"></div>
     </div>
+    <div class="msg" id="startMsg"></div>
     <button class="textlink" data-rules>How to play</button>
   </div>
 </div>
@@ -259,14 +255,10 @@ input[type=text]:focus{border-color:var(--text)}
     <span class="label">Room code</span>
     <div class="code" id="lbCode" title="Copy code">----</div>
     <p class="lede" id="lbHint" style="margin:8px 0 24px"></p>
-    <div class="actions-row hidden" id="shareBox" style="margin-bottom:24px"><input type="text" id="shareLink" readonly style="flex:1"><button class="btn" id="btnCopyLink">Copy link</button></div>
+    <div class="actions-row" id="shareBox" style="margin-bottom:24px"><input type="text" id="shareLink" readonly style="flex:1"><button class="btn" id="btnCopyLink">Copy link</button></div>
     <div class="field"><span class="label">Your name</span><input id="lbName" type="text" maxlength="14"></div>
     <div class="section"><span class="label">Players</span><div id="lbSeats" style="margin-top:8px"></div></div>
     <div id="lbHost">
-      <div class="section">
-        <div class="field"><span class="label">Bots</span><div class="seg" id="segRoomBots"></div></div>
-        <div class="field"><span class="label">Bot speed</span><div class="seg" id="segRoomSpeed"></div></div>
-      </div>
       <div class="section"><button class="btn primary wide" id="btnRoomStart">Start game</button></div>
       <div class="section"><span class="label">Rules</span><div id="lbRules"></div></div>
       <div class="section"><span class="label">Extra cards</span><div id="lbCards"></div></div>
@@ -305,6 +297,7 @@ input[type=text]:focus{border-color:var(--text)}
   <div id="side"><div class="sidehead"><span class="label">Log</span><span class="label" id="netTag"></span><button class="btn quiet" id="btnSound" style="height:32px;padding:0 8px">Sound on</button></div><div id="log"></div></div>
 </div>
 
+<div id="netBanner" class="hidden"></div>
 <div id="fx"></div>
 <div id="modal" class="modal hidden"><div class="dialog" id="modalBody"></div></div>
 
@@ -668,6 +661,26 @@ class Game {
     if ((p.hand.length <= 2 || (this.rules.multi && this.unoReach(pi))) && !p.unoCalled) { p.unoCalled = true; this.ev('uno', { pi }); return true; }
     return false;
   }
+  // A player who is away (disconnected, or idle too long) has their turn skipped.
+  // If a stack is waiting on them, they take it, so nobody else is punished for their absence.
+  skipTurn(pi) {
+    if (this.winner !== null) return false;
+    const p = this.players[pi];
+    if (this.roulette === pi) {
+      const cols = this.colors();
+      this.addLog(`${p.name} is away. A random color is called for them.`, 'stk');
+      this.resolveRoulette(cols[Math.floor(Math.random() * cols.length)]);
+      return true;
+    }
+    if (this.turn !== pi) return false;
+    if (this.pending > 0) { this.addLog(`${p.name} is away and takes the stack.`, 'stk'); this.draw(pi); return true; }
+    this.addLog(`${p.name} is away. Turn skipped.`, 'stk');
+    this.drewBy = -1; this.drawRun = 0; this.seq++;
+    this.ev('skip', { pi });
+    this.turn = this.nextIdx(pi, 1);
+    this.applyShield(); this.checkFlipBack();
+    return true;
+  }
   // can this player get down to one card in a single same-number drop?
   unoReach(pi) {
     const h = this.players[pi].hand, cnt = {};
@@ -804,331 +817,11 @@ if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, dese
 
 </script>
 <script>
-// ===== NETWORK: encrypted relay rooms over public MQTT brokers (no accounts), claude.ai room inside Claude =====
-const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
-let _roomNS;
-async function getRoomNS() {
-  if (_roomNS !== undefined) return _roomNS;
-  try { _roomNS = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('room') : null; } catch (e) { _roomNS = null; }
-  return _roomNS;
-}
-const inClaude = () => !!(window.claude && typeof window.claude.use === 'function');
-
-// ---- relay rooms: public MQTT brokers over secure WebSockets, end-to-end encrypted with the room code ----
-// The host joins every broker; each friend uses the first one their network can reach.
-const BROKERS = [
-  'wss://broker.emqx.io:8084/mqtt',
-  'wss://broker.hivemq.com:8884/mqtt',
-  'wss://mqtt.eclipseprojects.io:443/mqtt',
-  'wss://test.mosquitto.org:8081/mqtt'
-];
-function loadScript(srcs) {
-  return new Promise(res => {
-    let k = 0;
-    const next = () => {
-      if (k >= srcs.length) return res(false);
-      const s = document.createElement('script'); s.src = srcs[k++];
-      s.onload = () => res(true); s.onerror = next; document.head.appendChild(s);
-    };
-    next();
-  });
-}
-async function loadMqtt() {
-  if (window.mqtt) return true;
-  await loadScript(['https://unpkg.com/mqtt@5/dist/mqtt.min.js', 'https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js']);
-  return !!window.mqtt;
-}
-const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
-const unb64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
-async function roomCrypto(code) {
-  const enc = new TextEncoder(), C = code.toUpperCase();
-  const base = await crypto.subtle.importKey('raw', enc.encode(C), 'PBKDF2', false, ['deriveKey']);
-  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: enc.encode('unoflipnomercy/v2'), iterations: 120000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode('unoflipnomercy-topic/' + C)));
-  const topic = 'unofnm2/' + Array.from(h.slice(0, 12), x => x.toString(16).padStart(2, '0')).join('');
-  return {
-    topic,
-    async seal(obj) {
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(obj))));
-      const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return b64(out);
-    },
-    async open(str) {
-      try { const raw = unb64(str); const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12)); return JSON.parse(new TextDecoder().decode(pt)); }
-      catch (e) { return null; } // not ours, or tampered
-    }
-  };
-}
-const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), x => x.toString(36).padStart(2, '0')).join('').slice(0, 10);
-function connectBroker(url, opts, timeout = 6000) {
-  return new Promise((res, rej) => {
-    let c;
-    try { c = mqtt.connect(url, Object.assign({ connectTimeout: timeout, reconnectPeriod: 3000, clean: true, keepalive: 20 }, opts)); }
-    catch (e) { return rej(e); }
-    const to = setTimeout(() => { try { c.end(true); } catch (e) {} rej({ type: 'timeout' }); }, timeout + 500);
-    c.once('connect', () => { clearTimeout(to); res(c); });
-    c.on('offline', () => {}); c.on('close', () => {});
-    c.on('error', () => {});
-  });
-}
-// ordered async pipeline so encrypted messages keep their order
-function queue() { let p = Promise.resolve(); return fn => (p = p.then(fn).catch(() => {})); }
-
-// Reliability on top of lossy public brokers:
-//  - the host re-sends each player's current view every 2 s (lost updates heal themselves)
-//  - player moves carry an id and are re-sent until the host acknowledges them
-//  - only an explicit leave or 30 s of silence ends a seat or the room (no broker "last will")
-const RELAY_TIMEOUT = 30000;
-class RelayHost {
-  constructor(h) { this.h = h; this.kind = 'relay'; this.redacts = true; this.selfId = 'host'; this.clients = new Map(); this.left = new Set(); this.links = []; this.q = queue(); this.rq = queue(); this.n = 0; }
-  async start(code) {
-    this.cx = await roomCrypto(code);
-    const tries = BROKERS.map((url, i) => connectBroker(url, { clientId: 'h' + rid() }).then(c => this.attach(c, i)).catch(() => null));
-    const first = await Promise.race([Promise.any(tries).catch(() => null), new Promise(r => setTimeout(() => r(null), 9000))]);
-    if (!first) throw { type: 'relay-down' };
-    // a code already in use would answer this probe
-    this.busyCheck = true; this.broadcast({ t: 'whohost', from: this.hostTag });
-    await new Promise(r => setTimeout(r, 1500)); this.busyCheck = false;
-    if (this.collision) { this.close(); throw { type: 'unavailable-id' }; }
-    this.hb = setInterval(() => this.beat(), 1000);
-  }
-  get hostTag() { return this._tag || (this._tag = rid()); }
-  attach(c, idx) {
-    if (!c) return null;
-    if (this.closed) { c.end(true); return null; }
-    const T = this.cx.topic;
-    c._idx = idx;
-    c.subscribe([T + '/s', T + '/h']);
-    c.on('connect', () => c.subscribe([T + '/s', T + '/h'])); // after an auto-reconnect
-    c.on('message', (topic, payload) => this.rq(async () => {
-      const m = await this.cx.open(new TextDecoder().decode(payload)); if (!m) return;
-      if (topic === T + '/h') {
-        if (m.from === this.hostTag) return;
-        if (m.t === 'ping' && this.busyCheck) this.collision = true;
-        if (m.t === 'whohost' && !this.busyCheck && !this.closed) this.broadcast({ t: 'ping', from: this.hostTag });
-        return;
-      }
-      this.handle(m, idx);
-    }));
-    this.links[idx] = c;
-    return c;
-  }
-  handle(m, idx) {
-    const id = String(m.from || '').slice(0, 16); if (!id) return;
-    let cl = this.clients.get(id);
-    if (m.t === 'leave') {
-      if (cl && (!m.conn || !cl.conn || m.conn === cl.conn)) { this.drop(id); this.left.add(id); }
-      return;
-    }
-    if (this.left.has(id)) return;
-    if (m.t === 'hello' || !cl) {
-      const fresh = !cl;
-      if (!cl) { cl = { aid: m.aidBase || 0, sent: 0 }; this.clients.set(id, cl); }
-      cl.conn = m.conn || cl.conn;
-      this.h.join(id, cleanName(m.nick) || 'Player');
-      if (!fresh && cl.make) this.flush(id);
-    }
-    cl.last = Date.now(); cl.link = idx; // answer on the broker this player actually uses
-    if (m.conn) cl.conn = m.conn;
-    if (m.t === 'act' && typeof m.aid === 'number' && m.a && typeof m.a === 'object') {
-      if (m.aid > cl.aid) { cl.aid = m.aid; this.h.act(id, m.a); }
-      this.schedule(id, 0); // always acknowledge, even a move the rules rejected
-    }
-  }
-  drop(id) { const cl = this.clients.get(id); if (!cl) return; clearTimeout(cl.timer); this.clients.delete(id); this.h.leave(id); }
-  publishOn(links, sub, obj) {
-    this.q(async () => {
-      const p = await this.cx.seal(obj);
-      for (const c of links) if (c && c.connected) try { c.publish(this.cx.topic + sub, p); } catch (e) {}
-    });
-  }
-  broadcast(obj) { this.publishOn(this.links, '/h', obj); }
-  sendTo(id, obj) {
-    const cl = this.clients.get(id); if (!cl) return;
-    const c = this.links[cl.link];
-    this.publishOn(c && c.connected ? [c] : this.links, '/c/' + id, obj);
-  }
-  schedule(id, wait = 90) {
-    const cl = this.clients.get(id); if (!cl || cl.timer) return;
-    cl.timer = setTimeout(() => { cl.timer = null; this.flush(id); }, wait);
-  }
-  flush(id) {
-    const cl = this.clients.get(id); if (!cl || !cl.make) return;
-    const obj = cl.make(); obj.ack = cl.aid; obj.n = ++this.n;
-    cl.sent = Date.now();
-    this.sendTo(id, obj);
-  }
-  beat() {
-    const now = Date.now();
-    for (const [id, cl] of [...this.clients]) {
-      if (now - cl.last > RELAY_TIMEOUT) { this.drop(id); continue; }
-      if (cl.make && now - cl.sent > 2000) this.flush(id);
-    }
-    // keep-alive: the lobby is re-sent only while no game is running; during a game it's just a ping
-    if (!this._lb || now - this._lb > 3000) { this._lb = now; if (this.lastLobby && !this.inGame) this.broadcast({ t: 'lobby', l: this.lastLobby, n: ++this.n }); else this.broadcast({ t: 'ping', from: this.hostTag }); }
-  }
-  lobby(l) {
-    this.lastLobby = l; this.inGame = false; this._lb = Date.now();
-    for (const cl of this.clients.values()) cl.make = null;
-    this.broadcast({ t: 'lobby', l, n: ++this.n });
-  }
-  state(viewFor, seatOf, lobby) {
-    this.inGame = true;
-    for (const [id, cl] of this.clients) {
-      const seat = seatOf(id);
-      cl.make = seat == null ? () => ({ t: 'lobby', l: lobby }) : () => ({ t: 'state', st: viewFor(seat) });
-      this.schedule(id);
-    }
-  }
-  close() {
-    this.closed = true; clearInterval(this.hb);
-    for (const cl of this.clients.values()) clearTimeout(cl.timer);
-    if (this.cx) this.broadcast({ t: 'gone', from: this.hostTag });
-    this.q(async () => { await new Promise(r => setTimeout(r, 150)); for (const c of this.links) try { c && c.end(false); } catch (e) {} });
-  }
-}
-class RelayClient {
-  constructor(h) { this.h = h; this.kind = 'relay'; this.selfId = rid(); this.q = queue(); this.rq = queue(); this.lastN = 0; this.aid = Date.now() % 1e9; this.outbox = []; }
-  async start(code, nick) {
-    this.cx = await roomCrypto(code); this.nick = nick; this.conn = rid();
-    const T = this.cx.topic;
-    // race every broker; keep the first that answers and drop the rest
-    const tries = BROKERS.map(url => connectBroker(url, { clientId: 'c' + rid() }, 6000));
-    let c = null;
-    try { c = await Promise.any(tries); } catch (e) { throw { type: 'relay-down' }; }
-    tries.forEach(p => p.then(x => { if (x !== c) try { x.end(false); } catch (e) {} }, () => {}));
-    this.c = c;
-    const subs = [T + '/h', T + '/c/' + this.selfId];
-    c.subscribe(subs);
-    c.on('connect', () => { c.subscribe(subs); this.send({ t: 'hello' }); }); // re-announce after a reconnect
-    return new Promise((res, rej) => {
-      let found = false;
-      const hello = () => this.send({ t: 'hello', aidBase: this.aid });
-      hello(); this.helloTimer = setInterval(() => { if (!found) hello(); }, 1500);
-      const to = setTimeout(() => { if (!found) { this.close(); rej({ type: 'peer-unavailable' }); } }, 12000);
-      c.on('message', (topic, payload) => this.rq(async () => {
-        if (this.dead) return;
-        const m = await this.cx.open(new TextDecoder().decode(payload)); if (!m) return;
-        this.last = Date.now();
-        if (m.t === 'gone') { if (found) this.gone(); return; }
-        if (m.t === 'ping') { if (found) this.send({ t: 'pong' }); return; }
-        if (m.t !== 'lobby' && m.t !== 'state') return;
-        if (typeof m.n === 'number') { if (m.n <= this.lastN) return; this.lastN = m.n; }
-        if (typeof m.ack === 'number') this.outbox = this.outbox.filter(x => x.aid > m.ack);
-        if (!found) {
-          found = true; clearTimeout(to); clearInterval(this.helloTimer);
-          this.wd = setInterval(() => {
-            if (Date.now() - this.last > RELAY_TIMEOUT) this.gone();
-            for (const x of this.outbox.slice(0, 6)) this.send({ t: 'act', aid: x.aid, a: x.a }); // re-send unconfirmed moves
-            if (Date.now() - (this.lastPong || 0) > 4000) { this.lastPong = Date.now(); this.send({ t: 'pong' }); }
-          }, 1000);
-          res(this);
-        }
-        if (m.t === 'lobby' && m.l) {
-          const mine = Array.isArray(m.l.seats) ? m.l.seats.find(s => s[2] === this.selfId) : null;
-          // not listed yet, or listed under an old name: say hello again (it may have been lost)
-          const stale = mine ? mine[0] !== this.nick : (!m.l.live && (m.l.seats || []).length < 6);
-          if (stale && Date.now() - (this.lastHello || 0) > 1500) { this.lastHello = Date.now(); this.send({ t: 'hello' }); }
-          this.h.lobby(m.l);
-        } else if (m.st) this.h.state(m.st);
-      }));
-    });
-  }
-  send(obj) {
-    if (this.dead && obj.t !== 'leave') return;
-    this.q(async () => {
-      const p = await this.cx.seal(Object.assign({ from: this.selfId, conn: this.conn, nick: this.nick }, obj));
-      if (this.c && this.c.connected) try { this.c.publish(this.cx.topic + '/s', p); } catch (e) {}
-    });
-  }
-  rename(nick) { this.nick = nick; this.send({ t: 'hello' }); }
-  act(a) { const x = { aid: ++this.aid, a }; this.outbox.push(x); if (this.outbox.length > 20) this.outbox.shift(); this.send({ t: 'act', aid: x.aid, a }); }
-  gone() { if (this.dead) return; this.dead = true; clearInterval(this.wd); this.h.gone(); }
-  close() {
-    this.send({ t: 'leave' });
-    this.dead = true; clearInterval(this.wd); clearInterval(this.helloTimer);
-    this.q(async () => { await new Promise(r => setTimeout(r, 150)); try { this.c && this.c.end(false); } catch (e) {} });
-  }
-}
-
-// ---- claude.ai room (used only when the page runs inside Claude, where WebRTC is unavailable) ----
-class RoomHost {
-  constructor(h) { this.h = h; this.kind = 'room'; this.redacts = false; this.selfId = 'host'; this.known = new Map(); this.lastAct = {}; this.lastSent = ''; }
-  async start(code) {
-    const ns = await getRoomNS(); if (!ns) throw { type: 'no-room' };
-    this.R = await ns.join('uno-' + code);
-    this.R.onPeers(ch => this.onPeers(ch), () => {});
-  }
-  onPeers(ch) {
-    const live = new Set();
-    for (const p of ch.peers) {
-      if (p.sameTab || p.kind !== 'viewer') continue;
-      const pr = p.presence || {}; const nick = cleanName(pr.nick);
-      if (pr.join !== true || !nick) continue;
-      live.add(p.peer);
-      if (this.known.has(p.peer) && this.known.get(p.peer) !== nick) { this.known.set(p.peer, nick); this.h.join(p.peer, nick); }
-      if (!this.known.has(p.peer)) {
-        this.known.set(p.peer, nick);
-        this.lastAct[p.peer] = pr.act && typeof pr.act.id === 'number' ? pr.act.id : 0;
-        this.h.join(p.peer, nick);
-      }
-      const a = pr.act;
-      if (a && typeof a.id === 'number' && a.id > (this.lastAct[p.peer] || 0)) { this.lastAct[p.peer] = a.id; this.h.act(p.peer, a); }
-    }
-    for (const id of [...this.known.keys()]) if (!live.has(id)) { this.known.delete(id); this.h.leave(id); }
-  }
-  lobby(l) { this.R.presence({ role: 'host', phase: 'lobby', l, st: null }).catch(() => {}); }
-  state(viewFor) {
-    let n = 8, st = null, txt = '';
-    do { st = viewFor(-1, n); txt = JSON.stringify(st); n -= 2; } while (new TextEncoder().encode(txt).length > 3800 && n >= 0);
-    if (txt === this.lastSent) return; this.lastSent = txt;
-    this.R.presence({ role: 'host', phase: 'game', l: null, st }).catch(() => {});
-  }
-  close() { try { this.R.leave(); } catch (e) {} }
-}
-class RoomClient {
-  constructor(h) { this.h = h; this.kind = 'room'; this.actId = 0; this.hostPeer = null; this.lastPr = null; }
-  get selfId() { const me = this.R && this.R.peers().find(p => p.sameTab); return me ? me.peer : null; }
-  async start(code, nick) {
-    const ns = await getRoomNS(); if (!ns) throw { type: 'no-room' };
-    this.R = await ns.join('uno-' + code);
-    this.R.presence({ nick, join: true }).catch(() => {});
-    return new Promise((res, rej) => {
-      let found = false;
-      const to = setTimeout(() => { if (!found) { this.close(); rej({ type: 'peer-unavailable' }); } }, 9000);
-      this.R.onPeers(ch => {
-        if (!this.hostPeer) { const h = ch.peers.find(p => !p.sameTab && p.presence && p.presence.role === 'host'); if (h) this.hostPeer = h.peer; }
-        const h = this.hostPeer && ch.peers.find(p => p.peer === this.hostPeer);
-        if (!h) { if (found && ch.left.some(p => p.peer === this.hostPeer)) this.h.gone(); return; }
-        if (!found) { found = true; clearTimeout(to); res(this); }
-        const pr = h.presence; if (pr === this.lastPr) return; this.lastPr = pr;
-        if (pr.phase === 'lobby' && pr.l) this.h.lobby(pr.l);
-        else if (pr.phase === 'game' && pr.st) this.h.state(pr.st);
-      }, () => {});
-    });
-  }
-  act(a) { this.actId = Math.max(this.actId + 1, Date.now() % 1e9); this.R.presence({ act: Object.assign({ id: this.actId }, a) }).catch(() => {}); }
-  rename(nick) { this.R.presence({ nick }).catch(() => {}); }
-  close() { try { this.R.leave(); } catch (e) {} }
-}
-
-const relayReady = async () => !!(window.crypto && crypto.subtle && await loadMqtt());
-async function openHost(code, h) {
-  if (inClaude()) { const t = new RoomHost(h); await t.start(code); return t; }
-  if (!(await relayReady())) throw { type: 'no-relay' };
-  const t = new RelayHost(h); await t.start(code); return t;
-}
-async function openClient(code, nick, h, onCreate) {
-  if (inClaude()) { const t = new RoomClient(h); onCreate(t); return t.start(code, nick); }
-  if (!(await relayReady())) throw { type: 'no-relay' };
-  const t = new RelayClient(h); onCreate(t); return t.start(code, nick);
-}
-
-</script>
-<script>
-// ===== UI / CONTROLLER =====
-let ME = 0, MODE = 'local'; // 'local' | 'host' | 'client'
-const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap'];
+// ===== CLIENT: talks to the game server; the server runs every match =====
+// When the page is hosted somewhere other than the server (for example GitHub Pages),
+// put the server address here, e.g. 'wss://your-app.onrender.com/ws'. Leave empty when the server serves this page.
+const SERVER_URL = '';
+let ME = 0;
 const RULES = [
   ['flip', 'Flip cards', 'Flip turns every card to its dark side, and back.'],
   ['stacking', 'Stacking', 'Answer a draw card with one of equal or higher value.'],
@@ -1147,29 +840,43 @@ const EXTRA_INFO = [
   ['wd15', 'Wild Draw 15', 'Dark side. The top of the stack ladder.'],
   ['bhole', 'Black Hole', 'Dark side. Pools every hand and deals the cards back out evenly.'],
 ];
-const IDLE_MS = 45000;
+const IDLE_MS = 60000, AWAY_MS = 15000;
 const CVAR = { r: 'var(--r)', y: 'var(--y)', g: 'var(--g)', b: 'var(--b)', p: 'var(--p)', t: 'var(--t)', o: 'var(--o)', v: 'var(--v)' };
 const S = loadSettings();
-let G = null, token = 0, busy = false, sortMode = 'color', lastHandIds = new Set(), unoTimers = {};
-let lastLogKey = '', lastLogMsgs = [], lastEvN = 0, lastPlayRect = null, dragging = false, turnKey = '', turnStartedAt = 0, lastPushKey = '';
-// online
-let net = null, roomCode = '', roomPeers = new Map(), peerSeat = {}, lastGid = null, rouletteOpen = false, roulettePrompted = -1;
+let G = null, busy = false, sortMode = 'color', lastHandIds = new Set();
+let lastLogKey = '', lastLogMsgs = [], lastEvN = 0, lastPlayRect = null, dragging = false, turnKey = '', turnStartedAt = 0;
+let roomCode = '', isHost = false, lastLobby = null, lastGid = null, rouletteOpen = false, roulettePrompted = -1, away = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 
 function loadSettings() {
-  const d = { bots: 3, roomBots: 1, speed: 'normal', mercy: 25, name: 'You', sound: true, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
+  const d = { name: 'Player', sound: true, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
   try {
     const s = JSON.parse(localStorage.getItem('unoFlipNoMercy') || 'null');
     if (s) {
       const r = Object.assign({}, s.rules || {});
       if ('sevenZero' in r) { if (!('seven' in r)) r.seven = r.sevenZero; if (!('zero' in r)) r.zero = r.sevenZero; delete r.sevenZero; }
-      return Object.assign(d, s, { rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
+      return Object.assign(d, { name: s.name || d.name, sound: s.sound !== false, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
     }
   } catch (e) {}
   return d;
 }
 function saveSettings() { try { localStorage.setItem('unoFlipNoMercy', JSON.stringify(S)); } catch (e) {} }
+// a private id for this browser: it is what lets you rejoin your seat
+function myToken() {
+  try {
+    let t = localStorage.getItem('unoFlipNoMercy.token');
+    if (!t || !/^[a-z0-9]{12,40}$/.test(t)) { t = Array.from(crypto.getRandomValues(new Uint8Array(16)), x => x.toString(36)).join('').replace(/[^a-z0-9]/g, '').slice(0, 24).padEnd(16, '0'); localStorage.setItem('unoFlipNoMercy.token', t); }
+    return t;
+  } catch (e) { return window.__tok || (window.__tok = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)); }
+}
+const TOKEN = myToken();
+const session = {
+  get() { try { return JSON.parse(localStorage.getItem('unoFlipNoMercy.room') || 'null'); } catch (e) { return null; } },
+  set(code) { try { localStorage.setItem('unoFlipNoMercy.room', JSON.stringify({ code, at: Date.now() })); } catch (e) {} },
+  clear() { try { localStorage.removeItem('unoFlipNoMercy.room'); } catch (e) {} }
+};
 
 // ================= SOUND (synthesized, no files) =================
 const SFX = {
@@ -1241,7 +948,71 @@ function initials(name) {
   return esc((w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase());
 }
 
-// ================= START SCREEN =================
+// ================= CONNECTION =================
+// One WebSocket to the server. It reconnects by itself and puts you back in your room and seat.
+const conn = {
+  ws: null, want: null, retry: 0, timer: null, pingTimer: null, connected: false,
+  url() { return SERVER_URL || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); },
+  open(first) {
+    this.want = first; clearTimeout(this.timer);
+    if (this.ws && (this.ws.readyState === 0 || this.ws.readyState === 1)) { if (this.ws.readyState === 1) this.send(first); return; }
+    let ws;
+    try { ws = new WebSocket(this.url()); } catch (e) { onNetError('Could not reach the game server.'); return; }
+    this.ws = ws;
+    ws.onopen = () => {
+      this.connected = true; this.retry = 0; setNet('');
+      if (this.want) ws.send(JSON.stringify(this.want));
+      clearInterval(this.pingTimer); this.pingTimer = setInterval(() => this.send({ t: 'ping' }), 20000);
+    };
+    ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } onServer(m); };
+    ws.onclose = () => {
+      this.connected = false; clearInterval(this.pingTimer);
+      if (!this.want) return;
+      setNet(this.retry > 1 ? 'Reconnecting…' : 'Connection lost. Reconnecting…');
+      const wait = Math.min(8000, 500 * Math.pow(2, this.retry++));
+      this.timer = setTimeout(() => this.open(this.rejoinMsg() || this.want), wait);
+    };
+    ws.onerror = () => {};
+  },
+  rejoinMsg() { return roomCode ? { t: 'join', code: roomCode, token: TOKEN, name: S.name } : null; },
+  send(obj) { if (this.ws && this.ws.readyState === 1) try { this.ws.send(JSON.stringify(obj)); } catch (e) {} },
+  close() { this.want = null; clearTimeout(this.timer); clearInterval(this.pingTimer); try { this.ws && this.ws.close(); } catch (e) {} this.ws = null; }
+};
+function setNet(t) { $('netTag').textContent = t || (roomCode ? 'Room ' + roomCode : ''); $('netBanner').textContent = t; $('netBanner').classList.toggle('hidden', !t); }
+function onNetError(t) { startMsg(t); }
+function onServer(m) {
+  switch (m.t) {
+    case 'joined': roomCode = m.code; session.set(m.code); startMsg(''); setNet(''); break;
+    case 'error':
+      if (m.code === 'no-room') { session.clear(); roomCode = ''; conn.close(); show('start'); }
+      if ($('start').classList.contains('hidden')) $('lbWait').textContent = m.msg; else startMsg(m.msg);
+      break;
+    case 'replaced': conn.close(); roomCode = ''; show('start'); startMsg('This room was opened in another tab.'); break;
+    case 'left': break;
+    case 'lobby': onLobby(m.lobby); break;
+    case 'state': onState(m); break;
+  }
+}
+function onLobby(l) {
+  lastLobby = l; isHost = !!l.host;
+  if (G) { G = null; busy = false; rouletteOpen = false; closeModal(); }
+  renderLobby(l);
+  show('lobby');
+}
+function onState(m) {
+  let g; try { g = deserialize(m.st); } catch (e) { return; }
+  isHost = !!m.host; lastLobby = m.lobby || lastLobby; away = m.st.aw || [];
+  // keep card ids stable so only genuinely new cards animate in
+  if (G && G.players[ME] && g.gid === lastGid && m.seat === ME) {
+    const pool = {}; for (const c of G.players[ME].hand) (pool[cardCode(c)] = pool[cardCode(c)] || []).push(c.id);
+    for (const c of g.players[m.seat].hand) { const l = pool[cardCode(c)]; if (l && l.length) c.id = l.shift(); }
+  }
+  const fresh = g.gid !== lastGid || $('game').classList.contains('hidden');
+  G = g; ME = m.seat; lastGid = g.gid;
+  if (fresh) beginGameView(); else tick();
+}
+
+// ================= START + LOBBY =================
 function seg(el, opts, key, fmt, after) {
   el.innerHTML = '';
   for (const o of opts) {
@@ -1251,14 +1022,10 @@ function seg(el, opts, key, fmt, after) {
     el.appendChild(b);
   }
 }
-seg($('segBots'), [1, 2, 3, 4, 5], 'bots');
-seg($('segSpeed'), ['slow', 'normal', 'fast'], 'speed');
-seg($('segMercy'), [25, 35, 50, 0], 'mercy', v => v ? v + ' cards' : 'Off');
-function drawToggles() {
+function drawToggles(dis) {
   const rules = RULES.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
   const cards = EXTRA_INFO.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
-  $('ruleBox').innerHTML = rules; $('lbRules').innerHTML = rules;
-  $('cardBox').innerHTML = cards; $('lbCards').innerHTML = cards;
+  $('lbRules').innerHTML = rules; $('lbCards').innerHTML = cards;
 }
 drawToggles();
 function onToggle(e) {
@@ -1267,314 +1034,94 @@ function onToggle(e) {
   if (t.dataset.card) { S.cards[t.dataset.card] = t.checked; hit = true; }
   if (!hit) return;
   saveSettings();
-  document.querySelectorAll(`[data-rule="${t.dataset.rule}"],[data-card="${t.dataset.card}"]`).forEach(x => { if (x !== t) x.checked = t.checked; });
-  if (MODE === 'host') hostRefresh(true);
+  if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards });
 }
-for (const id of ['ruleBox', 'cardBox', 'lbRules', 'lbCards']) $(id).addEventListener('change', onToggle);
-const tableRules = extra => Object.assign({}, S.rules, { cards: Object.assign({}, S.cards) }, extra);
+for (const id of ['lbRules', 'lbCards']) $(id).addEventListener('change', onToggle);
 $('pname').value = S.name;
-$('btnStart').onclick = startLocal;
 $('btnCreate').onclick = createRoom;
 $('btnJoin').onclick = () => joinRoom($('joinCode').value);
 $('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom($('joinCode').value); });
 document.querySelectorAll('[data-rules]').forEach(b => b.onclick = showRules);
 $('btnSound').onclick = () => { S.sound = !S.sound; saveSettings(); $('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off'; };
 $('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off';
-(function readHash() { const m = /^#join-([a-z0-9]{4})$/i.exec(location.hash || ''); if (m) { $('joinCode').value = m[1].toUpperCase(); startMsg('Enter your name, then Join.'); } })();
-function readName() { S.name = cleanName($('pname').value) || 'You'; saveSettings(); $('lbName').value = S.name; return S.name; }
+function readName() { S.name = cleanName($('pname').value) || 'Player'; saveSettings(); $('lbName').value = S.name; return S.name; }
+function show(screen) { for (const id of ['start', 'lobby', 'game']) $(id).classList.toggle('hidden', id !== screen); if (screen !== 'game') document.body.classList.remove('dark'); }
+function startMsg(t) { $('startMsg').textContent = t; }
+function createRoom() { readName(); startMsg('Connecting to the game server…'); roomCode = ''; conn.open({ t: 'create', token: TOKEN, name: S.name, rules: S.rules, cards: S.cards }); }
+function joinRoom(raw) {
+  const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 4) { startMsg('Enter the 4-character room code.'); return; }
+  readName(); startMsg('Connecting…'); roomCode = code;
+  conn.open({ t: 'join', code, token: TOKEN, name: S.name });
+}
+function leaveRoom() {
+  conn.send({ t: 'leave' }); session.clear();
+  setTimeout(() => conn.close(), 100);
+  roomCode = ''; G = null; busy = false; lastGid = null; closeModal(); show('start'); setNet('');
+}
+$('btnLeave').onclick = leaveRoom;
 let renameTimer;
 $('lbName').addEventListener('input', () => {
   clearTimeout(renameTimer);
   renameTimer = setTimeout(() => {
     const nm = cleanName($('lbName').value); if (!nm || nm === S.name) return;
     S.name = nm; saveSettings(); $('pname').value = nm;
-    if (MODE === 'host') hostRefresh(true);
-    else if (MODE === 'client' && net && net.rename) net.rename(nm);
+    conn.send({ t: 'rename', name: nm });
   }, 350);
 });
-function show(screen) { for (const id of ['start', 'lobby', 'game']) $(id).classList.toggle('hidden', id !== screen); if (screen !== 'game') document.body.classList.remove('dark'); }
-function startMsg(t) { $('startMsg').textContent = t; }
-
-function startLocal() {
-  readName(); MODE = 'local'; ME = 0;
-  const pool = BOT_NAMES.slice().sort(() => Math.random() - .5).slice(0, S.bots);
-  G = new Game([S.name, ...pool], 0, tableRules({ mercy: S.mercy }));
-  beginGameView();
-}
-function beginGameView() {
-  lastHandIds = new Set(); busy = false; unoTimers = {}; lastEvN = Math.max(0, G.evSeq - 1); lastPushKey = '';
-  show('game'); closeModal();
-  $('netTag').textContent = MODE === 'local' ? '' : `Room ${roomCode.toUpperCase()}`;
-  tick();
-}
-
-// ================= ONLINE: HOST =================
-const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const randCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
-function netErr(e) {
-  const t = e && e.type;
-  if (t === 'peer-unavailable') return 'No room with that code. Check the code, or ask the host to create the room first.';
-  if (t === 'no-room') return 'Online rooms are not available in this view.';
-  if (t === 'no-relay') return 'Online play needs the page served over https (GitHub Pages works) and the relay library to load.';
-  if (t === 'relay-down') return 'Could not reach any relay server. Check your connection or VPN and try again.';
-  if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'timeout') return 'Could not reach the matchmaking server. Check your connection and try again.';
-  return 'Could not connect (' + (t || 'error') + '). Try again.';
-}
-const hostHandlers = {
-  join(id, nick) { const p = roomPeers.get(id); if (p) p.nick = nick; else roomPeers.set(id, { nick }); hostRefresh(true); },
-  leave(id) {
-    roomPeers.delete(id);
-    if (G && peerSeat[id] != null) {
-      const i = peerSeat[id]; delete peerSeat[id];
-      const pl = G.players[i];
-      if (pl.human) { pl.human = false; pl.peer = ''; G.addLog(`${pl.name} left. A bot plays their hand from here.`, 'swap'); tick(); return; }
-    }
-    hostRefresh(true);
-  },
-  act(id, a) { if (!G || G.winner !== null) return; const i = peerSeat[id]; if (i == null || !G.players[i].human) return; applyAct(i, a); tick(); }
-};
-async function createRoom() {
-  readName(); startMsg('Opening a room…');
-  let code, t = null;
-  for (let tries = 0; tries < 3 && !t; tries++) {
-    code = randCode();
-    try { t = await openHost(code.toLowerCase(), hostHandlers); }
-    catch (e) { if (!e || e.type !== 'unavailable-id') { startMsg(netErr(e)); return; } }
-  }
-  if (!t) { startMsg('Could not open a room. Try again.'); return; }
-  startMsg(''); net = t; roomCode = code; MODE = 'host'; roomPeers = new Map(); peerSeat = {}; G = null; ME = 0;
-  seg($('segRoomBots'), [0, 1, 2, 3, 4], 'roomBots', null, () => hostRefresh(true));
-  seg($('segRoomSpeed'), ['slow', 'normal', 'fast'], 'speed', null, () => seg($('segSpeed'), ['slow', 'normal', 'fast'], 'speed'));
-  drawToggles();
-  if (net.kind === 'relay') { $('shareBox').classList.remove('hidden'); $('shareLink').value = location.href.split('#')[0] + '#join-' + code; }
-  else $('shareBox').classList.add('hidden');
-  hostRefresh(true);
-  show('lobby');
-}
-function hostSeats() {
-  const humans = [{ nick: S.name, av: '', id: 'host' }];
-  for (const [id, p] of roomPeers) { if (humans.length >= 6) break; humans.push({ nick: p.nick, av: '', id }); }
-  return { humans, bots: Math.min(S.roomBots, 6 - humans.length) };
-}
-function lobbyObj() {
-  const { humans, bots } = hostSeats();
-  return { code: roomCode, seats: humans.map(h => [h.nick, h.av, h.id]), bots, live: !!(G && G.winner === null), rules: Object.assign({}, S.rules), cards: Object.assign({}, S.cards) };
-}
-function hostRefresh(force) {
-  if (MODE !== 'host' || !net) return;
-  const l = lobbyObj();
-  if (!G) { net.lobby(l); renderLobby(l, true); }
-  else push(force);
-}
-function push(force) {
-  if (MODE !== 'host' || !net || !G) return;
-  const key = [G.seq, G.evSeq, G.log.length, G.turn, G.roulette, G.drewBy, G.side, G.color, G.winner, G.players.map(p => p.hand.length + (p.vulnerable ? 'v' : '') + (p.unoCalled ? 'u' : '') + (p.human ? 'h' : '') + (p.out ? 'o' : '')).join()].join('|');
-  if (!force && key === lastPushKey) return;
-  lastPushKey = key;
-  net.state((seat, n) => serialize(G, net.redacts ? seat : -1, n || 8), id => peerSeat[id], lobbyObj());
-}
-function hostStartGame() {
-  const { humans, bots } = hostSeats();
-  if (humans.length + bots < 2) return;
-  const pool = BOT_NAMES.slice().sort(() => Math.random() - .5).slice(0, bots);
-  const used = new Set(); const names = humans.map(h => { let n = h.nick, k = 2; while (used.has(n)) n = h.nick.slice(0, 11) + ' ' + k++; used.add(n); return n; });
-  G = new Game(names.concat(pool), humans.map((_, i) => i), tableRules({ mercy: 0 }));
-  peerSeat = {};
-  humans.forEach((h, i) => { G.players[i].peer = i === 0 ? '' : h.id; if (i > 0) peerSeat[h.id] = i; });
-  ME = 0;
-  beginGameView();
-}
-$('btnRoomStart').onclick = () => { if (MODE === 'host') hostStartGame(); };
+$('btnRoomStart').onclick = () => conn.send({ t: 'start' });
 $('btnCopyLink').onclick = () => copyText($('shareLink').value, $('btnCopyLink'));
 $('lbCode').onclick = () => copyText(roomCode, null);
 function copyText(txt, btn) {
-  try { navigator.clipboard.writeText(txt).then(() => { if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy link', 1500); } else $('lbHint').textContent = 'Code copied!'; }, () => {}); } catch (e) {}
+  try { navigator.clipboard.writeText(txt).then(() => { if (btn) { btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy link', 1500); } else $('lbHint').textContent = 'Code copied.'; }, () => {}); } catch (e) {}
 }
-
-// ================= ONLINE: CLIENT =================
-const clientHandlers = {
-  lobby(l) { if (G) { G = null; busy = false; rouletteOpen = false; closeModal(); } renderLobby(l, false); show('lobby'); },
-  state(st) {
-    let g; try { g = deserialize(st); } catch (e) { return; }
-    const me = net && net.selfId;
-    const idx = g.players.findIndex(p => p.peer && p.peer === me);
-    if (idx < 0) { G = null; $('lbSeats').innerHTML = ''; $('lbWait').textContent = 'A game is in progress. You\'ll get a seat when the host deals the next round.'; show('lobby'); return; }
-    // keep card ids stable so only genuinely new cards animate in
-    if (G && G.players[ME] && g.gid === lastGid) {
-      const pool = {}; for (const c of G.players[ME].hand) (pool[cardCode(c)] = pool[cardCode(c)] || []).push(c.id);
-      for (const c of g.players[idx].hand) { const l = pool[cardCode(c)]; if (l && l.length) c.id = l.shift(); }
-    }
-    const fresh = g.gid !== lastGid;
-    G = g; ME = idx; lastGid = g.gid;
-    if (fresh) beginGameView(); else tick();
-  },
-  gone() { hostLeft(); }
-};
-async function joinRoom(raw) {
-  const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (code.length !== 4) { startMsg('Enter the 4-character room code.'); return; }
-  readName(); startMsg('Joining…');
-  G = null; lastGid = null; $('lbSeats').innerHTML = '';
-  try { await openClient(code.toLowerCase(), S.name, clientHandlers, t => { net = t; MODE = 'client'; roomCode = code; }); }
-  catch (e) { net = null; MODE = 'local'; startMsg(netErr(e)); return; }
-  startMsg('');
-  if (!$('start').classList.contains('hidden')) { renderLobby(null, false); $('lbWait').textContent = 'Connected. Waiting for the host.'; show('lobby'); }
-}
-function hostLeft() {
-  token++; busy = false; G = null; // stops a pending end-of-game screen from covering this notice
-  openModal(`<h2>The host left</h2><p>The room closed because the host disconnected.</p><button class="btn primary wide" id="hl">Back to menu</button>`);
-  $('hl').onclick = leaveRoom;
-}
-async function leaveRoom() {
-  token++;
-  if (net) { try { net.close(); } catch (e) {} }
-  net = null; G = null; MODE = 'local'; busy = false; roomPeers = new Map();
-  closeModal(); show('start');
-}
-$('btnLeave').onclick = leaveRoom;
-function renderLobby(l, isHost) {
-  $('lbCode').textContent = roomCode.toUpperCase();
-  $('lbHost').classList.toggle('hidden', !isHost);
-  $('lbGuest').classList.toggle('hidden', isHost || !l || !l.rules);
+function renderLobby(l) {
+  $('lbCode').textContent = l.code;
+  $('shareLink').value = location.href.split('#')[0] + '#join-' + l.code;
+  $('lbHint').textContent = l.host ? 'Friends open this page, enter the code and press Join.' : 'You are in. The host starts the game.';
+  $('lbHost').classList.toggle('hidden', !l.host);
+  $('lbGuest').classList.toggle('hidden', !!l.host);
   if (document.activeElement !== $('lbName')) $('lbName').value = S.name;
-  if (!isHost && l && l.rules) {
+  $('lbSeats').innerHTML = l.players.map(([name, on, host, me]) => `<div class="seatrow ${me ? 'me' : ''}"><span class="who"><span class="ini">${initials(name)}</span>${esc(name)}</span><span class="label">${host ? 'Host' : 'Player'}${on ? '' : ' · away'}</span></div>`).join('');
+  if (l.host) {
+    // the host's own toggles drive the room; keep them in step with what the server holds
+    let changed = false;
+    for (const k in l.rules) if (S.rules[k] !== l.rules[k]) { S.rules[k] = l.rules[k]; changed = true; }
+    for (const k in l.cards) if (S.cards[k] !== l.cards[k]) { S.cards[k] = l.cards[k]; changed = true; }
+    if (changed) { drawToggles(); saveSettings(); }
+    const online = l.players.filter(p => p[1]).length;
+    $('btnRoomStart').disabled = online < 2;
+    $('lbWait').textContent = online < 2 ? 'Waiting for at least one more player.' : `${Math.min(online, 6)} player${online > 1 ? 's' : ''} ready. Up to 6 can play.`;
+  } else {
     const row = (name, on) => `<div class="rv ${on ? '' : 'off'}"><span>${esc(name)}</span><span class="mono">${on ? 'on' : 'off'}</span></div>`;
-    $('lbRulesView').innerHTML = RULES.map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_INFO.map(([k, t]) => row(t, !l.cards || l.cards[k] !== false)).join('');
+    $('lbRulesView').innerHTML = RULES.map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_INFO.map(([k, t]) => row(t, l.cards[k] !== false)).join('');
+    $('lbWait').textContent = l.live ? 'A match is in progress. You will be dealt in next round.' : 'Waiting for the host to start.';
   }
-  if (!isHost) $('shareBox').classList.add('hidden');
-  $('lbHint').textContent = isHost ? 'Friends open this page, enter the code and press Join.' : 'Connected.';
-  if (!l) { $('lbSeats').innerHTML = ''; return; }
-  const me = MODE === 'client' && net ? net.selfId : 'host';
-  const rows = l.seats.map((s, i) => `<div class="seatrow ${s[2] === me ? 'me' : ''}"><span class="who"><span class="ini">${initials(s[0])}</span>${esc(s[0])}</span><span class="label">${i === 0 ? 'Host' : 'Player'}</span></div>`);
-  for (let k = 0; k < l.bots; k++) rows.push(`<div class="seatrow"><span class="who"><span class="ini">B${k + 1}</span>Bot</span><span class="label">Bot</span></div>`);
-  $('lbSeats').innerHTML = rows.join('');
-  const total = l.seats.length + l.bots;
-  if (isHost) { $('btnRoomStart').disabled = total < 2; $('lbWait').textContent = total < 2 ? 'Add a bot or wait for a friend to join.' : `${total} of 6 seats. Online games have no Mercy limit.`; }
-  else if (l.live) $('lbWait').textContent = 'A game is in progress. You\'ll get a seat when the host deals the next round.';
-  else if (l.seats.some(s => s[2] === me)) $('lbWait').textContent = 'You have a seat. Waiting for the host to start.';
-  else $('lbWait').textContent = l.seats.length >= 6 ? 'The room is full (6 seats). You get a seat if someone leaves.' : 'Joining…';
 }
-
-// ================= ACTIONS =================
-function act(k, a = {}) {
-  if (MODE === 'client') { net.act(Object.assign({ k }, a)); return; }
-  applyAct(ME, Object.assign({ k }, a));
+function beginGameView() {
+  lastHandIds = new Set(); busy = false; lastEvN = Math.max(0, G.evSeq - 1);
+  show('game'); closeModal(); setNet('');
   tick();
 }
-function applyAct(pi, a) {
-  const target = Number.isInteger(a.target) && a.target >= 0 && a.target < G.players.length ? a.target : null;
-  const col = typeof a.color === 'string' ? a.color : null, fcol = typeof a.flipColor === 'string' ? a.flipColor : null;
-  switch (a.k) {
-    case 'play': {
-      if (typeof a.card !== 'string' || a.card.length !== 2) return;
-      const hand = G.players[pi].hand;
-      const c = hand.find(c => cardCode(c) === a.card);
-      if (!c) return;
-      const used = new Set([c]), extra = [];
-      if (Array.isArray(a.extra)) for (const code of a.extra.slice(0, 20)) {
-        const x = hand.find(h => !used.has(h) && cardCode(h) === code);
-        if (x) { used.add(x); extra.push(x.id); }
-      }
-      G.play(pi, c.id, { color: col, flipColor: fcol, target, extra });
-      break;
-    }
-    case 'draw': G.draw(pi); break;
-    case 'pass': G.pass(pi); break;
-    case 'uno': G.callUno(pi); break;
-    case 'catch': if (target !== null) G.catchUno(pi, target); break;
-    case 'roul': if (G.roulette === pi) G.resolveRoulette(col); break;
-  }
-}
+// rejoin automatically after a refresh or a crash
+(function resume() {
+  const m = /^#join-([a-z0-9]{4})$/i.exec(location.hash || '');
+  if (m) { $('joinCode').value = m[1].toUpperCase(); startMsg('Enter your name, then Join.'); }
+  const s = session.get();
+  if (s && s.code && Date.now() - s.at < 6 * 3600 * 1000) { startMsg('Rejoining room ' + s.code + '…'); roomCode = s.code; conn.open({ t: 'join', code: s.code, token: TOKEN, name: S.name }); }
+})();
 
-// ================= LOOP =================
-function delay() { return { slow: 1500, normal: 950, fast: 450 }[S.speed] * (0.8 + Math.random() * 0.5); }
-function schedule(fn, ms) { const t = token; setTimeout(() => { if (t === token && G && !busy) fn(); }, ms); }
+// ================= ACTIONS + LOOP =================
+function act(k, a = {}) { conn.send({ t: 'act', a: Object.assign({ k }, a) }); }
 function tick() {
-  token++;
   render();
   if (!G) return;
   if (G.winner !== null) { setTimeout(showEnd, 1400); return; }
-  if (MODE === 'client') { clientPrompts(); return; }
-  watchUno();
-  if (G.roulette !== null) {
-    const v = G.roulette, vp = G.players[v];
-    if (v === ME && vp.human) {
-      if (!busy) { busy = true; pickColor('Color roulette', 'Name a color. You turn over cards until it appears and keep all of them.', G.side).then(c => { busy = false; act('roul', { color: c }); }); }
-      if (MODE === 'host') idleGuard(v);
-    } else if (vp.human) idleGuard(v);
-    else schedule(() => { G.resolveRoulette(Bot.bestColor(G, vp.hand, G.side)); tick(); }, delay());
-    return;
-  }
-  if (G.players[G.turn].human) {
-    schedule(() => { const j = Bot.jumpCandidate(G); if (j && Math.random() < 0.5) { botPlay(j.pi, j.card); tick(); } }, 1400 + Math.random() * 1500);
-    if (MODE === 'host') idleGuard(G.turn);
-    return;
-  }
-  schedule(() => botStep(G.turn), delay());
-}
-function idleGuard(pi) {
-  const seq = G.seq, turn = G.turn, roul = G.roulette, gid = G.gid;
-  setTimeout(() => {
-    if (!G || MODE !== 'host' || G.gid !== gid || G.winner !== null || G.seq !== seq || G.turn !== turn || G.roulette !== roul) return;
-    const p = G.players[pi]; if (!p || p.out) return;
-    if (pi === ME && busy) { busy = false; closeModal(); }
-    G.addLog(`${p.name} ran out of time. Autopilot moved for them.`, 'stk');
-    if (G.roulette === pi) G.resolveRoulette(Bot.bestColor(G, p.hand, G.side)); else botStep(pi, true);
-    tick();
-  }, IDLE_MS);
-}
-function clientPrompts() {
   if (G.roulette === ME && roulettePrompted !== G.seq && !busy) {
     roulettePrompted = G.seq; busy = true; rouletteOpen = true;
     pickColor('Color roulette', 'Name a color. You turn over cards until it appears and keep all of them.', G.side).then(c => { busy = false; rouletteOpen = false; act('roul', { color: c }); });
   }
   if (rouletteOpen && G.roulette !== ME) { rouletteOpen = false; busy = false; closeModal(); }
-}
-function botPlay(pi, card) {
-  const p = G.players[pi], f = G.f(card);
-  const extra = G.rules.multi ? p.hand.filter(c => c !== card && G.f(c).c !== 'w' && G.f(c).v === f.v) : [];
-  const rest = p.hand.filter(c => c !== card && !extra.includes(c));
-  const others = G.players.map((q, i) => ({ q, i })).filter(o => o.i !== pi && !o.q.out);
-  const min = others.reduce((a, b) => b.q.hand.length < a.q.hand.length ? b : a, others[0]);
-  const target = rest.length - min.q.hand.length >= 2 ? min.i : null;
-  botUno(pi, 1 + extra.length);
-  G.play(pi, card.id, { color: Bot.bestColor(G, rest, G.side), flipColor: Bot.bestColor(G, rest, G.side === 'L' ? 'D' : 'L'), target, extra: extra.map(c => c.id) });
-}
-function botUno(pi, playing) { const p = G.players[pi]; if (p.hand.length - playing <= 1 && Math.random() < 0.82) G.callUno(pi); }
-const drawGap = () => ({ slow: 420, normal: 260, fast: 140 }[S.speed]);
-function botStep(pi, instant) {
-  if (!instant) { const j = Bot.jumpCandidate(G); if (j) { botPlay(j.pi, j.card); tick(); return; } }
-  const p = G.players[pi];
-  const m = Bot.choose(G, pi);
-  if (m) { botUno(pi, 1 + m.extra.length); G.play(pi, m.cardId, m); if (!instant) tick(); return; }
-  // nothing playable: draw one card at a time, like a human has to
-  const drawOne = () => {
-    G.draw(pi);
-    if (G.turn !== pi || p.out || G.winner !== null) return 'done';
-    const m2 = Bot.choose(G, pi);
-    if (m2) { botUno(pi, 1 + m2.extra.length); G.play(pi, m2.cardId, m2); return 'done'; }
-    if (G.drewBy === pi) { G.pass(pi); return 'done'; }
-    return 'again';
-  };
-  if (instant) { let g = 0; while (drawOne() === 'again' && ++g < 400); return; }
-  const loop = () => { if (drawOne() === 'again') { render(); schedule(loop, drawGap()); } else tick(); };
-  loop();
-}
-function watchUno() {
-  if (!G.rules.uno) return;
-  G.players.forEach((p, i) => {
-    const key = i + ':' + G.seq;
-    if (!p.vulnerable || unoTimers[i] === key) return;
-    unoTimers[i] = key;
-    const g = G, wait = p.human ? 1700 + Math.random() * 900 : 2600 + Math.random() * 2500;
-    setTimeout(() => {
-      if (G !== g || !p.vulnerable || p.hand.length !== 1 || G.winner !== null) return;
-      const catchers = G.players.map((q, k) => k).filter(k => k !== i && !G.players[k].human && !G.players[k].out);
-      if (!catchers.length || (!p.human && Math.random() < 0.45)) return;
-      G.catchUno(catchers[Math.floor(Math.random() * catchers.length)], i);
-      if (!busy) tick(); else render();
-    }, wait);
-  });
 }
 
 // ================= INPUT =================
@@ -1583,7 +1130,7 @@ function usable(card) { if (!G || busy || G.winner !== null || !G.players[ME] ||
 async function useCard(card, el, fromRect) {
   if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
   const me = G.players[ME], face = G.f(card), back = G.back(card);
-  busy = true; if (MODE !== 'client') token++;
+  busy = true;
   let color = null, flipColor = null, target = null, extra = [];
   if (G.rules.multi && face.c !== 'w') {
     const same = me.hand.filter(c => c !== card && G.f(c).c !== 'w' && G.f(c).v === face.v);
@@ -1598,7 +1145,7 @@ async function useCard(card, el, fromRect) {
   if (face.v === '7' && G.rules.seven && keep > 0 && G.active().length > 1) target = await pickTarget('Swap hands?', `You keep ${keep} card${keep === 1 ? '' : 's'} after this play. Trade with someone, or keep your hand.`, 'Keep my hand');
   if (face.v === 'duel' && G.active().length > 1) target = await pickTarget('Duel', 'You and this player turn over cards until each hits a number. The lower number takes every card turned over.');
   busy = false;
-  if (!G || !me.hand.includes(card)) { tick(); return; }
+  if (!G || !G.players[ME].hand.some(c => cardCode(c) === cardCode(card))) { tick(); return; }
   lastPlayRect = fromRect || rectOf(el);
   act('play', { card: cardCode(card), color, flipColor, target, extra: extra.map(cardCode) });
 }
@@ -1638,10 +1185,13 @@ function attachCard(el, card) {
 }
 $('btnDraw').onclick = () => { if (!busy && myTurnNow() && (G.pending > 0 || G.drewBy !== ME)) act('draw'); };
 $('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
-$('btnUno').onclick = () => { if (!G || !G.players[ME]) return; if (MODE === 'client') { act('uno'); return; } if (G.callUno(ME)) tick(); };
+$('btnUno').onclick = () => { if (G && G.players[ME]) act('uno'); };
 $('drawpile').onclick = () => $('btnDraw').onclick();
 $('btnSort').onclick = () => { sortMode = { color: 'value', value: 'none', none: 'color' }[sortMode]; render(); };
-$('btnQuit').onclick = () => { if (MODE !== 'local') { leaveRoom(); return; } token++; G = null; busy = false; closeModal(); show('start'); };
+$('btnQuit').onclick = () => {
+  openModal(`<h2>Leave the match?</h2><p>Your seat and cards stay. While you are away your turns are skipped. Open this page again and you are put straight back in.</p><button class="btn primary wide" id="lvGo">Leave</button><button class="textlink" id="lvNo">Stay</button>`);
+  $('lvGo').onclick = leaveRoom; $('lvNo').onclick = closeModal;
+};
 $('opps').addEventListener('click', e => { const b = e.target.closest('[data-catch]'); if (b && G) act('catch', { target: +b.dataset.catch }); });
 document.addEventListener('keydown', e => {
   if (!G || $('game').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
@@ -1674,7 +1224,6 @@ function sortedHand(h) {
 }
 function render() {
   if (!G) return;
-  if (MODE === 'host') push();
   const me = G.players[ME];
   document.body.classList.toggle('dark', G.side === 'D');
   const ob = otherSide();
@@ -1692,9 +1241,11 @@ function render() {
     const tags = [];
     if (p.elim) tags.push('<b>Out</b>'); else if (G.winner === i) tags.push('<b>Winner</b>'); else if (n === 1) tags.push('<b>UNO</b>');
     if (p.shield) tags.push('<b>Shield</b>');
-    if (!tags.length) tags.push(MODE === 'local' || !p.human ? 'Bot' : 'Player');
+    if (away[i]) tags.push('<b>Away</b>');
+    if (!tags.length) tags.push('Player');
     const pct = G.rules.mercy ? Math.min(100, n / G.rules.mercy * 100) : 0;
-    const timer = turn && MODE !== 'local' && p.human ? `<div class="timer" style="animation-duration:${IDLE_MS / 1000}s;animation-delay:-${elapsed}s"></div>` : '';
+    const limit = away[i] ? AWAY_MS : IDLE_MS;
+    const timer = turn ? `<div class="timer" style="animation-duration:${limit / 1000}s;animation-delay:-${elapsed}s"></div>` : '';
     return `<div class="opp ${turn ? 'turn' : ''} ${p.out && G.winner !== i ? 'out' : ''}" id="opp${i}">
       <div class="top"><span class="ini">${initials(p.name)}</span><span class="nm">${esc(p.name)}</span></div>
       <div class="fan">${fan}</div>
@@ -1722,7 +1273,7 @@ function render() {
   else if (me.out) txt = 'You are out. Watching the rest of the game.';
   else if (G.roulette !== null) txt = G.roulette === ME ? 'Roulette: name a color' : `${G.players[G.roulette].name} is naming a color`;
   else if (myTurn) { you = true; txt = G.pending > 0 ? (G.playable(ME).length ? `Stack +${G.stackMin} or higher, mirror it, or take +${G.pending}` : `Take +${G.pending}`) : (G.drewBy === ME ? 'Play the card you drew, or pass' : (G.playable(ME).length ? 'Your turn: tap or drag a card' : (G.rules.drawUntil ? 'Nothing fits. Keep drawing until something does.' : 'Nothing fits. Draw a card.'))); }
-  else txt = `${G.players[G.turn].name}'s turn`;
+  else txt = `${G.players[G.turn].name}'s turn${away[G.turn] ? ' (away, skipping soon)' : ''}`;
   ban.textContent = txt; ban.className = you ? 'you' : '';
   // me
   $('meIni').innerHTML = initials(me.name);
@@ -1742,7 +1293,7 @@ function render() {
   ub.classList.toggle('ready', !ub.disabled && !me.unoCalled);
   ub.textContent = me.unoCalled ? 'UNO called' : 'UNO';
   $('btnSort').textContent = 'Sort: ' + sortMode;
-  $('btnQuit').textContent = MODE === 'local' ? 'Quit' : 'Leave';
+  $('btnQuit').textContent = 'Leave';
   // hand (left alone while a card is being dragged)
   if (!dragging) {
     const hand = sortedHand(me.hand);
@@ -1886,26 +1437,22 @@ function showEnd() {
   const w = G.players[G.winner], meP = G.players[ME];
   const ranked = G.players.map((p, i) => ({ p, i })).sort((a, b) => (a.i === G.winner ? -1 : b.i === G.winner ? 1 : 0) || (a.p.elim - b.p.elim) || a.p.hand.length - b.p.hand.length);
   const won = G.winner === ME;
-  const controls = MODE === 'client'
+  const controls = !isHost
     ? `<p style="margin:16px 0 0">Waiting for the host to deal the next round.</p><button class="textlink" id="menu">Leave room</button>`
-    : `<button class="btn primary wide" id="again">Play again</button><button class="textlink" id="menu">${MODE === 'host' ? 'Back to lobby' : 'Change settings'}</button>`;
+    : `<button class="btn primary wide" id="again">Play again</button><button class="textlink" id="menu">Back to lobby</button>`;
   openModal(`<h2>${won ? 'You win' : esc(w.name) + ' wins'}</h2>
-    <p>${won ? 'Hand emptied.' : (meP.elim ? 'You hit the Mercy limit.' : 'Final card counts:')}</p>
-    <div class="list">${ranked.map((o, k) => `<div class="li"><span>${k + 1}. ${esc(o.p.name)}</span><span class="mono">${o.i === G.winner ? 'winner' : o.p.elim ? 'out' : o.p.hand.length + ' cards'}</span></div>`).join('')}</div>
+    <p>${won ? 'Hand emptied.' : 'Final card counts:'}</p>
+    <div class="list">${ranked.map((o, k) => `<div class="li"><span>${k + 1}. ${esc(o.p.name)}</span><span class="mono">${o.i === G.winner ? 'winner' : o.p.hand.length + ' cards'}</span></div>`).join('')}</div>
     ${controls}`);
-  if ($('again')) $('again').onclick = () => MODE === 'host' ? hostStartGame() : startLocal();
-  $('menu').onclick = () => {
-    if (MODE === 'client') return leaveRoom();
-    if (MODE === 'host') { closeModal(); G = null; hostRefresh(true); show('lobby'); return; }
-    $('btnQuit').onclick();
-  };
+  if ($('again')) $('again').onclick = () => { closeModal(); conn.send({ t: 'start' }); };
+  $('menu').onclick = () => { closeModal(); if (isHost) conn.send({ t: 'tolobby' }); else leaveRoom(); };
 }
 function showRules() {
   openModal(`<h2>How to play</h2><div class="rulestext">
     <h3>Basics</h3><ul><li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
     <li>The deck never runs out. Cards come from a mix of classic, Flip and No Mercy cards.</li>
     <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> UNO, <b>P</b> pass.</li>
-    <li>Extra cards (Mirror, Shield, Double Flip, Wild Duel, Wild Draw 15, Black Hole) can each be switched off on the start screen.</li></ul>
+    <li>The host can switch each rule and each extra card (Mirror, Shield, Double Flip, Wild Duel, Wild Draw 15, Black Hole) on or off in the lobby.</li></ul>
     <h3>Flip</h3><ul><li>Every card has a light side and a dark side. <b>Flip</b> turns every card over at once.</li>
     <li>You can see the backs of other players' cards and of the next draw card, but not your own backs.</li>
     <li><b>Double Flip</b> turns the table for one turn. It flips back after the next player acts.</li></ul>
@@ -1914,7 +1461,6 @@ function showRules() {
     <li><b>Shield</b> stays in front of you and breaks the next stack that reaches you.</li></ul>
     <h3>Other rules</h3><ul>
     <li><b>Draw until playable</b>: with nothing to play, you draw one card at a time and can't pass until one fits.</li>
-    <li><b>Mercy limit</b> (solo only): reach it and you are out.</li>
     <li><b>7</b> lets you swap hands with one player, or keep yours. <b>0</b> passes every hand along. Each can be turned off separately.</li>
     <li><b>Same-number drops</b>: play every card with the same number or symbol together. Draw cards add up, skips skip that many players, and an even number of reverses or flips cancels out.</li>
     <li><b>Jump-in</b>: play an exact match of the top card out of turn. Outlined cards qualify.</li>
@@ -1925,9 +1471,10 @@ function showRules() {
     <li><b>Wild Draw Color</b> (dark): you name the color. The next player draws until they hit it.</li>
     <li><b>Wild Duel</b>: you and a chosen player turn over cards until each hits a number. The lower number takes every card turned over.</li>
     <li><b>Black Hole</b> (dark): every hand is pooled, shuffled and dealt back out evenly.</li></ul>
-    <h3>Online</h3><ul><li>Create a room and share the code or link. Friends join from this page without an account. Empty seats can be bots (6 seats).</li>
-    <li>The host's browser runs the game, so the host's rules apply and the host must keep the page open.</li>
-    <li>After 45 seconds without a move, autopilot plays for you. If you leave, a bot takes your hand.</li></ul>
+    <h3>Rooms</h3><ul><li>Create a room and share the code or link. Up to 6 players, no accounts.</li>
+    <li>The server runs the match, so everyone always sees the same table.</li>
+    <li>Lose your connection or close the tab, and you can come back to your seat with your cards. Opening the page again rejoins you.</li>
+    <li>While a player is away, their turn is skipped after 15 seconds. A player who is connected but idle is skipped after 60 seconds. A skipped player takes any stack waiting on them.</li></ul>
     </div><button class="btn primary wide" id="closeR">Close</button>`);
   $('closeR').onclick = () => { closeModal(); if (G && G.winner !== null) showEnd(); };
 }

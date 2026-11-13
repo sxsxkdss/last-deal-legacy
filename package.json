@@ -1,0 +1,10 @@
+{
+  "name": "uno-flip-no-mercy",
+  "version": "2.0.0",
+  "private": true,
+  "description": "UNO Flip x No Mercy online card game: browser client plus a small Node game server.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}
