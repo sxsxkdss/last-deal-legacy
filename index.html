@@ -21,7 +21,7 @@
   --ri:#c4202a; --yi:#a87a00; --gi:#147a3a; --bi:#1452b0;
   --paper:#fbfaf6; --ink:#141412;
   --frame:#ece7d8; /* table border: light side */
-  --cw:76px; --ch:112px;
+  --cw:clamp(58px, min(10.5vh, 7.5vw), 104px); --ch:calc(var(--cw) * 1.47);
   --ease:cubic-bezier(.2,.7,.3,1);
   --f-ui:'Archivo',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
 }
@@ -86,19 +86,21 @@ input[type=text]:focus{border-color:var(--text)}
 @media (max-width:520px){.field{grid-template-columns:1fr;gap:8px}.page{padding:32px 16px}.title{font-size:40px;line-height:38px}}
 
 /* ---------- game layout ---------- */
-#game{position:fixed;inset:0;border:6px solid var(--frame);transition:border-color 180ms ease-out;display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:1fr 288px}
+#game{position:fixed;inset:0;border:6px solid var(--frame);transition:border-color 180ms ease-out;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr) 288px}
+#opps,#table,#bottom,#hand{min-width:0}
 #opps{grid-column:1;display:flex;justify-content:center;gap:8px;padding:16px 16px 0;flex-wrap:wrap}
 #table{grid-column:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:0}
 #side{grid-column:2;grid-row:1/4;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 #bottom{grid-column:1;padding:0 16px 16px}
 
 /* seats */
-.opp{position:relative;width:136px;background:var(--s1);border:1px solid transparent;border-radius:4px;padding:8px 12px;transition:border-color 150ms ease-out,opacity 150ms ease-out}
+.opp{position:relative;width:auto;min-width:136px;max-width:220px;background:var(--s1);border:1px solid transparent;border-radius:4px;padding:8px 12px;transition:border-color 150ms ease-out,opacity 150ms ease-out}
 .opp.turn{border-color:var(--text)}
 .opp.out{opacity:.4}
 .opp .top{display:flex;align-items:center;gap:8px}
 .opp .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.opp .meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}
+.opp .meta{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:8px}
+.opp .tags{text-align:right}
 .opp .cnt{font:900 24px/24px var(--f-ui);font-variation-settings:"wdth" 75}
 .opp .tags{font:500 11px/16px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .opp .tags b{color:var(--text);font-weight:500}
@@ -117,7 +119,7 @@ input[type=text]:focus{border-color:var(--text)}
 #banner{font-weight:500;color:var(--muted);text-align:center;min-height:20px}
 #banner.you{color:var(--text);font-weight:700}
 .center{display:flex;align-items:center;gap:48px;position:relative}
-.piles{display:flex;align-items:center;gap:48px;position:relative}
+.piles{display:flex;align-items:center;gap:48px;position:relative;padding:20px 28px;border-radius:calc(var(--cw)*.5);background:var(--s1)}
 .mob,#ticker{display:none}
 html,body{touch-action:manipulation}
 #dirRing{position:absolute;left:50%;top:50%;width:calc(100% + 96px);height:calc(100% + 72px);transform:translate(-50%,-50%);pointer-events:none;transition:transform 180ms ease-out;overflow:visible}
@@ -150,9 +152,10 @@ html,body{touch-action:manipulation}
 .me .cnt{font:900 20px/20px var(--f-ui);font-variation-settings:"wdth" 75}
 .me .bar{width:96px;margin:0}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
-#hand{display:flex;justify-content:center;padding:24px 8px 0;min-height:calc(var(--ch) + 24px);overflow-x:auto}
-#hand .card{flex:none;cursor:grab;transition:transform 150ms ease-out,opacity 150ms ease-out;touch-action:none;transform-origin:50% 120%;transform:translateY(var(--dy,0px)) rotate(var(--rot,0deg))}
+#hand{display:flex;justify-content:center;padding:24px 16px 8px;overflow-x:auto}
+#hand .card{flex:none;width:var(--hcw,var(--cw));height:calc(var(--hcw,var(--cw)) * 1.47);cursor:grab;transition:transform 150ms ease-out,opacity 150ms ease-out;touch-action:none;transform-origin:50% 100%;transform:translateY(var(--dy,0px)) rotate(var(--rot,0deg))}
 #hand .card.dim{opacity:.45}
+#hand .brk{flex-basis:100%;height:0}
 #hand .card.ok{transform:translateY(calc(var(--dy,0px) - 6px)) rotate(var(--rot,0deg))}
 #hand .card.ok:hover{transform:translateY(calc(var(--dy,0px) - 16px)) rotate(0deg)}
 #hand .card.jump{outline:2px solid var(--text);outline-offset:2px;transform:translateY(calc(var(--dy,0px) - 6px)) rotate(var(--rot,0deg))}
@@ -177,6 +180,10 @@ html,body{touch-action:manipulation}
 .card .mid{transform:rotate(-28deg);font:900 calc(var(--cw)*.46)/1 var(--f-ui);font-variation-settings:"wdth" 70;color:var(--gl);display:flex;flex-direction:column;align-items:center}
 .card.c-w .mid{color:var(--paper);background:#161614;padding:2px 6px;border-radius:4px;font-size:calc(var(--cw)*.32)}
 .card .mid.sm{font-size:calc(var(--cw)*.3)}
+.card .mid svg{width:calc(var(--cw)*.5);height:calc(var(--cw)*.5);display:block}
+.card .mid.sm svg{width:calc(var(--cw)*.38);height:calc(var(--cw)*.38)}
+.card .cor svg{width:calc(var(--cw)*.19);height:calc(var(--cw)*.19);display:block}
+.card.c-w .mid svg{width:calc(var(--cw)*.34);height:calc(var(--cw)*.34)}
 .card .mid em{font:500 calc(var(--cw)*.105)/1.2 var(--f-mono);font-style:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--ink);margin-top:2px;white-space:nowrap}
 .card.s-D .mid em,.card.c-w .mid em{color:var(--paper)}
 .card .cor{position:absolute;font:900 calc(var(--cw)*.18)/1 var(--f-ui);font-variation-settings:"wdth" 70}
@@ -228,8 +235,8 @@ html,body{touch-action:manipulation}
 
 /* ---------- phones: one column, big touch targets, nothing wraps ---------- */
 @media (max-width:820px){
-  :root{--cw:58px;--ch:86px}
-  #game{height:100dvh;bottom:auto;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;border-width:4px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  :root{--cw:clamp(50px, min(9.6vh, 16vw), 82px)}
+  #game{height:100dvh;bottom:auto;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;border-width:4px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
   #side{display:none}
   .desk{display:none}
   .mob{display:inline-block}
@@ -246,7 +253,7 @@ html,body{touch-action:manipulation}
   #banner{font-size:13px;padding:0 8px}
   #toast{font-size:24px;line-height:32px;height:32px;margin:-8px 0 -4px}
   .center{flex-direction:column;gap:12px}
-  .piles{gap:28px}
+  .piles{gap:28px;padding:14px 18px}
   #dirRing{width:calc(100% + 36px);height:calc(100% + 28px)}
   .hud{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 12px;min-width:0}
   .hud .label{font-size:11px}
@@ -258,17 +265,15 @@ html,body{touch-action:manipulation}
   .actions{width:100%;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px}
   .btn{height:44px;padding:0 8px;font-size:14px}
   #ticker{display:block;font:400 12px/16px var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 2px 0;min-height:20px}
-  #hand{min-height:calc(var(--ch) + 44px);padding:20px 14px 20px}
+  #hand{padding:20px 14px 20px}
   .dialog{padding:16px}
   .colors button{height:56px}
 }
 @media (max-width:820px) and (min-height:740px){
-  :root{--cw:70px;--ch:104px}
   #table{gap:16px}
   .center{gap:20px}
 }
 @media (max-width:820px) and (max-height:640px){
-  :root{--cw:50px;--ch:74px}
   .opp{width:84px;padding:6px}
   #toast{display:none}
 }
@@ -279,37 +284,38 @@ html,body{touch-action:manipulation}
 <div id="start" class="screen">
   <div class="page">
     <h1 class="title">UNO Flip<br><span>No Mercy</span></h1>
-    <p class="lede">Classic, Flip and No Mercy cards in one endless deck, played online with friends. No accounts. Drop out and you can rejoin your seat.</p>
-    <div class="field"><span class="label">Name</span><input id="pname" type="text" maxlength="14" value="Player"></div>
-    <div class="section"><button class="btn primary wide" id="btnCreate">Create room</button></div>
+    <p class="lede" data-i18n="lede"></p>
+    <div class="field"><span class="label" data-i18n="language"></span><div class="seg" id="segLang"></div></div>
+    <div class="field"><span class="label" data-i18n="name"></span><input id="pname" type="text" maxlength="14" value="Player"></div>
+    <div class="section"><button class="btn primary wide" id="btnCreate" data-i18n="createRoom"></button></div>
     <div class="section">
-      <span class="label">Have a code?</span>
+      <span class="label" data-i18n="haveCode"></span>
       <div class="actions-row">
-        <input id="joinCode" class="code-in" type="text" maxlength="4" placeholder="CODE" autocomplete="off">
-        <button class="btn" id="btnJoin">Join room</button>
+        <input id="joinCode" class="code-in" type="text" maxlength="4" placeholder="CODE" data-i18n-ph="codePh" autocomplete="off">
+        <button class="btn" id="btnJoin" data-i18n="joinRoom"></button>
       </div>
     </div>
     <div class="msg" id="startMsg"></div>
-    <button class="textlink" data-rules>How to play</button>
+    <button class="textlink" data-rules data-i18n="howTo"></button>
   </div>
 </div>
 
 <div id="lobby" class="screen hidden">
   <div class="page">
-    <span class="label">Room code</span>
+    <span class="label" data-i18n="roomCode"></span>
     <div class="code" id="lbCode" title="Copy code">----</div>
     <p class="lede" id="lbHint" style="margin:8px 0 24px"></p>
-    <div class="actions-row" id="shareBox" style="margin-bottom:24px"><input type="text" id="shareLink" readonly style="flex:1"><button class="btn" id="btnCopyLink">Copy link</button></div>
-    <div class="field"><span class="label">Your name</span><input id="lbName" type="text" maxlength="14"></div>
-    <div class="section"><span class="label">Players</span><div id="lbSeats" style="margin-top:8px"></div></div>
+    <div class="actions-row" id="shareBox" style="margin-bottom:24px"><input type="text" id="shareLink" readonly style="flex:1"><button class="btn" id="btnCopyLink" data-i18n="copyLink"></button></div>
+    <div class="field"><span class="label" data-i18n="yourName"></span><input id="lbName" type="text" maxlength="14"></div>
+    <div class="section"><span class="label" data-i18n="players"></span><div id="lbSeats" style="margin-top:8px"></div></div>
     <div id="lbHost">
-      <div class="section"><button class="btn primary wide" id="btnRoomStart">Start game</button></div>
-      <div class="section"><span class="label">Rules</span><div id="lbRules"></div></div>
-      <div class="section"><span class="label">Extra cards</span><div id="lbCards"></div></div>
+      <div class="section"><button class="btn primary wide" id="btnRoomStart" data-i18n="startGame"></button></div>
+      <div class="section"><span class="label" data-i18n="rules"></span><div id="lbRules"></div></div>
+      <div class="section"><span class="label" data-i18n="extraCards"></span><div id="lbCards"></div></div>
     </div>
-    <div id="lbGuest" class="section hidden"><span class="label">Table rules (set by the host)</span><div id="lbRulesView" style="margin-top:8px"></div></div>
+    <div id="lbGuest" class="section hidden"><span class="label" data-i18n="tableRules"></span><div id="lbRulesView" style="margin-top:8px"></div></div>
     <div class="msg" id="lbWait"></div>
-    <button class="textlink" id="btnLeave">Leave room</button>
+    <button class="textlink" id="btnLeave" data-i18n="leaveRoom"></button>
   </div>
 </div>
 
@@ -322,7 +328,6 @@ html,body{touch-action:manipulation}
       <div class="piles">
         <div class="pile" id="drawpile" title="Draw pile: you can see the back of the next card"></div>
         <div class="pile" id="discard"></div>
-        <svg id="dirRing" viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true"><path d="M60 40 A170 80 0 0 1 340 40"/><path d="M340 160 A170 80 0 0 1 60 160"/><path class="head" d="M340 40 l-16 -8 l4 12 z"/><path class="head" d="M60 160 l16 8 l-4 -12 z"/></svg>
       </div>
       <div class="hud" id="hud"></div>
     </div>
@@ -331,19 +336,19 @@ html,body{touch-action:manipulation}
     <div class="me">
       <div class="who"><span class="ini" id="meIni"></span><span id="meName"></span><span class="cnt" id="meCnt"></span><span class="tags label" id="meTags"></span><div class="bar" id="meBarWrap"><div id="meDanger"></div></div></div>
       <div class="actions">
-        <button class="btn primary" id="btnDraw">Draw</button>
-        <button class="btn" id="btnPass">Pass</button>
-        <button class="btn uno" id="btnUno">UNO</button>
+        <button class="btn primary" id="btnDraw" data-i18n="draw"></button>
+        <button class="btn" id="btnPass" data-i18n="pass"></button>
+        <button class="btn uno" id="btnUno" data-i18n="uno"></button>
         <button class="btn quiet desk" id="btnSort">Sort</button>
-        <button class="btn quiet desk" data-rules>Rules</button>
+        <button class="btn quiet desk" data-rules data-i18n="rules"></button>
         <button class="btn quiet desk" id="btnQuit">Quit</button>
-        <button class="btn mob" id="btnMenu" aria-label="Menu">Menu</button>
+        <button class="btn mob" id="btnMenu" data-i18n="menu"></button>
       </div>
     </div>
     <div id="ticker"></div>
     <div id="hand"></div>
   </div>
-  <div id="side"><div class="sidehead"><span class="label">Log</span><span class="label" id="netTag"></span><button class="btn quiet" id="btnSound" style="height:32px;padding:0 8px">Sound on</button></div><div id="log"></div></div>
+  <div id="side"><div class="sidehead"><span class="label" data-i18n="log"></span><span class="label" id="netTag"></span><button class="btn quiet" id="btnSound" style="height:32px;padding:0 8px">Sound on</button></div><div id="log"></div></div>
 </div>
 
 <div id="netBanner" class="hidden"></div>
@@ -415,7 +420,7 @@ class Game {
     this.debt = null; // cards someone must draw by hand before play moves on: { pi, n | until, got, kind }
     this.drewBy = -1; this.winner = null; this.log = []; this.seq = 0;
     this.events = []; this.evSeq = 0;
-    this.addLog(`First card: ${faceName(top.L)}. ${this.players[this.turn].name} starts.`);
+    this.addLog(`First card: ${faceName(top.L)}. ${this.players[this.turn].name} starts.`, '', 'first', { f: top.L, n: this.players[this.turn].name });
     this.ev('start');
   }
   newCard() {
@@ -426,7 +431,7 @@ class Game {
   f(card) { return card[this.side]; }
   back(card) { return card[other(this.side)]; }
   colors() { return SIDE_COLORS[this.side]; }
-  addLog(msg, cls = '') { this.log.push({ msg, cls }); if (this.log.length > 200) this.log.shift(); }
+  addLog(msg, cls = '', k = null, a = null) { this.log.push({ msg, cls, k, a }); if (this.log.length > 200) this.log.shift(); }
   ev(type, data = {}) { this.events.push(Object.assign({ type, n: ++this.evSeq }, data)); if (this.events.length > 24) this.events.shift(); }
   active() { return this.players.filter(p => !p.out); }
   nextIdx(from, steps = 1) {
@@ -444,7 +449,7 @@ class Game {
   canJumpIn(pi, card) {
     if (!this.rules.jumpIn || this.winner !== null || this.roulette !== null || this.debt || pi === this.turn || this.players[pi].out || card.hidden || this.owes(pi)) return false;
     const f = this.f(card), t = this.f(this.top);
-    return f.c !== 'w' && f.c === t.c && f.v === t.v;
+    return f.c === t.c && f.v === t.v;
   }
   playable(pi) { return this.players[pi].hand.filter(c => this.canPlay(c)); }
   validColor(c, pi) { return this.colors().includes(c) ? c : Bot.bestColor(this, this.players[pi].hand, this.side); }
@@ -466,14 +471,14 @@ class Game {
     if (this.rules.mercy) for (const p of this.players) {
       if (!p.out && p.hand.length >= this.rules.mercy) {
         p.out = true; p.elim = true;
-        this.addLog(`${p.name} hit ${p.hand.length} cards and is knocked out by the Mercy Rule.`, 'bad');
+        this.addLog(`${p.name} hit ${p.hand.length} cards and is knocked out by the Mercy Rule.`, 'bad', 'ko', { n: p.name, k: p.hand.length });
         this.ev('ko', { pi: this.players.indexOf(p) });
       }
     }
     const act = this.active();
     if (act.length === 1 && this.winner === null) {
       this.winner = this.players.indexOf(act[0]);
-      this.addLog(`${act[0].name} is the last one standing.`, 'win');
+      this.addLog(`${act[0].name} is the last one standing.`, 'win', 'lastLeft', { n: act[0].name });
       this.ev('win', { pi: this.winner });
     }
     if (this.winner === null && this.players[this.turn].out) this.turn = this.nextIdx(this.turn, 1);
@@ -490,10 +495,11 @@ class Game {
     const face = this.f(card);
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
-    if (this.rules.multi && face.c !== 'w' && Array.isArray(opts.extra)) {
+    if (this.rules.multi && Array.isArray(opts.extra)) {
       for (const id of opts.extra) {
         const c = p.hand.find(x => x.id === id);
-        if (c && !chain.includes(c) && this.f(c).c !== 'w' && this.f(c).v === face.v) chain.push(c);
+        // same value; a wild only goes with wilds, a colored card only with colored cards
+        if (c && !chain.includes(c) && this.f(c).v === face.v && (this.f(c).c === 'w') === (face.c === 'w')) chain.push(c);
       }
     }
     const k = chain.length;
@@ -507,24 +513,25 @@ class Game {
     let extra = '';
     if (face.v === 'discall') {
       const cols = new Set(chain.map(c => this.f(c).c));
-      const same = p.hand.filter(c => cols.has(this.f(c).c));
+      const same = p.hand.filter(c => cols.has(this.f(c).c)); p.handDumped = same.length;
       p.hand = p.hand.filter(c => !cols.has(this.f(c).c));
       if (same.length) extra = ` and discards ${same.length} more card${same.length > 1 ? 's' : ''} of ${k > 1 ? 'those colors' : 'that color'}`;
     }
     const showColor = face.c === 'w' && face.v !== 'roul';
     const what = k > 1 ? chain.map(c => faceName(this.f(c))).join(', ') : faceName(face);
-    this.addLog(`${jump ? p.name + ' jumps in with' : p.name + ' plays'} ${what}${showColor ? ' → ' + COLOR_NAME[this.color] : ''}${extra}.`, jump ? 'jump' : '');
+    this.addLog(`${jump ? p.name + ' jumps in with' : p.name + ' plays'} ${what}${showColor ? ' → ' + COLOR_NAME[this.color] : ''}${extra}.`, jump ? 'jump' : '', 'play',
+      { n: p.name, j: jump ? 1 : 0, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
     this.ev('play', { pi, code: cardCode(last), side: this.side, jump, k });
     if (k > 1) this.ev('multi', { pi, k });
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
     this.drewBy = -1;
-    if (p.hand.length === 1) { p.vulnerable = this.rules.uno && !p.unoCalled; if (p.unoCalled) { this.addLog(`${p.name} calls UNO.`, 'uno'); this.ev('uno', { pi }); } }
+    if (p.hand.length === 1) { p.vulnerable = this.rules.uno && !p.unoCalled; if (p.unoCalled) { this.addLog(`${p.name} calls UNO.`, 'uno', 'uno', { n: p.name }); this.ev('uno', { pi }); } }
     else p.vulnerable = false;
     p.unoCalled = false;
     if (p.hand.length === 0) {
       this.winner = pi; p.out = true;
-      this.addLog(`${p.name} empties their hand and wins.`, 'win');
+      this.addLog(`${p.name} empties their hand and wins.`, 'win', 'win', { n: p.name });
       this.ev('win', { pi });
       return true;
     }
@@ -535,7 +542,7 @@ class Game {
         if (this.rules.seven && opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out) {
           const t = this.players[opts.target];
           [p.hand, t.hand] = [t.hand, p.hand];
-          this.addLog(`${p.name} swaps hands with ${t.name} (${p.hand.length} ↔ ${t.hand.length}).`, 'swap');
+          this.addLog(`${p.name} swaps hands with ${t.name} (${p.hand.length} ↔ ${t.hand.length}).`, 'swap', 'swap', { n: p.name, t: t.name, a: p.hand.length, b: t.hand.length });
           this.ev('swap', { a: pi, b: opts.target });
           for (const q of [p, t]) if (q.hand.length !== 1) q.vulnerable = false;
         }
@@ -547,7 +554,7 @@ class Game {
           const hands = order.map(j => this.players[j].hand);
           order.forEach((j, k) => { this.players[order[(k + 1) % order.length]].hand = hands[k]; });
           for (const q of this.players) q.vulnerable = false;
-          this.addLog(`Everyone passes their hand ${this.dir === 1 ? 'clockwise' : 'counter-clockwise'}!`, 'swap');
+          this.addLog(`Everyone passes their hand ${this.dir === 1 ? 'clockwise' : 'counter-clockwise'}!`, 'swap', 'rotate', { cw: this.dir === 1 ? 1 : 0 });
           this.ev('rotate', {});
         }
         break;
@@ -562,19 +569,20 @@ class Game {
       case 'd1': case 'd2': case 'd4': case 'd5': case 'wd2': case 'wd4': case 'wd6': case 'wd10': case 'wd15':
         this.pending += DRAW_VAL[face.v] * k; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; break;
       case 'wrd4': case 'wrd8':
-        this.dir *= -1; this.pending += DRAW_VAL[face.v]; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; this.ev('reverse', { dir: this.dir }); break;
+        if (k % 2) { this.dir *= -1; this.ev('reverse', { dir: this.dir }); }
+        this.pending += DRAW_VAL[face.v] * k; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; break;
       case 'mirror':
         if (this.pending > 0) {
           const back = this.stackFrom;
           if (back >= 0 && back !== pi && !this.players[back].out) {
-            this.addLog(`${p.name} mirrors the +${this.pending} stack back to ${this.players[back].name}.`, 'swap');
+            this.addLog(`${p.name} mirrors the +${this.pending} stack back to ${this.players[back].name}.`, 'swap', 'mirror', { n: p.name, k: this.pending, t: this.players[back].name });
             this.ev('mirror', { a: pi, b: back, k: this.pending });
             this.stackFrom = pi; this.turn = back; steps = -1;
           }
         }
         break;
       case 'shield':
-        if (!p.shield) { p.shield = true; this.addLog(`${p.name} raises a shield. The next stack that reaches them breaks.`, 'swap'); this.ev('shieldup', { pi }); }
+        if (!p.shield) { p.shield = true; this.addLog(`${p.name} raises a shield. The next stack that reaches them breaks.`, 'swap', 'shieldUp', { n: p.name }); this.ev('shieldup', { pi }); }
         break;
       case 'duel': {
         const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
@@ -583,7 +591,7 @@ class Game {
         do { a = flipNum(); b = flipNum(); pool = pool.concat(a.got, b.got); rounds++; } while (a.n === b.n && rounds < 5);
         const loser = a.n < b.n ? pi : tgt;
         this.players[loser].owed = (this.players[loser].owed || []).concat(pool);
-        this.addLog(`${p.name} duels ${this.players[tgt].name}: ${a.n} vs ${b.n}. ${this.players[loser].name} must pick up all ${pool.length} turned-over cards.`, 'bad');
+        this.addLog(`${p.name} duels ${this.players[tgt].name}: ${a.n} vs ${b.n}. ${this.players[loser].name} must pick up all ${pool.length} turned-over cards.`, 'bad', 'duel', { n: p.name, t: this.players[tgt].name, na: a.n, nb: b.n, l: this.players[loser].name, k: pool.length });
         this.ev('duel', { a: pi, b: tgt, na: a.n, nb: b.n, loser, k: pool.length });
         break;
       }
@@ -597,7 +605,7 @@ class Game {
           for (const j of act) this.players[j].hand = [];
           all.forEach((c, k) => this.players[order[k % order.length]].hand.push(c));
           for (const q of this.players) q.vulnerable = false;
-          this.addLog(`Black hole. Every hand is pooled and dealt back out: ${act.map(j => this.players[j].name + ' ' + this.players[j].hand.length).join(', ')}.`, 'swap');
+          this.addLog(`Black hole. Every hand is pooled and dealt back out: ${act.map(j => this.players[j].name + ' ' + this.players[j].hand.length).join(', ')}.`, 'swap', 'bhole', { l: act.map(j => [this.players[j].name, this.players[j].hand.length]) });
           this.ev('bhole', {});
         }
         break;
@@ -607,19 +615,19 @@ class Game {
       case 'wdc': {
         const vi = this.nextIdx(pi, 1), col = this.color;
         this.debt = { pi: vi, until: col, got: 0, kind: 'wdc' };
-        this.addLog(`${this.players[vi].name} must draw until they hit ${COLOR_NAME[col]}.`, 'bad');
+        this.addLog(`${this.players[vi].name} must draw until they hit ${COLOR_NAME[col]}.`, 'bad', 'wdc', { n: this.players[vi].name, c: col });
         this.turn = vi; steps = -1; break;
       }
       case 'dflip':
       case 'flip': {
-        if (k % 2 === 0) { this.addLog(`${k} flips cancel out. The table stays on the ${this.side === 'D' ? 'dark' : 'light'} side.`, 'flip'); break; }
+        if (k % 2 === 0) { this.addLog(`${k} flips cancel out. The table stays on the ${this.side === 'D' ? 'dark' : 'light'} side.`, 'flip', 'flipsCancel', { k, dk: this.side === 'D' ? 1 : 0 }); break; }
         this.side = other(this.side);
         this.flipBack = face.v === 'dflip' ? { pi: this.nextIdx(pi, 1), seq: this.seq } : null;
         const nf = this.f(this.top);
         this.color = nf.c === 'w' ? this.validColor(opts.flipColor, pi) : nf.c;
-        this.addLog(`Flip. Everything turns to the ${this.side === 'D' ? 'dark' : 'light'} side. Top card is now ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip');
+        this.addLog(`Flip. Everything turns to the ${this.side === 'D' ? 'dark' : 'light'} side. Top card is now ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip', 'flip', { dk: this.side === 'D' ? 1 : 0, f: nf, c: nf.c === 'w' ? this.color : null });
         this.ev('flip', { side: this.side });
-        if (face.v === 'dflip') this.addLog(`Double flip: it turns back after ${this.players[this.nextIdx(pi, 1)].name}'s turn.`, 'flip');
+        if (face.v === 'dflip') this.addLog(`Double flip: it turns back after ${this.players[this.nextIdx(pi, 1)].name}'s turn.`, 'flip', 'dflip', { n: this.players[this.nextIdx(pi, 1)].name });
         break;
       }
     }
@@ -628,7 +636,7 @@ class Game {
     this.applyShield();
     this.checkFlipBack();
     if (this.pending > 0 && DRAW_VAL[face.v]) {
-      this.addLog(`Stack is now +${this.pending}. ${this.players[this.turn].name} must stack or take it.`, 'stack');
+      this.addLog(`Stack is now +${this.pending}. ${this.players[this.turn].name} must stack or take it.`, 'stack', 'stack', { k: this.pending, n: this.players[this.turn].name });
       this.ev('stack', { k: this.pending, pi: this.turn });
     }
     this.mercyCheck();
@@ -643,7 +651,7 @@ class Game {
       this.side = other(this.side);
       const nf = this.f(this.top);
       this.color = nf.c === 'w' ? Bot.bestColor(this, this.players[this.turn].hand, this.side) : nf.c;
-      this.addLog(`The double flip wears off. Back to the ${this.side === 'D' ? 'dark' : 'light'} side: ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip');
+      this.addLog(`The double flip wears off. Back to the ${this.side === 'D' ? 'dark' : 'light'} side: ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip', 'dflipOff', { dk: this.side === 'D' ? 1 : 0, f: nf, c: nf.c === 'w' ? this.color : null });
       this.ev('flip', { side: this.side });
     }
   }
@@ -651,7 +659,7 @@ class Game {
     const t = this.players[this.turn];
     if (this.pending > 0 && t && t.shield && !t.out) {
       t.shield = false;
-      this.addLog(`${t.name}'s shield breaks the +${this.pending} stack.`, 'swap');
+      this.addLog(`${t.name}'s shield breaks the +${this.pending} stack.`, 'swap', 'shieldBreak', { n: t.name, k: this.pending });
       this.ev('shield', { pi: this.turn, k: this.pending });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
     }
@@ -679,7 +687,8 @@ class Game {
       if (d.got >= 300) done = true;
       if (done) {
         this.addLog(d.kind === 'stack' ? `${p.name} picked up all ${d.got} cards (now ${p.hand.length}).`
-          : `${p.name} drew ${d.got} card${d.got > 1 ? 's' : ''} before hitting ${COLOR_NAME[d.until]}.`, 'bad');
+          : `${p.name} drew ${d.got} card${d.got > 1 ? 's' : ''} before hitting ${COLOR_NAME[d.until]}.`, 'bad',
+          d.kind === 'stack' ? 'pickedUp' : 'drewUntil', { n: p.name, k: d.got, h: p.hand.length, c: d.until || null });
         if (d.got >= 10) this.ev('took', { pi, k: d.got });
         this.debt = null; this.drewBy = -1; this.drawRun = 0;
         this.turn = this.nextIdx(pi, 1);
@@ -691,7 +700,7 @@ class Game {
     if (this.pending > 0) {
       // taking the stack: the cards are picked up one by one
       this.debt = { pi, n: this.pending, got: 0, kind: 'stack' };
-      this.addLog(`${p.name} takes the +${this.pending} stack.`, 'bad');
+      this.addLog(`${p.name} takes the +${this.pending} stack.`, 'bad', 'takes', { n: p.name, k: this.pending });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
       return this.draw(pi);
     }
@@ -700,7 +709,7 @@ class Game {
     this.seq++;
     if (!this.rules.drawUntil) {
       this.drewBy = pi;
-      this.addLog(`${p.name} draws a card.`);
+      this.addLog(`${p.name} draws a card.`, '', 'drawOne', { n: p.name });
     } else {
       // one card per draw: the player keeps drawing by hand until something is playable
       this.drawRun = (this.drawRunPi === pi ? this.drawRun || 0 : 0) + got.length; this.drawRunPi = pi;
@@ -708,7 +717,7 @@ class Game {
       const f = got[0] && this.f(got[0]);
       if (f && (f.c === 'w' || f.c === this.color)) {
         this.drewBy = pi;
-        this.addLog(`${p.name} draws ${this.drawRun} card${this.drawRun > 1 ? 's' : ''} before hitting ${COLOR_NAME[this.color]}.`);
+        this.addLog(`${p.name} draws ${this.drawRun} card${this.drawRun > 1 ? 's' : ''} before hitting ${COLOR_NAME[this.color]}.`, '', 'drawRun', { n: p.name, k: this.drawRun, c: this.color });
         this.drawRun = 0;
       }
     }
@@ -717,7 +726,7 @@ class Game {
   }
   pass(pi) {
     if (pi !== this.turn || this.drewBy !== pi || this.pending > 0 || this.debt || this.owes(pi)) return false;
-    this.addLog(`${this.players[pi].name} passes.`);
+    this.addLog(`${this.players[pi].name} passes.`, '', 'pass', { n: this.players[pi].name });
     this.drewBy = -1; this.drawRun = 0; this.seq++;
     this.turn = this.nextIdx(pi, 1);
     this.checkFlipBack();
@@ -727,7 +736,7 @@ class Game {
     const vi = this.roulette; if (vi === null) return null;
     if (!this.colors().includes(color)) color = Bot.bestColor(this, this.players[vi].hand, this.side);
     this.color = color;
-    this.addLog(`${this.players[vi].name} calls ${COLOR_NAME[color]} and must draw until it shows up.`, 'bad');
+    this.addLog(`${this.players[vi].name} calls ${COLOR_NAME[color]} and must draw until it shows up.`, 'bad', 'roulette', { n: this.players[vi].name, c: color });
     this.ev('color', { c: color });
     this.roulette = null; this.seq++;
     this.turn = vi;
@@ -737,7 +746,7 @@ class Game {
   callUno(pi) {
     const p = this.players[pi];
     if (p.out) return false;
-    if (p.hand.length === 1 && p.vulnerable) { p.vulnerable = false; this.addLog(`${p.name} calls UNO just in time`, 'uno'); this.ev('uno', { pi }); return true; }
+    if (p.hand.length === 1 && p.vulnerable) { p.vulnerable = false; this.addLog(`${p.name} calls UNO just in time`, 'uno', 'unoLate', { n: p.name }); this.ev('uno', { pi }); return true; }
     if ((p.hand.length <= 2 || (this.rules.multi && this.unoReach(pi))) && !p.unoCalled) { p.unoCalled = true; this.ev('uno', { pi }); return true; }
     return false;
   }
@@ -746,7 +755,7 @@ class Game {
     const p = this.players[pi];
     if (!p || p.out || this.winner !== null) return false;
     p.out = true; p.left = true; p.vulnerable = false; p.shield = false;
-    this.addLog(`${p.name} ${why === 'left' ? 'left the match' : 'was away too long and is out of the match'}. Everyone else plays on.`, 'bad');
+    this.addLog(`${p.name} ${why === 'left' ? 'left the match' : 'was away too long and is out of the match'}. Everyone else plays on.`, 'bad', 'left', { n: p.name, aw: why === 'left' ? 0 : 1 });
     this.ev('ko', { pi });
     if (this.roulette === pi) this.roulette = null;
     if (this.debt && this.debt.pi === pi) this.debt = null;
@@ -754,7 +763,7 @@ class Game {
     if (this.stackFrom === pi) this.stackFrom = -1;
     if (this.flipBack && this.flipBack.pi === pi) this.flipBack.pi = this.nextIdx(pi, 1);
     if (this.turn === pi) {
-      if (this.pending > 0) { this.addLog(`The +${this.pending} stack aimed at ${p.name} is discarded.`, 'stk'); this.pending = 0; this.stackMin = 0; this.stackFrom = -1; }
+      if (this.pending > 0) { this.addLog(`The +${this.pending} stack aimed at ${p.name} is discarded.`, 'stk', 'stackGone', { n: p.name, k: this.pending }); this.pending = 0; this.stackMin = 0; this.stackFrom = -1; }
       this.drewBy = -1; this.drawRun = 0;
       this.turn = this.nextIdx(pi, 1);
     }
@@ -762,7 +771,7 @@ class Game {
     const act = this.active();
     if (act.length === 1) {
       this.winner = this.players.indexOf(act[0]);
-      this.addLog(`${act[0].name} is the last player left and wins.`, 'win');
+      this.addLog(`${act[0].name} is the last player left and wins.`, 'win', 'lastLeft', { n: act[0].name });
       this.ev('win', { pi: this.winner });
     }
     return true;
@@ -774,18 +783,18 @@ class Game {
     const p = this.players[pi];
     if (this.roulette === pi) {
       const cols = this.colors();
-      this.addLog(`${p.name} is away. A random color is called for them.`, 'stk');
+      this.addLog(`${p.name} is away. A random color is called for them.`, 'stk', 'awayColor', { n: p.name });
       this.resolveRoulette(cols[Math.floor(Math.random() * cols.length)]);
       return true;
     }
     if (this.turn !== pi) return false;
     if (this.pending > 0 || (this.debt && this.debt.pi === pi)) {
-      if (this.pending > 0) this.addLog(`${p.name} is away and takes the stack.`, 'stk');
+      if (this.pending > 0) this.addLog(`${p.name} is away and takes the stack.`, 'stk', 'awayStack', { n: p.name });
       let g = 0; while (this.turn === pi && this.winner === null && ++g < 400 && this.draw(pi));
       return true;
     }
     while (this.owes(pi)) this.draw(pi);
-    this.addLog(`${p.name} is away. Turn skipped.`, 'stk');
+    this.addLog(`${p.name} is away. Turn skipped.`, 'stk', 'awaySkip', { n: p.name });
     this.drewBy = -1; this.drawRun = 0; this.seq++;
     this.ev('skip', { pi });
     this.turn = this.nextIdx(pi, 1);
@@ -795,14 +804,14 @@ class Game {
   // can this player get down to one card in a single same-number drop?
   unoReach(pi) {
     const h = this.players[pi].hand, cnt = {};
-    for (const c of h) { const f = this.f(c); if (f.c !== 'w') cnt[f.v] = (cnt[f.v] || 0) + 1; }
+    for (const c of h) { const f = this.f(c); const key = (f.c === 'w' ? 'w:' : '') + f.v; cnt[key] = (cnt[key] || 0) + 1; }
     return Object.values(cnt).some(n => n >= h.length - 1);
   }
   catchUno(catcher, target) {
     const t = this.players[target];
     if (!t || !t.vulnerable || t.hand.length !== 1 || t.out || catcher === target) return false;
     t.vulnerable = false;
-    this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO. ${t.name} must draw 2.`, 'bad');
+    this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO. ${t.name} must draw 2.`, 'bad', 'caught', { n: this.players[catcher].name, t: t.name });
     this.ev('caught', { pi: target, by: catcher });
     t.oweN = (t.oweN || 0) + 2; this.seq++;
     return true;
@@ -865,7 +874,7 @@ const Bot = {
     }
     const bf = g.f(best);
     // drop every matching card when the table allows it
-    const extra = g.rules.multi && bf.c !== 'w' ? p.hand.filter(c => c !== best && g.f(c).c !== 'w' && g.f(c).v === bf.v) : [];
+    const extra = g.rules.multi ? p.hand.filter(c => c !== best && g.f(c).v === bf.v && (g.f(c).c === 'w') === (bf.c === 'w')) : [];
     const rest = p.hand.filter(c => c !== best && !extra.includes(c));
     const swapGain = minOther ? rest.length - minOther.q.hand.length : 0;
     return {
@@ -898,7 +907,7 @@ function serialize(g, viewer = -1, logN = 8) {
       (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0)]),
     t: cardCode(g.top), db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
-    l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 160), l.cls]),
+    l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
     ev: g.events.slice(-12), es: g.evSeq
   };
 }
@@ -918,7 +927,7 @@ function deserialize(st) {
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
   g.roulette = st.o < 0 ? null : st.o; g.drewBy = st.w; g.winner = st.x < 0 ? null : st.x; g.seq = st.s;
-  g.log = (st.l || []).map(([msg, cls]) => ({ msg: String(msg), cls: String(cls || '') }));
+  g.log = (st.l || []).map(([msg, cls, k, a]) => ({ msg: String(msg), cls: String(cls || ''), k: typeof k === 'string' ? k : null, a: a && typeof a === 'object' ? a : null }));
   g.events = Array.isArray(st.ev) ? st.ev : []; g.evSeq = st.es || 0;
   return g;
 }
@@ -927,29 +936,285 @@ if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, dese
 
 </script>
 <script>
+// ===== LANGUAGES: English + Russian =====
+const LANGS = { en: 'English', ru: 'Русский' };
+let LANG = (() => {
+  try { const s = JSON.parse(localStorage.getItem('unoFlipNoMercy') || 'null'); if (s && LANGS[s.lang]) return s.lang; } catch (e) {}
+  return /^ru\b/i.test(navigator.language || '') ? 'ru' : 'en';
+})();
+// Russian plural: 1 карта, 2 карты, 5 карт
+function plural(n, one, few, many) { if (LANG !== 'ru') return n === 1 ? one : few; const a = Math.abs(n) % 100, b = a % 10; if (a > 10 && a < 20) return many; if (b > 1 && b < 5) return few; if (b === 1) return one; return many; }
+const cardsW = n => LANG === 'ru' ? plural(n, 'карта', 'карты', 'карт') : (n === 1 ? 'card' : 'cards');
+const cardsAcc = n => LANG === 'ru' ? plural(n, 'карту', 'карты', 'карт') : (n === 1 ? 'card' : 'cards');
+
+const NAMES = {
+  en: {
+    colors: { r: 'Red', y: 'Yellow', g: 'Green', b: 'Blue', p: 'Pink', t: 'Teal', o: 'Orange', v: 'Purple', w: 'Wild' },
+    values: { skip: 'Skip', rev: 'Reverse', d1: 'Draw 1', d2: 'Draw 2', d4: 'Draw 4', d5: 'Draw 5', flip: 'Flip', dflip: 'Double Flip', discall: 'Discard All', skipall: 'Skip Everyone', mirror: 'Mirror', shield: 'Shield',
+      wild: 'Wild', wd2: 'Wild Draw 2', wd4: 'Wild Draw 4', wrd4: 'Wild Reverse Draw 4', wd6: 'Wild Draw 6', wd10: 'Wild Draw 10', wd15: 'Wild Draw 15', wrd8: 'Wild Reverse Draw 8', wdc: 'Wild Draw Color', roul: 'Wild Color Roulette', duel: 'Wild Duel', bhole: 'Black Hole' }
+  },
+  ru: {
+    colors: { r: 'Красный', y: 'Жёлтый', g: 'Зелёный', b: 'Синий', p: 'Розовый', t: 'Бирюзовый', o: 'Оранжевый', v: 'Фиолетовый', w: 'Джокер' },
+    values: { skip: 'Пропуск', rev: 'Разворот', d1: 'Возьми 1', d2: 'Возьми 2', d4: 'Возьми 4', d5: 'Возьми 5', flip: 'Флип', dflip: 'Двойной флип', discall: 'Сброс цвета', skipall: 'Пропуск всех', mirror: 'Зеркало', shield: 'Щит',
+      wild: 'Джокер', wd2: 'Джокер +2', wd4: 'Джокер +4', wrd4: 'Джокер разворот +4', wd6: 'Джокер +6', wd10: 'Джокер +10', wd15: 'Джокер +15', wrd8: 'Джокер разворот +8', wdc: 'Джокер «тяни цвет»', roul: 'Цветная рулетка', duel: 'Дуэль', bhole: 'Чёрная дыра' }
+  }
+};
+const colorName = c => NAMES[LANG].colors[c] || c;
+const cardName = f => !f ? '' : (f.c === 'w' ? NAMES[LANG].values[f.v] : colorName(f.c) + ' ' + (NAMES[LANG].values[f.v] || f.v));
+// short labels printed on the cards themselves
+const CARD_TXT = {
+  en: { flip: 'flip', dflip: 'double flip', discall: 'discard', skipall: 'everyone', mirror: 'mirror', shield: 'shield', wild: 'wild', reverse: 'reverse', wdc: 'draw color', roul: 'roulette', duel: 'duel', bhole: 'black hole' },
+  ru: { flip: 'флип', dflip: 'двойной флип', discall: 'сброс', skipall: 'всех', mirror: 'зеркало', shield: 'щит', wild: 'джокер', reverse: 'разворот', wdc: 'тяни цвет', roul: 'рулетка', duel: 'дуэль', bhole: 'чёрная дыра' }
+};
+
+const STR = {
+  en: {
+    codePh: 'CODE',
+    lede: 'Classic, Flip and No Mercy cards in one endless deck, played online with friends. No accounts. Drop out and you can rejoin your seat.',
+    name: 'Name', createRoom: 'Create room', haveCode: 'Have a code?', joinRoom: 'Join room', howTo: 'How to play', language: 'Language',
+    roomCode: 'Room code', copyLink: 'Copy link', copied: 'Copied', codeCopied: 'Code copied.', yourName: 'Your name', players: 'Players', rules: 'Rules', extraCards: 'Extra cards',
+    startGame: 'Start game', tableRules: 'Table rules (set by the host)', leaveRoom: 'Leave room', on: 'on', off: 'off', host: 'Host', player: 'Player', away: 'away',
+    hintHost: 'Friends open this page, enter the code and press Join.', hintGuest: 'You are in. The host starts the game.',
+    needMore: 'Waiting for at least one more player.', ready: n => `${n} ${n === 1 ? 'player' : 'players'} ready. Up to 6 can play.`,
+    inProgress: 'A match is in progress. You will be dealt in next round.', waitHost: 'Waiting for the host to start.',
+    connecting: 'Connecting…', connServer: 'Connecting to the game server…', enterCode: 'Enter the 4-character room code.', enterName: 'Enter your name, then Join.',
+    rejoining: c => `Rejoining room ${c}…`, cantReach: 'Could not reach the game server.', reconnecting: 'Reconnecting…', connLost: 'Connection lost. Reconnecting…', otherTab: 'This room was opened in another tab.',
+    room: c => `Room ${c}`, log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off',
+    draw: 'Draw', pass: 'Pass', uno: 'UNO', unoCalled: 'UNO called', sort: m => `Sort: ${({ color: 'color', value: 'number', none: 'off' })[m]}`, leave: 'Leave', menu: 'Menu',
+    take: k => `Take +${k}`, pickUpLeft: k => `Pick up (${k} left)`, drawUntil: (c, k) => `Draw until ${c} (${k})`, penalty: k => `Pick up penalty (${k})`, drawAgain: k => `Draw again (${k})`,
+    lightSide: 'Light side', darkSide: 'Dark side', colorPending: 'Color pending', cw: '↻ Clockwise ›', ccw: '↺ Counter-clockwise ‹', stack: 'Stack',
+    youWin: 'You win', wins: n => `${n} wins`, youLeft: 'You left this match. Watching the rest of it.',
+    oweBanner: k => `You owe ${k} ${cardsW(k)}: pick them up before you play`,
+    myStackDebt: k => `Pick up the stack one card at a time: ${k} left`, myColorDebt: (c, k) => `Draw until ${c} shows up: ${k} so far`,
+    otherDebtN: (n, k) => `${n} is picking up cards (${k} left)`, otherDebtC: (n, c) => `${n} is drawing until ${c}`,
+    rouletteMe: 'Roulette: name a color', rouletteOther: n => `${n} is naming a color`,
+    stackOrTake: (m, k) => `Stack +${m} or higher, mirror it, or take +${k}`, playOrPass: 'Play the card you drew, or pass', yourTurn: 'Your turn: tap or drag a card',
+    keepDrawing: c => `Nothing fits. Keep drawing until you hit ${c} or a wild.`, drawOne: 'Nothing fits. Draw a card.', turnOf: (n, aw) => `${n}'s turn${aw ? ' (away, skipping soon)' : ''}`,
+    tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Up next', tagShield: 'Shield', tagWinner: 'Winner', tagUno: 'UNO', tagPlayer: 'Player',
+    catchBtn: 'Catch: +2',
+    tJump: 'Jump-in', tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Skip everyone', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands rotate',
+    tRoulette: 'Roulette', tMulti: k => `${k} at once`, tCaught: 'Caught: +2', tMirror: n => `Mirrored to ${n}`, tShieldUp: 'Shield up', tShield: k => `Shield breaks +${k}`,
+    tBhole: 'Black hole', tDark: 'Dark side', tLight: 'Light side', tOut: n => `${n} is out`, tUno: 'UNO',
+    pickColor: 'Pick a color', rouletteTitle: 'Color roulette', rouletteSub: 'Name a color. You draw cards until it shows up and keep all of them.',
+    flipWild: 'The flip lands on a wild', flipWildSub: n => `The back of this card is ${n}. Choose its color.`,
+    swapQ: 'Swap hands?', swapSub: k => `You keep ${k} ${cardsAcc(k)} after this play. Trade with someone, or keep your hand.`, keepHand: 'Keep my hand',
+    duel: 'Duel', duelSub: 'You and this player turn over cards until each hits a number. The lower number picks up every card turned over.',
+    togetherQ: 'Play them together?', togetherSub: 'Tap cards in the order you want them played. Tap a numbered card to take it out. The last card sets the color.',
+    playN: k => `Play ${k} ${cardsAcc(k)}`, clearOrder: 'Clear order', selectAll: 'Select all', cancel: 'Cancel', close: 'Close',
+    leaveQ: 'Leave the match?', leaveSub: "You'll be out of this match and everyone else keeps playing. If your connection just drops, you have a minute to come back to your seat.", stay: 'Stay',
+    handEmptied: 'Hand emptied.', finalCounts: 'Final card counts:', winner: 'winner', cardsN: k => `${k} ${cardsW(k)}`, playAgain: 'Play again', backLobby: 'Back to lobby', waitNext: 'Waiting for the host to deal the next round.',
+    menuSort: 'Sort hand', menuLog: 'Game log', menuRules: 'How to play', menuSound: 'Sound', menuLeave: 'Leave match', menuLang: 'Language', gameLog: 'Game log',
+    hostLeft: 'The host left', noRoom: 'No room with that code. It may have closed.'
+  },
+  ru: {
+    codePh: 'КОД',
+    lede: 'Классика, Флип и No Mercy в одной бесконечной колоде. Играйте онлайн с друзьями. Без регистрации. Вылетели — можно вернуться на своё место.',
+    name: 'Имя', createRoom: 'Создать комнату', haveCode: 'Есть код?', joinRoom: 'Войти', howTo: 'Как играть', language: 'Язык',
+    roomCode: 'Код комнаты', copyLink: 'Скопировать ссылку', copied: 'Скопировано', codeCopied: 'Код скопирован.', yourName: 'Ваше имя', players: 'Игроки', rules: 'Правила', extraCards: 'Дополнительные карты',
+    startGame: 'Начать игру', tableRules: 'Правила стола (выбирает хозяин)', leaveRoom: 'Выйти из комнаты', on: 'вкл', off: 'выкл', host: 'Хозяин', player: 'Игрок', away: 'нет на месте',
+    hintHost: 'Друзья открывают эту страницу, вводят код и нажимают «Войти».', hintGuest: 'Вы в комнате. Игру начинает хозяин.',
+    needMore: 'Нужен ещё хотя бы один игрок.', ready: n => `Готово игроков: ${n}. Играть могут до 6.`,
+    inProgress: 'Идёт партия. Вас раздадут в следующем раунде.', waitHost: 'Ждём, пока хозяин начнёт игру.',
+    connecting: 'Подключение…', connServer: 'Подключаемся к игровому серверу…', enterCode: 'Введите код комнаты из 4 символов.', enterName: 'Введите имя и нажмите «Войти».',
+    rejoining: c => `Возвращаемся в комнату ${c}…`, cantReach: 'Не удалось связаться с игровым сервером.', reconnecting: 'Переподключение…', connLost: 'Связь потеряна. Переподключаемся…', otherTab: 'Эта комната открыта в другой вкладке.',
+    room: c => `Комната ${c}`, log: 'Журнал', soundOn: 'Звук вкл', soundOff: 'Звук выкл',
+    draw: 'Взять', pass: 'Пас', uno: 'УНО', unoCalled: 'УНО сказано', sort: m => `Сортировка: ${({ color: 'цвет', value: 'номер', none: 'выкл' })[m]}`, leave: 'Выйти', menu: 'Меню',
+    take: k => `Взять +${k}`, pickUpLeft: k => `Брать (осталось ${k})`, drawUntil: (c, k) => `Тянуть до цвета «${c}» (${k})`, penalty: k => `Взять штраф (${k})`, drawAgain: k => `Тянуть ещё (${k})`,
+    lightSide: 'Светлая сторона', darkSide: 'Тёмная сторона', colorPending: 'Цвет выбирается', cw: '↻ По часовой ›', ccw: '↺ Против часовой ‹', stack: 'Стопка',
+    youWin: 'Вы победили', wins: n => `Победил(а) ${n}`, youLeft: 'Вы вышли из этой партии. Можно досмотреть.',
+    oweBanner: k => `Вы должны взять ${k} ${cardsAcc(k)}, прежде чем ходить`,
+    myStackDebt: k => `Берите стопку по одной карте: осталось ${k}`, myColorDebt: (c, k) => `Тяните, пока не выпадет «${c}»: уже ${k}`,
+    otherDebtN: (n, k) => `${n} берёт карты (осталось ${k})`, otherDebtC: (n, c) => `${n} тянет до цвета «${c}»`,
+    rouletteMe: 'Рулетка: назовите цвет', rouletteOther: n => `${n} выбирает цвет`,
+    stackOrTake: (m, k) => `Положите +${m} или больше, отразите или возьмите +${k}`, playOrPass: 'Сыграйте взятую карту или пасуйте', yourTurn: 'Ваш ход: нажмите на карту или перетащите её',
+    keepDrawing: c => `Ходить нечем. Тяните, пока не выпадет «${c}» или джокер.`, drawOne: 'Ходить нечем. Возьмите карту.', turnOf: (n, aw) => `Ходит ${n}${aw ? ' (нет на месте, скоро пропуск)' : ''}`,
+    tagLeft: 'Вышел', tagAway: 'Нет', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Щит', tagWinner: 'Победитель', tagUno: 'УНО', tagPlayer: 'Игрок',
+    catchBtn: 'Поймать: +2',
+    tJump: 'Вмешался!', tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропуск всех', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
+    tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tCaught: 'Пойман: +2', tMirror: n => `Отражено: ${n}`, tShieldUp: 'Щит поднят', tShield: k => `Щит отбил +${k}`,
+    tBhole: 'Чёрная дыра', tDark: 'Тёмная сторона', tLight: 'Светлая сторона', tOut: n => `${n} выбыл(а)`, tUno: 'УНО',
+    pickColor: 'Выберите цвет', rouletteTitle: 'Цветная рулетка', rouletteSub: 'Назовите цвет. Вы тянете карты, пока он не выпадет, и забираете все.',
+    flipWild: 'Флип выпал на джокера', flipWildSub: n => `На обороте этой карты — ${n}. Выберите цвет.`,
+    swapQ: 'Поменяться руками?', swapSub: k => `После хода у вас останется ${k} ${cardsW(k)}. Поменяйтесь с кем-нибудь или оставьте свою руку.`, keepHand: 'Оставить свою руку',
+    duel: 'Дуэль', duelSub: 'Вы и этот игрок открываете карты, пока у каждого не выпадет число. У кого меньше — забирает все открытые карты.',
+    togetherQ: 'Сыграть вместе?', togetherSub: 'Нажимайте карты в том порядке, в каком хотите их сыграть. Нажмите на пронумерованную карту, чтобы убрать её. Цвет задаёт последняя карта.',
+    playN: k => `Сыграть ${k} ${cardsAcc(k)}`, clearOrder: 'Сбросить порядок', selectAll: 'Выбрать все', cancel: 'Отмена', close: 'Закрыть',
+    leaveQ: 'Выйти из партии?', leaveSub: 'Вы выбываете из этой партии, остальные продолжают. Если просто пропала связь, у вас есть минута, чтобы вернуться на своё место.', stay: 'Остаться',
+    handEmptied: 'Рука пуста.', finalCounts: 'Карт на руках в конце:', winner: 'победитель', cardsN: k => `${k} ${cardsW(k)}`, playAgain: 'Ещё раз', backLobby: 'В лобби', waitNext: 'Ждём, пока хозяин раздаст следующий раунд.',
+    menuSort: 'Сортировка руки', menuLog: 'Журнал игры', menuRules: 'Как играть', menuSound: 'Звук', menuLeave: 'Выйти из партии', menuLang: 'Язык', gameLog: 'Журнал игры',
+    hostLeft: 'Хозяин вышел', noRoom: 'Комнаты с таким кодом нет. Возможно, она закрылась.'
+  }
+};
+function t(key, ...args) { const v = (STR[LANG] && STR[LANG][key]) ?? STR.en[key]; return typeof v === 'function' ? v(...args) : (v ?? key); }
+
+const RULES_I18N = {
+  en: [
+    ['flip', 'Flip cards', 'Flip turns every card to its dark side, and back.'],
+    ['stacking', 'Stacking', 'Answer a draw card with one of equal or higher value.'],
+    ['multi', 'Same-number drops', 'Play every card with the same number or symbol at once: red 7, then blue 7 and green 7 on top. Matching wilds can go down together too.'],
+    ['drawUntil', 'Draw until color', "With nothing to play, you draw one card at a time and can't pass until you draw the current color or a wild."],
+    ['seven', '7 swaps hands', 'Playing a 7 lets you trade hands with any player, if you want to.'],
+    ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
+    ['jumpIn', 'Jump-in', 'Play an exact copy of the top card out of turn, wilds included.'],
+    ['uno', 'UNO penalty', 'Get caught at one card without calling UNO: draw 2.']
+  ],
+  ru: [
+    ['flip', 'Карты Флип', 'Флип переворачивает все карты на тёмную сторону и обратно.'],
+    ['stacking', 'Стопки', 'На карту «Возьми» можно ответить такой же или старше.'],
+    ['multi', 'Сброс одинаковых', 'Сыграйте сразу все карты с одним числом или символом: красная 7, сверху синяя и зелёная 7. Одинаковые джокеры тоже можно сыграть вместе.'],
+    ['drawUntil', 'Тянуть до цвета', 'Если ходить нечем, тяните по одной карте. Пасовать нельзя, пока не выпадет текущий цвет или джокер.'],
+    ['seven', '7 — обмен руками', 'Сыграв 7, можно поменяться руками с любым игроком (по желанию).'],
+    ['zero', '0 — руки по кругу', 'Сыграв 0, все передают руку следующему игроку.'],
+    ['jumpIn', 'Вмешательство', 'Точную копию верхней карты, включая джокеров, можно сыграть вне очереди.'],
+    ['uno', 'Штраф за УНО', 'Поймали с одной картой без «УНО»: возьмите 2.']
+  ]
+};
+const EXTRA_I18N = {
+  en: [
+    ['mirror', 'Mirror', 'Sends a draw stack back to whoever fed it last.'],
+    ['shield', 'Shield', 'Breaks the next stack that reaches you.'],
+    ['dflip', 'Double Flip', 'Flips the table for one turn, then flips it back.'],
+    ['duel', 'Wild Duel', 'You and a chosen player turn over cards; the lower number takes them all.'],
+    ['wd15', 'Wild Draw 15', 'Dark side. The top of the stack ladder.'],
+    ['bhole', 'Black Hole', 'Dark side. Pools every hand and deals the cards back out evenly.']
+  ],
+  ru: [
+    ['mirror', 'Зеркало', 'Отправляет стопку «Возьми» обратно тому, кто положил последнюю карту.'],
+    ['shield', 'Щит', 'Отбивает следующую стопку, которая дойдёт до вас.'],
+    ['dflip', 'Двойной флип', 'Переворачивает стол на один ход, потом обратно.'],
+    ['duel', 'Дуэль', 'Вы и выбранный игрок открываете карты; у кого число меньше — забирает все.'],
+    ['wd15', 'Джокер +15', 'Тёмная сторона. Самая старшая карта стопки.'],
+    ['bhole', 'Чёрная дыра', 'Тёмная сторона. Все руки собираются вместе и раздаются поровну.']
+  ]
+};
+
+// log lines: the server sends a key plus arguments; each screen words them in its own language
+function fmtLog(l, myName) {
+  const a = l.a || {}, C = c => colorName(c), N = n => n;
+  const L = LANG === 'ru' ? {
+    first: () => `Первая карта: ${cardName(a.f)}. Начинает ${N(a.n)}.`,
+    ko: () => `${N(a.n)} набрал(а) ${a.k} ${cardsAcc(a.k)} и выбывает.`,
+    lastLeft: () => `${N(a.n)} остаётся последним и побеждает.`,
+    play: () => `${N(a.n)} ${a.j ? 'вмешивается:' : 'играет'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? ` и сбрасывает ещё ${a.d} ${cardsAcc(a.d)}` : ''}.`,
+    uno: () => `${N(a.n)} говорит «УНО».`, unoLate: () => `${N(a.n)} успевает сказать «УНО».`,
+    win: () => `${N(a.n)} избавляется от всех карт и побеждает.`,
+    swap: () => `${N(a.n)} меняется руками с ${N(a.t)} (${a.a} ↔ ${a.b}).`,
+    rotate: () => `Все передают руки ${a.cw ? 'по часовой' : 'против часовой'}!`,
+    mirror: () => `${N(a.n)} отражает стопку +${a.k} обратно: ${N(a.t)}.`,
+    shieldUp: () => `${N(a.n)} поднимает щит. Следующая стопка до него не дойдёт.`,
+    duel: () => `Дуэль: ${N(a.n)} против ${N(a.t)}, ${a.na} против ${a.nb}. ${N(a.l)} забирает все ${a.k} открытых ${cardsAcc(a.k)}.`,
+    bhole: () => `Чёрная дыра. Все руки собраны и розданы заново: ${(a.l || []).map(x => x[0] + ' ' + x[1]).join(', ')}.`,
+    wdc: () => `${N(a.n)} должен тянуть, пока не выпадет «${C(a.c)}».`,
+    flipsCancel: () => `${a.k} флипа гасят друг друга. Стол остаётся на ${a.dk ? 'тёмной' : 'светлой'} стороне.`,
+    flip: () => `Флип! Всё переворачивается на ${a.dk ? 'тёмную' : 'светлую'} сторону. Сверху теперь ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
+    dflip: () => `Двойной флип: стол вернётся после хода игрока ${N(a.n)}.`,
+    dflipOff: () => `Двойной флип закончился. Снова ${a.dk ? 'тёмная' : 'светлая'} сторона: ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
+    stack: () => `Стопка уже +${a.k}. ${N(a.n)} должен добавить или взять.`,
+    shieldBreak: () => `Щит игрока ${N(a.n)} отбивает стопку +${a.k}.`,
+    pickedUp: () => `${N(a.n)} забрал(а) все ${a.k} ${cardsAcc(a.k)} (теперь ${a.h}).`,
+    drewUntil: () => `${N(a.n)} вытянул(а) ${a.k} ${cardsAcc(a.k)}, пока не выпал «${C(a.c)}».`,
+    takes: () => `${N(a.n)} берёт стопку +${a.k}.`, drawOne: () => `${N(a.n)} берёт карту.`,
+    drawRun: () => `${N(a.n)} вытянул(а) ${a.k} ${cardsAcc(a.k)}, пока не выпал «${C(a.c)}».`,
+    pass: () => `${N(a.n)} пасует.`, roulette: () => `${N(a.n)} называет «${C(a.c)}» и тянет, пока он не выпадет.`,
+    left: () => `${N(a.n)} ${a.aw ? 'слишком долго отсутствовал(а) и выбывает' : 'выходит из партии'}. Остальные продолжают.`,
+    stackGone: () => `Стопка +${a.k}, направленная на ${N(a.n)}, сброшена.`,
+    awayColor: () => `${N(a.n)} нет на месте. Цвет выбран случайно.`, awayStack: () => `${N(a.n)} нет на месте, стопка забрана за него.`,
+    awaySkip: () => `${N(a.n)} нет на месте. Ход пропущен.`, caught: () => `${N(a.n)} ловит ${N(a.t)} без «УНО». ${N(a.t)} берёт 2.`
+  } : {
+    first: () => `First card: ${cardName(a.f)}. ${N(a.n)} starts.`,
+    ko: () => `${N(a.n)} hit ${a.k} cards and is knocked out.`,
+    lastLeft: () => `${N(a.n)} is the last player left and wins.`,
+    play: () => `${N(a.n)} ${a.j ? 'jumps in with' : 'plays'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? ` and discards ${a.d} more ${cardsAcc(a.d)}` : ''}.`,
+    uno: () => `${N(a.n)} calls UNO.`, unoLate: () => `${N(a.n)} calls UNO just in time.`,
+    win: () => `${N(a.n)} empties their hand and wins.`,
+    swap: () => `${N(a.n)} swaps hands with ${N(a.t)} (${a.a} ↔ ${a.b}).`,
+    rotate: () => `Everyone passes their hand ${a.cw ? 'clockwise' : 'counter-clockwise'}!`,
+    mirror: () => `${N(a.n)} mirrors the +${a.k} stack back to ${N(a.t)}.`,
+    shieldUp: () => `${N(a.n)} raises a shield. The next stack that reaches them breaks.`,
+    duel: () => `${N(a.n)} duels ${N(a.t)}: ${a.na} vs ${a.nb}. ${N(a.l)} must pick up all ${a.k} turned-over cards.`,
+    bhole: () => `Black hole. Every hand is pooled and dealt back out: ${(a.l || []).map(x => x[0] + ' ' + x[1]).join(', ')}.`,
+    wdc: () => `${N(a.n)} must draw until they hit ${C(a.c)}.`,
+    flipsCancel: () => `${a.k} flips cancel out. The table stays on the ${a.dk ? 'dark' : 'light'} side.`,
+    flip: () => `Flip. Everything turns to the ${a.dk ? 'dark' : 'light'} side. Top card is now ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
+    dflip: () => `Double flip: it turns back after ${N(a.n)}'s turn.`,
+    dflipOff: () => `The double flip wears off. Back to the ${a.dk ? 'dark' : 'light'} side: ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
+    stack: () => `Stack is now +${a.k}. ${N(a.n)} must stack or take it.`,
+    shieldBreak: () => `${N(a.n)}'s shield breaks the +${a.k} stack.`,
+    pickedUp: () => `${N(a.n)} picked up all ${a.k} cards (now ${a.h}).`,
+    drewUntil: () => `${N(a.n)} drew ${a.k} ${cardsW(a.k)} before hitting ${C(a.c)}.`,
+    takes: () => `${N(a.n)} takes the +${a.k} stack.`, drawOne: () => `${N(a.n)} draws a card.`,
+    drawRun: () => `${N(a.n)} draws ${a.k} ${cardsW(a.k)} before hitting ${C(a.c)}.`,
+    pass: () => `${N(a.n)} passes.`, roulette: () => `${N(a.n)} calls ${C(a.c)} and must draw until it shows up.`,
+    left: () => `${N(a.n)} ${a.aw ? 'was away too long and is out of the match' : 'left the match'}. Everyone else plays on.`,
+    stackGone: () => `The +${a.k} stack aimed at ${N(a.n)} is discarded.`,
+    awayColor: () => `${N(a.n)} is away. A random color is called for them.`, awayStack: () => `${N(a.n)} is away and takes the stack.`,
+    awaySkip: () => `${N(a.n)} is away. Turn skipped.`, caught: () => `${N(a.n)} catches ${N(a.t)} not saying UNO. ${N(a.t)} must draw 2.`
+  };
+  try { if (l.k && L[l.k]) return L[l.k](); } catch (e) {}
+  return l.msg;
+}
+
+const RULES_HTML = {
+  en: `<h3>Basics</h3><ul><li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
+    <li>The deck never runs out. Cards come from a mix of classic, Flip and No Mercy cards.</li>
+    <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> UNO, <b>P</b> pass.</li>
+    <li>The host switches each rule and each extra card on or off in the lobby.</li></ul>
+    <h3>Drawing</h3><ul><li>Every card is drawn by hand, one tap per card: taking a stack, Color Roulette, Wild Draw Color, the UNO penalty and the cards lost in a duel.</li>
+    <li>While you owe cards, you can't play until they are picked up.</li></ul>
+    <h3>Flip</h3><ul><li>Every card has a light side and a dark side. <b>Flip</b> turns every card over at once.</li>
+    <li>You see the backs of other players' cards and of the next draw card, but not your own backs.</li>
+    <li><b>Double Flip</b> turns the table for one turn. It flips back after the next player acts.</li></ul>
+    <h3>Stacks</h3><ul><li>Answer a draw card with one of equal or higher value: +1, +2, +4, +5, +6, +8, +10, +15. If you can't, take the whole stack.</li>
+    <li><b>Mirror</b> sends the whole stack back to whoever fed it last. <b>Shield</b> breaks the next stack that reaches you.</li></ul>
+    <h3>Other rules</h3><ul>
+    <li><b>Draw until color</b>: with nothing to play, draw one card at a time until you hit the current color or a wild.</li>
+    <li><b>7</b> lets you swap hands with one player, or keep yours. <b>0</b> passes every hand along.</li>
+    <li><b>Same-number drops</b>: play every card with the same number or symbol together, in the order you choose. Matching wilds go down together too (one color choice). Draw cards add up, skips skip that many players, and an even number of reverses or flips cancels out.</li>
+    <li><b>Jump-in</b>: play an exact copy of the top card out of turn, wilds included (a Wild +4 on a Wild +4). Outlined cards qualify.</li>
+    <li><b>UNO</b>: call it at two cards or right after dropping to one. If you're caught, you draw 2.</li></ul>
+    <h3>Action cards</h3><ul>
+    <li><b>Skip</b>, <b>Reverse</b>, <b>Skip Everyone</b> (you go again), <b>Discard All</b> (discard every card of that color).</li>
+    <li><b>Color Roulette</b>: the next player names a color and draws until it appears.</li>
+    <li><b>Wild Draw Color</b> (dark): you name the color; the next player draws until they hit it.</li>
+    <li><b>Wild Duel</b>: you and a chosen player turn over cards until each hits a number. The lower number picks them all up.</li>
+    <li><b>Black Hole</b> (dark): every hand is pooled, shuffled and dealt back out evenly.</li></ul>
+    <h3>Rooms</h3><ul><li>Up to 6 players, no accounts. The server runs the match, so everyone sees the same table.</li>
+    <li>Lose your connection and you have 60 seconds to come back to your seat. Opening the page again rejoins you.</li>
+    <li>While a player is away, their turn is skipped after 15 seconds. Press Leave, or stay away longer than a minute, and you're out of that match; the last player left wins.</li></ul>`,
+  ru: `<h3>Основы</h3><ul><li>Кладите карту того же цвета или символа, что и верхняя, или джокера. Избавьтесь от всех карт, чтобы победить.</li>
+    <li>Колода бесконечная: карты из классики, Флипа и No Mercy.</li>
+    <li>Нажмите на карту или перетащите её на сброс. Клавиши: <b>D</b> или <b>Пробел</b> — взять, <b>U</b> — УНО, <b>P</b> — пас.</li>
+    <li>Хозяин включает и выключает каждое правило и каждую дополнительную карту в лобби.</li></ul>
+    <h3>Как брать карты</h3><ul><li>Каждую карту берёте вручную, по одному нажатию: стопку, «Цветную рулетку», «Тяни цвет», штраф за УНО и карты, проигранные в дуэли.</li>
+    <li>Пока вы должны карты, ходить нельзя.</li></ul>
+    <h3>Флип</h3><ul><li>У каждой карты есть светлая и тёмная сторона. <b>Флип</b> переворачивает все карты разом.</li>
+    <li>Вы видите обороты чужих карт и следующей карты колоды, но не своих.</li>
+    <li><b>Двойной флип</b> переворачивает стол на один ход и возвращает после хода следующего игрока.</li></ul>
+    <h3>Стопки</h3><ul><li>На карту «Возьми» отвечайте такой же или старше: +1, +2, +4, +5, +6, +8, +10, +15. Нечем — забирайте всю стопку.</li>
+    <li><b>Зеркало</b> отправляет стопку тому, кто положил последнюю карту. <b>Щит</b> отбивает следующую стопку, дошедшую до вас.</li></ul>
+    <h3>Другие правила</h3><ul>
+    <li><b>Тянуть до цвета</b>: если ходить нечем, тяните по одной, пока не выпадет текущий цвет или джокер.</li>
+    <li><b>7</b> — можно поменяться руками с игроком или оставить свою. <b>0</b> — все передают руки по кругу.</li>
+    <li><b>Сброс одинаковых</b>: сыграйте все карты с одним числом или символом в выбранном порядке. Одинаковые джокеры тоже идут вместе (цвет выбирается один раз). «Возьми» складываются, пропуски пропускают столько же игроков, чётное число разворотов или флипов гасит друг друга.</li>
+    <li><b>Вмешательство</b>: точную копию верхней карты, включая джокеров (Джокер +4 на Джокер +4), можно сыграть вне очереди. Такие карты обведены.</li>
+    <li><b>УНО</b>: скажите при двух картах или сразу после того, как осталась одна. Поймают — возьмёте 2.</li></ul>
+    <h3>Карты действий</h3><ul>
+    <li><b>Пропуск</b>, <b>Разворот</b>, <b>Пропуск всех</b> (вы ходите снова), <b>Сброс цвета</b> (сбросьте все карты этого цвета).</li>
+    <li><b>Цветная рулетка</b>: следующий игрок называет цвет и тянет, пока он не выпадет.</li>
+    <li><b>Тяни цвет</b> (тёмная): цвет называете вы, следующий игрок тянет до него.</li>
+    <li><b>Дуэль</b>: вы и выбранный игрок открываете карты, пока у каждого не выпадет число. У кого меньше — забирает все.</li>
+    <li><b>Чёрная дыра</b> (тёмная): все руки собираются, перемешиваются и раздаются поровну.</li></ul>
+    <h3>Комнаты</h3><ul><li>До 6 игроков, без регистрации. Партию ведёт сервер, поэтому у всех один и тот же стол.</li>
+    <li>Пропала связь — есть 60 секунд, чтобы вернуться на своё место. Откройте страницу снова, и вы вернётесь.</li>
+    <li>Если игрока нет, его ход пропускается через 15 секунд. Нажали «Выйти» или отсутствуете больше минуты — вы выбываете из партии; побеждает последний оставшийся.</li></ul>`
+};
+
 // ===== CLIENT: talks to the game server; the server runs every match =====
 // When the page is hosted somewhere other than the server (for example GitHub Pages),
 // put the server address here, e.g. 'wss://your-app.onrender.com/ws'. Leave empty when the server serves this page.
 const SERVER_URL = '';
 let ME = 0;
-const RULES = [
-  ['flip', 'Flip cards', 'Flip turns every card to its dark side, and back.'],
-  ['stacking', 'Stacking', 'Answer a draw card with one of equal or higher value.'],
-  ['multi', 'Same-number drops', 'Play every card with the same number or symbol at once: red 7, then blue 7 and green 7 on top.'],
-  ['drawUntil', 'Draw until color', 'With nothing to play, you draw one card at a time and can\'t pass until you draw the current color or a wild.'],
-  ['seven', '7 swaps hands', 'Playing a 7 lets you trade hands with any player, if you want to.'],
-  ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
-  ['jumpIn', 'Jump-in', 'Play an exact match of the top card out of turn.'],
-  ['uno', 'UNO penalty', 'Get caught at one card without calling UNO: draw 2.'],
-];
-const EXTRA_INFO = [
-  ['mirror', 'Mirror', 'Sends a draw stack back to whoever fed it last.'],
-  ['shield', 'Shield', 'Breaks the next stack that reaches you.'],
-  ['dflip', 'Double Flip', 'Flips the table for one turn, then flips it back.'],
-  ['duel', 'Wild Duel', 'You and a chosen player turn over cards; the lower number takes them all.'],
-  ['wd15', 'Wild Draw 15', 'Dark side. The top of the stack ladder.'],
-  ['bhole', 'Black Hole', 'Dark side. Pools every hand and deals the cards back out evenly.'],
-];
+const RULES_L = () => RULES_I18N[LANG], EXTRA_L = () => EXTRA_I18N[LANG];
 const IDLE_MS = 60000, AWAY_MS = 15000;
 const CVAR = { r: 'var(--r)', y: 'var(--y)', g: 'var(--g)', b: 'var(--b)', p: 'var(--p)', t: 'var(--t)', o: 'var(--o)', v: 'var(--v)' };
 const S = loadSettings();
@@ -961,13 +1226,13 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 
 function loadSettings() {
-  const d = { name: 'Player', sound: true, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
+  const d = { name: 'Player', sound: true, lang: LANG, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
   try {
     const s = JSON.parse(localStorage.getItem('unoFlipNoMercy') || 'null');
     if (s) {
       const r = Object.assign({}, s.rules || {});
       if ('sevenZero' in r) { if (!('seven' in r)) r.seven = r.sevenZero; if (!('zero' in r)) r.zero = r.sevenZero; delete r.sevenZero; }
-      return Object.assign(d, { name: s.name || d.name, sound: s.sound !== false, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
+      return Object.assign(d, { name: s.name || d.name, sound: s.sound !== false, lang: LANGS[s.lang] ? s.lang : d.lang, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
     }
   } catch (e) {}
   return d;
@@ -990,33 +1255,77 @@ const session = {
 
 // ================= SOUND (synthesized, no files) =================
 const SFX = {
-  ctx: null,
-  init() { if (this.ctx) return; try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} },
-  tone(f1, f2, dur, type = 'sine', vol = 0.12, delay = 0) {
-    if (!S.sound || !this.ctx) return;
+  ctx: null, out: null, noise: null,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try {
-      const t = this.ctx.currentTime + delay, o = this.ctx.createOscillator(), g = this.ctx.createGain();
-      o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t + dur);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g).connect(this.ctx.destination); o.start(t); o.stop(t + dur + 0.02);
-    } catch (e) {}
+      const ctx = this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // master chain: gentle compressor + a short room so sounds sit together
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+      const master = ctx.createGain(); master.gain.value = 0.9;
+      const dry = ctx.createGain(), wet = ctx.createGain(); wet.gain.value = 0.18;
+      const dl = ctx.createDelay(); dl.delayTime.value = 0.045; const fb = ctx.createGain(); fb.gain.value = 0.28;
+      const damp = ctx.createBiquadFilter(); damp.type = 'lowpass'; damp.frequency.value = 3200;
+      dl.connect(damp); damp.connect(fb); fb.connect(dl); damp.connect(wet);
+      dry.connect(comp); wet.connect(comp); comp.connect(master); master.connect(ctx.destination);
+      this.out = { dry, send: dl };
+      const len = ctx.sampleRate; const buf = ctx.createBuffer(1, len, ctx.sampleRate); const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.noise = buf;
+    } catch (e) { this.ctx = null; }
+  },
+  route(node, wet = 0.3) { node.connect(this.out.dry); if (wet) { const g = this.ctx.createGain(); g.gain.value = wet; node.connect(g); g.connect(this.out.send); } },
+  // a burst of filtered noise: the body of every card sound
+  rustle(t, dur, f1, f2, q, vol, type = 'bandpass') {
+    const c = this.ctx, src = c.createBufferSource(); src.buffer = this.noise; src.playbackRate.value = 0.8 + Math.random() * 0.4;
+    const flt = c.createBiquadFilter(); flt.type = type; flt.Q.value = q;
+    flt.frequency.setValueAtTime(f1, t); flt.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.012, dur / 4)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(flt); flt.connect(g); this.route(g, 0.15);
+    src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05);
+  },
+  // a tuned strike: sine + a couple of partials with fast decay (marimba / chime feel)
+  strike(t, freq, dur, vol, partials = [1, 2.76, 5.4]) {
+    const c = this.ctx;
+    partials.forEach((p, k) => {
+      const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = freq * p;
+      const v = vol / (1 + k * 2.2);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur / (1 + k * 0.8));
+      o.connect(g); this.route(g, 0.35); o.start(t); o.stop(t + dur + 0.05);
+    });
+  },
+  thump(t, freq, dur, vol) {
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = 'sine';
+    o.frequency.setValueAtTime(freq * 1.8, t); o.frequency.exponentialRampToValueAtTime(freq, t + dur * 0.5);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); this.route(g, 0); o.start(t); o.stop(t + dur + 0.05);
   },
   play(name, k = 1) {
-    switch (name) {
-      case 'play': this.tone(620, 380, 0.07, 'triangle', 0.15); break;
-      case 'draw': for (let i = 0; i < Math.min(k, 5); i++) this.tone(340, 220, 0.06, 'sine', 0.08, i * 0.06); break;
-      case 'flip': this.tone(180, 1400, 0.45, 'sawtooth', 0.05); this.tone(1400, 180, 0.45, 'sine', 0.06, 0.45); break;
-      case 'stack': this.tone(660, 660, 0.09, 'square', 0.06); this.tone(880 + Math.min(k, 30) * 12, 880, 0.12, 'square', 0.06, 0.1); break;
-      case 'took': this.tone(420, 90, 0.4, 'sawtooth', 0.08); break;
-      case 'uno': this.tone(880, 880, 0.08, 'square', 0.07); this.tone(1320, 1320, 0.12, 'square', 0.07, 0.09); break;
-      case 'skip': this.tone(500, 900, 0.12, 'triangle', 0.1); break;
-      case 'swap': this.tone(300, 700, 0.15, 'sine', 0.1); this.tone(700, 300, 0.15, 'sine', 0.1, 0.15); break;
-      case 'turn': this.tone(990, 990, 0.12, 'sine', 0.07); this.tone(1480, 1480, 0.18, 'sine', 0.05, 0.1); break;
-      case 'ko': this.tone(160, 50, 0.7, 'sawtooth', 0.1); break;
-      case 'win': [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, f, 0.2, 'triangle', 0.1, i * 0.11)); break;
-      case 'bad': this.tone(200, 160, 0.15, 'square', 0.05); break;
-      case 'click': this.tone(900, 700, 0.03, 'triangle', 0.05); break;
-    }
+    if (!S.sound || !this.ctx || this.ctx.state !== 'running') return;
+    const t = this.ctx.currentTime + 0.005;
+    try {
+      switch (name) {
+        case 'play': // card slapped on the pile
+          this.rustle(t, 0.09, 4200, 1800, 0.9, 0.5); this.rustle(t + 0.05, 0.05, 2400, 1200, 1.5, 0.35); this.thump(t + 0.05, 95, 0.09, 0.35); break;
+        case 'draw': // card slid off the deck
+          for (let i = 0; i < Math.min(k, 4); i++) this.rustle(t + i * 0.07, 0.16, 1500, 5200, 1.2, 0.28); break;
+        case 'flip': // the whole table turning: a riffle and a whoosh
+          for (let i = 0; i < 9; i++) this.rustle(t + i * 0.032 + Math.random() * 0.01, 0.04, 3600, 2200, 2, 0.22);
+          this.rustle(t + 0.05, 0.45, 600, 3000, 0.7, 0.18, 'bandpass'); break;
+        case 'shuffle':
+          for (let i = 0; i < 16; i++) this.rustle(t + i * 0.028 + Math.random() * 0.01, 0.035, 3800, 2400, 2.2, 0.2); break;
+        case 'stack': { const base = 523 * Math.pow(2, Math.min(k, 24) / 24); this.strike(t, base, 0.35, 0.22); this.strike(t + 0.11, base * 1.5, 0.45, 0.2); break; }
+        case 'took': this.thump(t, 70, 0.35, 0.5); for (let i = 0; i < 5; i++) this.rustle(t + i * 0.05, 0.12, 1400, 3800, 1.2, 0.2); break;
+        case 'uno': this.strike(t, 784, 0.5, 0.25, [1, 2, 3]); this.strike(t + 0.13, 1175, 0.7, 0.25, [1, 2, 3]); break;
+        case 'skip': this.rustle(t, 0.22, 900, 4800, 0.8, 0.22); this.strike(t + 0.03, 988, 0.25, 0.12); break;
+        case 'swap': this.rustle(t, 0.25, 700, 4000, 0.8, 0.22); this.rustle(t + 0.2, 0.25, 4000, 700, 0.8, 0.22); break;
+        case 'turn': this.strike(t, 880, 0.4, 0.16, [1, 2.76]); break;
+        case 'ko': this.thump(t, 55, 0.6, 0.6); this.strike(t, 196, 0.8, 0.12, [1, 2.4]); break;
+        case 'win': [523, 659, 784, 1047, 1319].forEach((f, i) => this.strike(t + i * 0.09, f, 0.9, 0.18, [1, 2, 3])); this.strike(t + 0.5, 523, 1.4, 0.12, [1, 1.5, 2]); break;
+        case 'bad': this.thump(t, 110, 0.12, 0.25); this.rustle(t, 0.06, 900, 600, 2, 0.15); break;
+        case 'click': this.rustle(t, 0.025, 5200, 3800, 2, 0.18); break;
+      }
+    } catch (e) {}
   }
 };
 document.addEventListener('pointerdown', () => SFX.init(), { capture: true });
@@ -1067,7 +1376,7 @@ const conn = {
     this.want = first; clearTimeout(this.timer);
     if (this.ws && (this.ws.readyState === 0 || this.ws.readyState === 1)) { if (this.ws.readyState === 1) this.send(first); return; }
     let ws;
-    try { ws = new WebSocket(this.url()); } catch (e) { onNetError('Could not reach the game server.'); return; }
+    try { ws = new WebSocket(this.url()); } catch (e) { onNetError(t('cantReach')); return; }
     this.ws = ws;
     ws.onopen = () => {
       this.connected = true; this.retry = 0; setNet('');
@@ -1078,7 +1387,7 @@ const conn = {
     ws.onclose = () => {
       this.connected = false; clearInterval(this.pingTimer);
       if (!this.want) return;
-      setNet(this.retry > 1 ? 'Reconnecting…' : 'Connection lost. Reconnecting…');
+      setNet(this.retry > 1 ? t('reconnecting') : t('connLost'));
       const wait = Math.min(8000, 500 * Math.pow(2, this.retry++));
       this.timer = setTimeout(() => this.open(this.rejoinMsg() || this.want), wait);
     };
@@ -1088,7 +1397,7 @@ const conn = {
   send(obj) { if (this.ws && this.ws.readyState === 1) try { this.ws.send(JSON.stringify(obj)); } catch (e) {} },
   close() { this.want = null; clearTimeout(this.timer); clearInterval(this.pingTimer); try { this.ws && this.ws.close(); } catch (e) {} this.ws = null; }
 };
-function setNet(t) { $('netTag').textContent = t || (roomCode ? 'Room ' + roomCode : ''); $('netBanner').textContent = t; $('netBanner').classList.toggle('hidden', !t); }
+function setNet(t) { $('netTag').textContent = t || (roomCode ? STR[LANG].room(roomCode) : ''); $('netBanner').textContent = t; $('netBanner').classList.toggle('hidden', !t); }
 function onNetError(t) { startMsg(t); }
 function onServer(m) {
   switch (m.t) {
@@ -1097,7 +1406,7 @@ function onServer(m) {
       if (m.code === 'no-room') { session.clear(); roomCode = ''; conn.close(); show('start'); }
       if ($('start').classList.contains('hidden')) $('lbWait').textContent = m.msg; else startMsg(m.msg);
       break;
-    case 'replaced': conn.close(); roomCode = ''; show('start'); startMsg('This room was opened in another tab.'); break;
+    case 'replaced': conn.close(); roomCode = ''; show('start'); startMsg(t('otherTab')); break;
     case 'left': break;
     case 'lobby': onLobby(m.lobby); break;
     case 'state': onState(m); break;
@@ -1133,8 +1442,8 @@ function seg(el, opts, key, fmt, after) {
   }
 }
 function drawToggles(dis) {
-  const rules = RULES.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
-  const cards = EXTRA_INFO.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
+  const rules = RULES_L().map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
+  const cards = EXTRA_L().map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
   $('lbRules').innerHTML = rules; $('lbCards').innerHTML = cards;
 }
 drawToggles();
@@ -1152,16 +1461,31 @@ $('btnCreate').onclick = createRoom;
 $('btnJoin').onclick = () => joinRoom($('joinCode').value);
 $('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom($('joinCode').value); });
 document.querySelectorAll('[data-rules]').forEach(b => b.onclick = showRules);
-$('btnSound').onclick = () => { S.sound = !S.sound; saveSettings(); $('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off'; };
-$('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off';
+$('btnSound').onclick = () => { S.sound = !S.sound; saveSettings(); $('btnSound').textContent = S.sound ? t('soundOn') : t('soundOff'); if (S.sound) { SFX.init(); SFX.play('turn'); } };
+function applyStatic() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  $('btnSound').textContent = S.sound ? t('soundOn') : t('soundOff');
+  seg($('segLang'), Object.keys(LANGS), 'lang', k => LANGS[k], () => setLang(S.lang));
+  drawToggles();
+}
+function setLang(l) {
+  if (!LANGS[l]) return;
+  LANG = l; S.lang = l; saveSettings();
+  applyStatic();
+  if (lastLobby && !$('lobby').classList.contains('hidden')) renderLobby(lastLobby);
+  if (G) { lastLogKey = ''; render(); }
+}
+applyStatic();
 function readName() { S.name = cleanName($('pname').value) || 'Player'; saveSettings(); $('lbName').value = S.name; return S.name; }
 function show(screen) { for (const id of ['start', 'lobby', 'game']) $(id).classList.toggle('hidden', id !== screen); if (screen !== 'game') document.body.classList.remove('dark'); }
 function startMsg(t) { $('startMsg').textContent = t; }
-function createRoom() { readName(); startMsg('Connecting to the game server…'); roomCode = ''; conn.open({ t: 'create', token: TOKEN, name: S.name, rules: S.rules, cards: S.cards }); }
+function createRoom() { readName(); startMsg(t('connServer')); roomCode = ''; conn.open({ t: 'create', token: TOKEN, name: S.name, rules: S.rules, cards: S.cards }); }
 function joinRoom(raw) {
   const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (code.length !== 4) { startMsg('Enter the 4-character room code.'); return; }
-  readName(); startMsg('Connecting…'); roomCode = code;
+  if (code.length !== 4) { startMsg(t('enterCode')); return; }
+  readName(); startMsg(t('connecting')); roomCode = code;
   conn.open({ t: 'join', code, token: TOKEN, name: S.name });
 }
 function leaveRoom() {
@@ -1183,16 +1507,16 @@ $('btnRoomStart').onclick = () => conn.send({ t: 'start' });
 $('btnCopyLink').onclick = () => copyText($('shareLink').value, $('btnCopyLink'));
 $('lbCode').onclick = () => copyText(roomCode, null);
 function copyText(txt, btn) {
-  try { navigator.clipboard.writeText(txt).then(() => { if (btn) { btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy link', 1500); } else $('lbHint').textContent = 'Code copied.'; }, () => {}); } catch (e) {}
+  try { navigator.clipboard.writeText(txt).then(() => { if (btn) { btn.textContent = t('copied'); setTimeout(() => btn.textContent = t('copyLink'), 1500); } else $('lbHint').textContent = t('codeCopied'); }, () => {}); } catch (e) {}
 }
 function renderLobby(l) {
   $('lbCode').textContent = l.code;
   $('shareLink').value = location.href.split('#')[0] + '#join-' + l.code;
-  $('lbHint').textContent = l.host ? 'Friends open this page, enter the code and press Join.' : 'You are in. The host starts the game.';
+  $('lbHint').textContent = l.host ? t('hintHost') : t('hintGuest');
   $('lbHost').classList.toggle('hidden', !l.host);
   $('lbGuest').classList.toggle('hidden', !!l.host);
   if (document.activeElement !== $('lbName')) $('lbName').value = S.name;
-  $('lbSeats').innerHTML = l.players.map(([name, on, host, me]) => `<div class="seatrow ${me ? 'me' : ''}"><span class="who"><span class="ini">${initials(name)}</span>${esc(name)}</span><span class="label">${host ? 'Host' : 'Player'}${on ? '' : ' · away'}</span></div>`).join('');
+  $('lbSeats').innerHTML = l.players.map(([name, on, host, me]) => `<div class="seatrow ${me ? 'me' : ''}"><span class="who"><span class="ini">${initials(name)}</span>${esc(name)}</span><span class="label">${host ? t('host') : t('player')}${on ? '' : ' · ' + t('away')}</span></div>`).join('');
   if (l.host) {
     // the host's own toggles drive the room; keep them in step with what the server holds
     let changed = false;
@@ -1201,11 +1525,11 @@ function renderLobby(l) {
     if (changed) { drawToggles(); saveSettings(); }
     const online = l.players.filter(p => p[1]).length;
     $('btnRoomStart').disabled = online < 2;
-    $('lbWait').textContent = online < 2 ? 'Waiting for at least one more player.' : `${Math.min(online, 6)} player${online > 1 ? 's' : ''} ready. Up to 6 can play.`;
+    $('lbWait').textContent = online < 2 ? t('needMore') : t('ready', Math.min(online, 6));
   } else {
-    const row = (name, on) => `<div class="rv ${on ? '' : 'off'}"><span>${esc(name)}</span><span class="mono">${on ? 'on' : 'off'}</span></div>`;
-    $('lbRulesView').innerHTML = RULES.map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_INFO.map(([k, t]) => row(t, l.cards[k] !== false)).join('');
-    $('lbWait').textContent = l.live ? 'A match is in progress. You will be dealt in next round.' : 'Waiting for the host to start.';
+    const row = (name, on) => `<div class="rv ${on ? '' : 'off'}"><span>${esc(name)}</span><span class="mono">${on ? t('on') : t('off')}</span></div>`;
+    $('lbRulesView').innerHTML = RULES_L().map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_L().map(([k, t]) => row(t, l.cards[k] !== false)).join('');
+    $('lbWait').textContent = l.live ? t('inProgress') : t('waitHost');
   }
 }
 function beginGameView() {
@@ -1216,9 +1540,9 @@ function beginGameView() {
 // rejoin automatically after a refresh or a crash
 (function resume() {
   const m = /^#join-([a-z0-9]{4})$/i.exec(location.hash || '');
-  if (m) { $('joinCode').value = m[1].toUpperCase(); startMsg('Enter your name, then Join.'); }
+  if (m) { $('joinCode').value = m[1].toUpperCase(); startMsg(t('enterName')); }
   const s = session.get();
-  if (s && s.code && Date.now() - s.at < 6 * 3600 * 1000) { startMsg('Rejoining room ' + s.code + '…'); roomCode = s.code; conn.open({ t: 'join', code: s.code, token: TOKEN, name: S.name }); }
+  if (s && s.code && Date.now() - s.at < 6 * 3600 * 1000) { startMsg(t('rejoining', s.code)); roomCode = s.code; conn.open({ t: 'join', code: s.code, token: TOKEN, name: S.name }); }
 })();
 
 // ================= ACTIONS + LOOP =================
@@ -1229,7 +1553,7 @@ function tick() {
   if (G.winner !== null) { setTimeout(showEnd, 1400); return; }
   if (G.roulette === ME && roulettePrompted !== G.seq && !busy) {
     roulettePrompted = G.seq; busy = true; rouletteOpen = true;
-    pickColor('Color roulette', 'Name a color. You turn over cards until it appears and keep all of them.', G.side).then(c => { busy = false; rouletteOpen = false; act('roul', { color: c }); });
+    pickColor(t('rouletteTitle'), t('rouletteSub'), G.side).then(c => { busy = false; rouletteOpen = false; act('roul', { color: c }); });
   }
   if (rouletteOpen && G.roulette !== ME) { rouletteOpen = false; busy = false; closeModal(); }
 }
@@ -1242,18 +1566,18 @@ async function useCard(card, el, fromRect) {
   const me = G.players[ME], face = G.f(card), back = G.back(card);
   busy = true;
   let color = null, flipColor = null, target = null, extra = [];
-  if (G.rules.multi && face.c !== 'w') {
-    const same = me.hand.filter(c => c !== card && G.f(c).c !== 'w' && G.f(c).v === face.v);
+  if (G.rules.multi) {
+    const same = me.hand.filter(c => c !== card && G.f(c).v === face.v && (G.f(c).c === 'w') === (face.c === 'w'));
     if (same.length) {
       extra = await pickExtras(card, same);
       if (extra === null) { busy = false; tick(); return; }
     }
   }
-  if (face.c === 'w' && face.v !== 'roul') color = await pickColor('Pick a color', faceName(face), G.side);
-  if ((face.v === 'flip' || face.v === 'dflip') && back.c === 'w') flipColor = await pickColor('The flip lands on a wild', 'The back of this card is ' + faceName(back) + '. Choose its color.', G.side === 'L' ? 'D' : 'L');
+  if (face.c === 'w' && face.v !== 'roul') color = await pickColor(t('pickColor'), cardName(face), G.side);
+  if ((face.v === 'flip' || face.v === 'dflip') && back.c === 'w') flipColor = await pickColor(t('flipWild'), t('flipWildSub', cardName(back)), G.side === 'L' ? 'D' : 'L');
   const keep = me.hand.length - 1 - extra.length;
-  if (face.v === '7' && G.rules.seven && keep > 0 && G.active().length > 1) target = await pickTarget('Swap hands?', `You keep ${keep} card${keep === 1 ? '' : 's'} after this play. Trade with someone, or keep your hand.`, 'Keep my hand');
-  if (face.v === 'duel' && G.active().length > 1) target = await pickTarget('Duel', 'You and this player turn over cards until each hits a number. The lower number takes every card turned over.');
+  if (face.v === '7' && G.rules.seven && keep > 0 && G.active().length > 1) target = await pickTarget(t('swapQ'), t('swapSub', keep), t('keepHand'));
+  if (face.v === 'duel' && G.active().length > 1) target = await pickTarget(t('duel'), t('duelSub'));
   busy = false;
   if (!G || !G.players[ME].hand.some(c => cardCode(c) === cardCode(card))) { tick(); return; }
   lastPlayRect = fromRect || rectOf(el);
@@ -1299,24 +1623,26 @@ $('btnUno').onclick = () => { if (G && G.players[ME]) act('uno'); };
 $('drawpile').onclick = () => $('btnDraw').onclick();
 $('btnSort').onclick = () => { sortMode = { color: 'value', value: 'none', none: 'color' }[sortMode]; render(); };
 $('btnQuit').onclick = () => {
-  openModal(`<h2>Leave the match?</h2><p>You'll be out of this match and everyone else keeps playing. If your connection just drops, you have a minute to come back to your seat.</p><button class="btn primary wide" id="lvGo">Leave</button><button class="textlink" id="lvNo">Stay</button>`);
+  openModal(`<h2>${t('leaveQ')}</h2><p>${t('leaveSub')}</p><button class="btn primary wide" id="lvGo">${t('leave')}</button><button class="textlink" id="lvNo">${t('stay')}</button>`);
   $('lvGo').onclick = leaveRoom; $('lvNo').onclick = closeModal;
 };
 $('btnMenu').onclick = () => {
-  openModal(`<h2>Menu</h2><div class="list">
-    <button id="mSort"><span>Sort hand</span><span class="mono">${sortMode}</span></button>
-    <button id="mLog"><span>Game log</span><span class="mono">${G ? G.log.length : 0}</span></button>
-    <button id="mRules"><span>How to play</span><span class="mono"></span></button>
-    <button id="mSound"><span>Sound</span><span class="mono">${S.sound ? 'on' : 'off'}</span></button>
-    <button id="mLeave"><span>Leave match</span><span class="mono">room ${esc(roomCode)}</span></button>
-  </div><button class="btn wide" id="mClose">Close</button>`);
+  openModal(`<h2>${t('menu')}</h2><div class="list">
+    <button id="mSort"><span>${t('menuSort')}</span><span class="mono">${t('sort', sortMode).split(': ')[1]}</span></button>
+    <button id="mLog"><span>${t('menuLog')}</span><span class="mono">${G ? G.log.length : 0}</span></button>
+    <button id="mRules"><span>${t('menuRules')}</span><span class="mono"></span></button>
+    <button id="mSound"><span>${t('menuSound')}</span><span class="mono">${S.sound ? t('on') : t('off')}</span></button>
+    <button id="mLang"><span>${t('menuLang')}</span><span class="mono">${LANGS[LANG]}</span></button>
+    <button id="mLeave"><span>${t('menuLeave')}</span><span class="mono">${esc(roomCode)}</span></button>
+  </div><button class="btn wide" id="mClose">${t('close')}</button>`);
   $('mSort').onclick = () => { $('btnSort').onclick(); $('btnMenu').onclick(); };
   $('mLog').onclick = () => {
-    openModal(`<h2>Game log</h2><div class="rulestext mono" style="font-size:12px;line-height:16px">${(G ? G.log.slice(-60).reverse() : []).map(l => `<div style="padding:8px 0;border-top:1px solid var(--line)">${esc(youify(l.msg))}</div>`).join('')}</div><button class="btn wide" id="mClose2">Close</button>`);
+    openModal(`<h2>${t('gameLog')}</h2><div class="rulestext mono" style="font-size:12px;line-height:16px">${(G ? G.log.slice(-60).reverse() : []).map(l => `<div style="padding:8px 0;border-top:1px solid var(--line)">${esc(youify(fmtLog(l)))}</div>`).join('')}</div><button class="btn wide" id="mClose2">${t('close')}</button>`);
     $('mClose2').onclick = closeModal;
   };
   $('mRules').onclick = showRules;
   $('mSound').onclick = () => { $('btnSound').onclick(); $('btnMenu').onclick(); };
+  $('mLang').onclick = () => { setLang(LANG === 'ru' ? 'en' : 'ru'); $('btnMenu').onclick(); };
   $('mLeave').onclick = () => $('btnQuit').onclick();
   $('mClose').onclick = closeModal;
 };
@@ -1329,15 +1655,31 @@ document.addEventListener('keydown', e => {
 });
 
 // ================= RENDER =================
+const ICON = (() => {
+  const s = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  return {
+    skip: s('<circle cx="12" cy="12" r="8.5"/><path d="M6 18 18 6"/>'),
+    skipall: s('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M5 19 19 5"/>'),
+    rev: s('<path d="M4 9h13l-3.5-3.5"/><path d="M20 15H7l3.5 3.5"/>'),
+    flip: s('<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.6 4v3.6H16"/>'),
+    dflip: s('<path d="M15 12a5 5 0 1 1-1.5-3.5"/><path d="M14 5.5v3h-3"/><path d="M21 12a9 9 0 0 1-9 9"/>'),
+    mirror: s('<path d="M12 3v18"/><path d="M9 7 4 12l5 5"/><path d="M15 7l5 5-5 5"/>'),
+    shield: s('<path d="M12 3 5 6v5.5c0 4.3 3 7.6 7 9.5 4-1.9 7-5.2 7-9.5V6z"/>'),
+    bhole: s('<circle cx="12" cy="12" r="3.5" fill="currentColor"/><path d="M12 3.5a8.5 8.5 0 0 1 8.5 8.5"/><path d="M12 20.5A8.5 8.5 0 0 1 3.5 12"/><path d="M5.8 6.2A8.4 8.4 0 0 1 9 4.1"/><path d="M18.2 17.8A8.4 8.4 0 0 1 15 19.9"/>'),
+    duel: s('<path d="M5 5l9 9"/><path d="M19 5l-9 9"/><path d="M4 16l4 4"/><path d="M20 16l-4 4"/><path d="M6 18l2-2"/><path d="M18 18l-2-2"/>')
+  };
+})();
+// [center, label key, small] ; text faces stay typographic, action faces use the vector icons
 const SYM = {
-  skip: ['⊘'], rev: ['⇄'], d1: ['+1'], d2: ['+2'], d4: ['+4'], d5: ['+5'], flip: ['⟲', 'flip'], dflip: ['⟲⟲', 'double flip', 'sm'],
-  discall: ['ALL', 'discard', 'sm'], skipall: ['⊘', 'everyone'], mirror: ['↩', 'mirror'], shield: ['▲', 'shield'],
+  skip: [ICON.skip], rev: [ICON.rev], d1: ['+1'], d2: ['+2'], d4: ['+4'], d5: ['+5'], flip: [ICON.flip, 'flip'], dflip: [ICON.dflip, 'dflip', 'sm'],
+  discall: ['ALL', 'discall', 'sm'], skipall: [ICON.skipall, 'skipall'], mirror: [ICON.mirror, 'mirror'], shield: [ICON.shield, 'shield'],
   wild: ['W', 'wild'], wd2: ['+2'], wd4: ['+4'], wrd4: ['+4', 'reverse'], wd6: ['+6'], wd10: ['+10'], wd15: ['+15'],
-  wrd8: ['+8', 'reverse'], wdc: ['+?', 'draw color'], roul: ['?', 'roulette'], duel: ['VS', 'duel'], bhole: ['●', 'black hole']
+  wrd8: ['+8', 'reverse'], wdc: ['+?', 'wdc'], roul: ['?', 'roul'], duel: [ICON.duel, 'duel', 'sm'], bhole: [ICON.bhole, 'bhole']
 };
-const CORNER = { skip: '⊘', rev: '⇄', d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: '⟲', dflip: '⟲⟲', discall: 'A', skipall: '⊘⊘', mirror: '↩', shield: '▲', wild: 'W', wd2: '+2', wd4: '+4', wrd4: '⇄4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '⇄8', wdc: '+?', roul: '?', duel: 'VS', bhole: '●' };
+const CORNER = { skip: ICON.skip, rev: ICON.rev, d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: ICON.flip, dflip: ICON.dflip, discall: 'A', skipall: ICON.skipall, mirror: ICON.mirror, shield: ICON.shield, wild: 'W', wd2: '+2', wd4: '+4', wrd4: '+4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '+8', wdc: '+?', roul: '?', duel: ICON.duel, bhole: ICON.bhole };
 function faceHTML(f, side, cls = '', id = '') {
-  const [m, sub, sz] = SYM[f.v] || [esc(f.v)];
+  const [m, subKey, sz] = SYM[f.v] || [esc(f.v)];
+  const sub = subKey ? CARD_TXT[LANG][subKey] : '';
   const cor = CORNER[f.v] || esc(f.v);
   return `<div class="card s-${side} c-${esc(f.c)} ${cls}" ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span></div>`;
 }
@@ -1381,12 +1723,12 @@ function render() {
     const fan = p.hand.slice(-fanN).map((c, k) => { const bf = c[ob] || { c: 'w' }; return `<i class="${ob} ${bf.c === 'w' ? 'w' : ''}" style="left:${k * 9}px;${bf.c !== 'w' ? `background:${CVAR[bf.c]}` : ''}"></i>`; }).join('');
     const turn = (G.roulette !== null ? G.roulette === i : G.turn === i) && G.winner === null;
     const tags = [];
-    if (p.elim) tags.push('<b>Out</b>'); else if (G.winner === i) tags.push('<b>Winner</b>'); else if (n === 1) tags.push('<b>UNO</b>');
-    if (p.shield) tags.push('<b>Shield</b>');
-    if (p.left) tags.push('<b>Left</b>'); else if (away[i]) tags.push('<b>Away</b>');
-    if (p.oweN > 0) tags.push(`<b>Owes ${p.oweN}</b>`);
-    if (i === upNext && !turn && !p.out) tags.push('<b class="next">Up next</b>');
-    if (!tags.length) tags.push('Player');
+    if (G.winner === i) tags.push(`<b>${t('tagWinner')}</b>`); else if (n === 1) tags.push(`<b>${t('tagUno')}</b>`);
+    if (p.shield) tags.push(`<b>${t('tagShield')}</b>`);
+    if (p.left) tags.push(`<b>${t('tagLeft')}</b>`); else if (away[i]) tags.push(`<b>${t('tagAway')}</b>`);
+    if (p.oweN > 0) tags.push(`<b>${t('tagOwes', p.oweN)}</b>`);
+    if (i === upNext && !turn && !p.out) tags.push(`<b class="next">${t('tagNext')}</b>`);
+    if (!tags.length) tags.push(t('tagPlayer'));
     const pct = G.rules.mercy ? Math.min(100, n / G.rules.mercy * 100) : 0;
     const limit = away[i] ? AWAY_MS : IDLE_MS;
     const timer = turn ? `<div class="timer" style="animation-duration:${limit / 1000}s;animation-delay:-${elapsed}s"></div>` : '';
@@ -1395,9 +1737,8 @@ function render() {
       <div class="fan">${fan}</div>
       <div class="meta"><span class="cnt">${n}</span><span class="tags">${tags.join(' · ')}</span></div>
       ${G.rules.mercy ? `<div class="bar ${pct >= 80 ? 'hot' : ''}"><div style="width:${pct}%"></div></div>` : ''}${timer}
-      ${p.vulnerable && n === 1 && G.rules.uno && me && !me.out ? `<button class="btn catch" data-catch="${i}">Catch: +2</button>` : ''}</div>`;
+      ${p.vulnerable && n === 1 && G.rules.uno && me && !me.out ? `<button class="btn catch" data-catch="${i}">${t('catchBtn')}</button>` : ''}</div>`;
   }).join(arrow) + arrow;
-  $('dirRing').classList.toggle('ccw', G.dir !== 1);
   // piles: the draw pile shows the back of the next card, as in UNO Flip
   const nb = G.next && G.next[ob] ? G.next[ob] : { c: 'w', v: 'wild' };
   const back = faceHTML(nb, ob);
@@ -1408,81 +1749,106 @@ function render() {
   $('drawpile').classList.toggle('can', canDraw && (owe || myDebt || G.pending > 0 || G.playable(ME).length === 0));
   $('discard').innerHTML = discardHTML();
   // hud
-  $('hud').innerHTML = `<span class="label">${G.side === 'L' ? 'Light side' : 'Dark side'}</span>
-    <span class="row"><span class="chip"></span><span>${G.roulette !== null ? 'Color pending' : COLOR_NAME[G.color]}</span></span>
-    <span class="row dirtxt">${G.dir === 1 ? '↻ Clockwise ›' : '↺ Counter-clockwise ‹'}</span>
-    ${G.pending > 0 ? `<span class="label" style="margin-top:8px">Stack</span><span class="stack">+${G.pending}</span>` : ''}`;
+  $('hud').innerHTML = `<span class="label">${G.side === 'L' ? t('lightSide') : t('darkSide')}</span>
+    <span class="row"><span class="chip"></span><span>${G.roulette !== null ? t('colorPending') : colorName(G.color)}</span></span>
+    <span class="row dirtxt">${G.dir === 1 ? t('cw') : t('ccw')}</span>
+    ${G.pending > 0 ? `<span class="label" style="margin-top:8px">${t('stack')}</span><span class="stack">+${G.pending}</span>` : ''}`;
   // banner
   const ban = $('banner');
   let txt, you = false;
-  if (G.winner !== null) txt = G.winner === ME ? 'You win' : `${G.players[G.winner].name} wins`;
-  else if (me.out) txt = 'You left this match. Watching the rest of it.';
-  else if (owe) txt = `You were caught or lost a duel: pick up ${me.oweN} card${me.oweN > 1 ? 's' : ''} before you play`;
+  if (G.winner !== null) txt = G.winner === ME ? t('youWin') : t('wins', G.players[G.winner].name);
+  else if (me.out) txt = t('youLeft');
+  else if (owe) txt = t('oweBanner', me.oweN);
   else if (G.debt) txt = G.debt.pi === ME
-    ? (G.debt.n ? `Pick up the stack one card at a time: ${G.debt.n} left` : `Draw until ${COLOR_NAME[G.debt.until]} shows up: ${G.debt.got} so far`)
-    : `${G.players[G.debt.pi].name} is picking up cards${G.debt.n ? ` (${G.debt.n} left)` : ` until ${COLOR_NAME[G.debt.until]}`}`;
-  else if (G.roulette !== null) txt = G.roulette === ME ? 'Roulette: name a color' : `${G.players[G.roulette].name} is naming a color`;
-  else if (myTurn) { you = true; txt = G.pending > 0 ? (G.playable(ME).length ? `Stack +${G.stackMin} or higher, mirror it, or take +${G.pending}` : `Take +${G.pending}`) : (G.drewBy === ME ? 'Play the card you drew, or pass' : (G.playable(ME).length ? 'Your turn: tap or drag a card' : (G.rules.drawUntil ? 'Nothing fits. Keep drawing until you hit ' + COLOR_NAME[G.color] + ' or a wild.' : 'Nothing fits. Draw a card.'))); }
-  else txt = `${G.players[G.turn].name}'s turn${away[G.turn] ? ' (away, skipping soon)' : ''}`;
+    ? (G.debt.n ? t('myStackDebt', G.debt.n) : t('myColorDebt', colorName(G.debt.until), G.debt.got))
+    : (G.debt.n ? t('otherDebtN', G.players[G.debt.pi].name, G.debt.n) : t('otherDebtC', G.players[G.debt.pi].name, colorName(G.debt.until)));
+  else if (G.roulette !== null) txt = G.roulette === ME ? t('rouletteMe') : t('rouletteOther', G.players[G.roulette].name);
+  else if (myTurn) { you = true; txt = G.pending > 0 ? (G.playable(ME).length ? t('stackOrTake', G.stackMin, G.pending) : t('take', G.pending)) : (G.drewBy === ME ? t('playOrPass') : (G.playable(ME).length ? t('yourTurn') : (G.rules.drawUntil ? t('keepDrawing', colorName(G.color)) : t('drawOne')))); }
+  else txt = t('turnOf', G.players[G.turn].name, away[G.turn]);
   ban.textContent = txt; ban.className = you ? 'you' : '';
   // me
   $('meIni').innerHTML = initials(me.name);
   $('meName').textContent = me.name;
   $('meCnt').textContent = me.hand.length;
-  $('meTags').textContent = [me.left ? 'Left' : '', me.shield ? 'Shield' : '', upNext === ME && !myTurn ? 'Up next' : ''].filter(Boolean).join(' · ');
+  $('meTags').textContent = [me.left ? t('tagLeft') : '', me.shield ? t('tagShield') : '', upNext === ME && !myTurn ? t('tagNext') : ''].filter(Boolean).join(' · ');
   $('meBarWrap').style.display = G.rules.mercy ? '' : 'none';
   const mpct = G.rules.mercy ? Math.min(100, me.hand.length / G.rules.mercy * 100) : 0;
   $('meDanger').style.width = mpct + '%'; $('meBarWrap').classList.toggle('hot', mpct >= 80);
   const bd = $('btnDraw');
   const digging = myTurn && G.rules.drawUntil && G.pending === 0 && G.drewBy !== ME && G.playable(ME).length === 0 && (G.drawRunPi === ME && G.drawRun > 0);
   bd.disabled = !canDraw;
-  bd.textContent = owe ? `Pick up penalty (${me.oweN})`
-    : myDebt ? (G.debt.n ? `Pick up (${G.debt.n} left)` : `Draw until ${COLOR_NAME[G.debt.until]} (${G.debt.got})`)
-    : G.pending > 0 && myTurn ? `Take +${G.pending}` : (digging ? `Draw again (${G.drawRun})` : 'Draw');
+  bd.textContent = owe ? t('penalty', me.oweN)
+    : myDebt ? (G.debt.n ? t('pickUpLeft', G.debt.n) : t('drawUntil', colorName(G.debt.until), G.debt.got))
+    : G.pending > 0 && myTurn ? t('take', G.pending) : (digging ? t('drawAgain', G.drawRun) : t('draw'));
   $('btnPass').disabled = !(myTurn && G.drewBy === ME && G.pending === 0);
   const ub = $('btnUno');
   ub.disabled = !((me.hand.length <= 2 || (G.rules.multi && G.unoReach(ME))) && !me.out && G.winner === null) || !G.rules.uno;
   ub.classList.toggle('called', me.unoCalled);
   ub.classList.toggle('ready', !ub.disabled && !me.unoCalled);
-  ub.textContent = me.unoCalled ? 'UNO called' : 'UNO';
-  $('btnSort').textContent = 'Sort: ' + sortMode;
-  $('btnQuit').textContent = 'Leave';
+  ub.textContent = me.unoCalled ? t('unoCalled') : t('uno');
+  $('btnSort').textContent = t('sort', sortMode);
+  $('btnQuit').textContent = t('leave');
   // hand (left alone while a card is being dragged)
   if (!dragging) {
     const hand = sortedHand(me.hand);
     const wrap = $('hand');
-    const cw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cw')) || 76;
-    const avail = wrap.clientWidth - 32;
-    const overlap = hand.length > 1 ? Math.min(8, (avail - cw) / (hand.length - 1) - cw) : 0;
+    const rootCw = parseFloat(getComputedStyle($('discard')).width) / 1.3 || 76;
+    const n = Math.max(hand.length, 1), mobile = innerWidth <= 820;
+    const minStrip = 0.3, MAX_TILT = 8; // degrees at the outer edge of the fan
+    const base = Math.min(rootCw * (mobile ? 1.12 : 1.15), (innerHeight * (mobile ? 0.16 : 0.18)) / 1.47);
+    const pad = 16, tiltRoom = c => c * 1.47 * Math.sin(MAX_TILT * Math.PI / 180) + 4;
+    const fit = per => { // largest card width that keeps ~30% of each card visible in a row of `per` cards
+      let c = base;
+      for (let k = 0; k < 3; k++) c = Math.min(base, (wrap.clientWidth - 2 * pad - 2 * tiltRoom(c)) / (1 + (per - 1) * minStrip));
+      return c;
+    };
+    // full-size cards first: if a row can't show at least half of every card at (nearly) full size,
+    // wrap into another row (up to 3) instead of shrinking or overlapping them further
+    const fitAt = (per, strip) => { let w = base; for (let k = 0; k < 3; k++) w = Math.min(base, (wrap.clientWidth - 2 * pad - 2 * tiltRoom(w)) / (1 + (per - 1) * strip)); return w; };
+    let rows = 1, per = n;
+    while (rows < 3 && n > rows && fitAt(per, 0.5) < base * 0.9) { rows++; per = Math.ceil(n / rows); }
+    let cw = fit(per);
+    cw = Math.max(cw, mobile ? 34 : 44);
+    const availRow = wrap.clientWidth - 2 * pad - 2 * tiltRoom(cw);
+    const strip = per > 1 ? Math.min(cw + 8, Math.max((availRow - cw) / (per - 1), cw * 0.18)) : 0;
+    const ch = cw * 1.47, rowLift = ch * 0.42;
+    wrap.style.setProperty('--hcw', cw.toFixed(1) + 'px');
+    wrap.style.setProperty('--cw', cw.toFixed(1) + 'px');
+    wrap.style.setProperty('--ch', ch.toFixed(1) + 'px');
+    wrap.style.minHeight = Math.ceil(ch * rows - (rows - 1) * rowLift + (mobile ? 40 : 44)) + 'px';
+    wrap.style.flexWrap = rows > 1 ? 'wrap' : 'nowrap';
+    wrap.style.justifyContent = 'center';
     let newIdx = 0;
     wrap.innerHTML = hand.map((c, k) => {
+      const row = Math.floor(k / per), col = k % per, inRow = Math.min(per, n - row * per);
       let cls = '';
       if (myTurn) cls = G.canPlay(c) ? 'ok' : 'dim';
       else if (!me.out && G.canJumpIn(ME, c)) cls = 'jump';
-      const mid = (hand.length - 1) / 2, off = k - mid, step = Math.min(3, 36 / Math.max(hand.length, 1));
-      let st = `margin-left:${k ? Math.max(overlap, -cw * .74) : 0}px;z-index:${k};--rot:${(off * step).toFixed(2)}deg;--dy:${Math.min(14, off * off * step * 0.12).toFixed(1)}px`;
+      const off = col - (inRow - 1) / 2, step = inRow > 1 ? Math.min(3, (2 * MAX_TILT) / (inRow - 1)) : 0;
+      let st = `margin-left:${col ? (strip - cw).toFixed(1) : 0}px;z-index:${k};--rot:${(off * step).toFixed(2)}deg;--dy:${Math.min(12, off * off * step * 0.1).toFixed(1)}px`;
+      if (row > 0) st += `;margin-top:${(-rowLift).toFixed(1)}px`;
       if (!lastHandIds.has(c.id)) { cls += ' new'; st += `;animation-delay:${Math.min(newIdx++, 7) * 20}ms`; }
-      return faceHTML(G.f(c), G.side, cls, c.id).replace('class="card', `style="${st}" class="card`);
+      const html = faceHTML(G.f(c), G.side, cls, c.id).replace('class="card', `style="${st}" class="card`);
+      return (row > 0 && col === 0 ? '<i class="brk"></i>' : '') + html;
     }).join('');
-    wrap.style.justifyContent = hand.length * cw > avail ? 'flex-start' : 'center';
     const byId = Object.fromEntries(me.hand.map(c => [c.id, c]));
     wrap.querySelectorAll('.card').forEach(el => attachCard(el, byId[el.dataset.id]));
     lastHandIds = new Set(me.hand.map(c => c.id));
   }
   // log
-  const logKey = G.gid + ':' + (G.log.length ? G.log[G.log.length - 1].msg : '') + ':' + G.log.length;
+  const logKey = LANG + ':' + G.gid + ':' + (G.log.length ? G.log[G.log.length - 1].msg : '') + ':' + G.log.length;
   if (logKey !== lastLogKey) {
     const prev = new Set(lastLogMsgs); lastLogKey = logKey;
     const rows = G.log.slice(-60);
     lastLogMsgs = rows.map(l => l.msg);
-    $('log').innerHTML = rows.slice().reverse().map(l => `<div class="${l.cls === 'win' ? 'win' : ''}${prev.has(l.msg) ? '' : ' n'}">${esc(youify(l.msg))}</div>`).join('');
+    $('log').innerHTML = rows.slice().reverse().map(l => `<div class="${l.cls === 'win' ? 'win' : ''}${prev.has(l.msg) ? '' : ' n'}">${esc(youify(fmtLog(l)))}</div>`).join('');
   }
-  const lastMsg = G.log.length ? youify(G.log[G.log.length - 1].msg) : '';
+  const lastMsg = G.log.length ? youify(fmtLog(G.log[G.log.length - 1])) : '';
   if ($('ticker').textContent !== lastMsg) $('ticker').textContent = lastMsg;
   processEvents();
 }
 function youify(m) {
-  if (!G.players[ME] || G.players[ME].name !== 'You' || !/^You /.test(m)) return m.replace(/You starts/, 'You start');
+  if (LANG !== 'en' || !G.players[ME] || G.players[ME].name !== 'You' || !/^You /.test(m)) return m.replace(/You starts/, 'You start');
   return m.replace(/\bYou (plays|takes|draws|passes|calls|swaps|flips|empties|hit|is|jumps|must|mirrors|raises|duels|ran)\b/g, (a, v) =>
     'You ' + ({ plays: 'play', takes: 'take', draws: 'draw', passes: 'pass', calls: 'call', swaps: 'swap', flips: 'flip', empties: 'empty', hit: 'hit', is: 'are', jumps: 'jump', must: 'must', mirrors: 'mirror', raises: 'raise', duels: 'duel', ran: 'ran' }[v]))
     .replace(/(You (?:play|draw|flip|empty|swap)[^.]*?)\btheir\b/g, '$1your').replace(/until they can/g, 'until you can').replace(/reaches them/, 'reaches you');
@@ -1491,7 +1857,7 @@ function youify(m) {
 // ================= EVENTS → FEEDBACK =================
 const TOAST_PRI = { multi: 5, win: 9, flip: 8, ko: 7, bhole: 7, took: 6, mirror: 6, shield: 6, duel: 5, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, jump: 3, reverse: 2 };
 function seatRect(pi) { return pi === ME ? rectOf($('hand')) : rectOf($('opp' + pi)); }
-function nm(pi) { return pi === ME ? 'You' : (G.players[pi] ? G.players[pi].name : ''); }
+function nm(pi) { return pi === ME ? (LANG === 'ru' ? 'Вы' : 'You') : (G.players[pi] ? G.players[pi].name : ''); }
 function processEvents() {
   const evs = (G.events || []).filter(e => e.n > lastEvN);
   if (!evs.length) return;
@@ -1504,7 +1870,7 @@ function processEvents() {
     switch (e.type) {
       case 'play': {
         SFX.play('play');
-        if (e.jump) bump(TOAST_PRI.jump, 'Jump-in');
+        if (e.jump) bump(TOAST_PRI.jump, t('tJump'));
         if (e !== lastPlay) break;
         const k = Math.max(1, Math.min(e.k || 1, 5));
         const els = [...document.querySelectorAll('#discard .card')].slice(-k);
@@ -1532,25 +1898,25 @@ function processEvents() {
         break;
       }
       case 'took': SFX.play('took'); if (e.k >= 10) bump(TOAST_PRI.took, `+${e.k}`); break;
-      case 'stack': SFX.play('stack', e.k); bump(TOAST_PRI.stack, `Stack +${e.k}`); break;
-      case 'skip': SFX.play('skip'); floatText(e.pi, 'Skipped'); break;
-      case 'skipall': SFX.play('skip'); bump(TOAST_PRI.skipall, 'Skip everyone'); break;
-      case 'reverse': SFX.play('skip'); bump(TOAST_PRI.reverse, 'Reverse'); break;
-      case 'swap': SFX.play('swap'); bump(TOAST_PRI.swap, 'Hands swapped'); break;
-      case 'rotate': SFX.play('swap'); bump(TOAST_PRI.rotate, 'Hands rotate'); break;
-      case 'roulette': SFX.play('stack', 3); bump(TOAST_PRI.roulette, 'Roulette'); break;
-      case 'uno': SFX.play('uno'); floatText(e.pi, 'UNO'); break;
-      case 'multi': bump(TOAST_PRI.multi, `${e.k} at once`); break;
-      case 'caught': SFX.play('bad'); floatText(e.pi, 'Caught: +2'); break;
-      case 'ko': SFX.play('ko'); bump(TOAST_PRI.ko, `${nm(e.pi)} is out`); break;
-      case 'win': SFX.play('win'); bump(TOAST_PRI.win, e.pi === ME ? 'You win' : `${nm(e.pi)} wins`); break;
-      case 'mirror': SFX.play('swap'); bump(TOAST_PRI.mirror, `Mirrored to ${nm(e.b)}`); break;
-      case 'shieldup': SFX.play('click'); floatText(e.pi, 'Shield up'); break;
-      case 'shield': SFX.play('swap'); bump(TOAST_PRI.shield, `Shield breaks +${e.k}`); break;
+      case 'stack': SFX.play('stack', e.k); bump(TOAST_PRI.stack, t('tStack', e.k)); break;
+      case 'skip': SFX.play('skip'); floatText(e.pi, t('tSkipped')); break;
+      case 'skipall': SFX.play('skip'); bump(TOAST_PRI.skipall, t('tSkipAll')); break;
+      case 'reverse': SFX.play('skip'); bump(TOAST_PRI.reverse, t('tReverse')); break;
+      case 'swap': SFX.play('swap'); bump(TOAST_PRI.swap, t('tSwap')); break;
+      case 'rotate': SFX.play('swap'); bump(TOAST_PRI.rotate, t('tRotate')); break;
+      case 'roulette': SFX.play('stack', 3); bump(TOAST_PRI.roulette, t('tRoulette')); break;
+      case 'uno': SFX.play('uno'); floatText(e.pi, t('tUno')); break;
+      case 'multi': bump(TOAST_PRI.multi, t('tMulti', e.k)); break;
+      case 'caught': SFX.play('bad'); floatText(e.pi, t('tCaught')); break;
+      case 'ko': SFX.play('ko'); bump(TOAST_PRI.ko, t('tOut', nm(e.pi))); break;
+      case 'win': SFX.play('win'); bump(TOAST_PRI.win, e.pi === ME ? t('youWin') : t('wins', nm(e.pi))); break;
+      case 'mirror': SFX.play('swap'); bump(TOAST_PRI.mirror, t('tMirror', nm(e.b))); break;
+      case 'shieldup': SFX.play('click'); floatText(e.pi, t('tShieldUp')); break;
+      case 'shield': SFX.play('swap'); bump(TOAST_PRI.shield, t('tShield', e.k)); break;
       case 'duel': SFX.play('stack', 2); bump(TOAST_PRI.duel, `${e.na} vs ${e.nb}`); break;
-      case 'bhole': SFX.play('flip'); bump(TOAST_PRI.bhole, 'Black hole'); break;
+      case 'bhole': SFX.play('shuffle'); bump(TOAST_PRI.bhole, t('tBhole')); break;
       case 'flip':
-        SFX.play('flip'); bump(TOAST_PRI.flip, e.side === 'D' ? 'Dark side' : 'Light side');
+        SFX.play('flip'); bump(TOAST_PRI.flip, e.side === 'D' ? t('tDark') : t('tLight'));
         document.querySelectorAll('#hand .card').forEach(el => { el.classList.remove('new'); el.classList.add('flipin'); });
         break;
     }
@@ -1565,7 +1931,7 @@ function closeModal() { $('modal').classList.add('hidden'); }
 const ON_COLOR = { y: 'var(--ink)', t: 'var(--ink)', o: 'var(--ink)' };
 function pickColor(title, sub, side) {
   return new Promise(res => {
-    openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p><div class="colors">${SIDE_COLORS[side].map(c => `<button data-c="${c}" style="background:${CVAR[c]};color:${ON_COLOR[c] || '#fff'}">${COLOR_NAME[c]}</button>`).join('')}</div>`);
+    openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p><div class="colors">${SIDE_COLORS[side].map(c => `<button data-c="${c}" style="background:${CVAR[c]};color:${ON_COLOR[c] || '#fff'}">${colorName(c)}</button>`).join('')}</div>`);
     $('modalBody').querySelectorAll('[data-c]').forEach(b => b.onclick = () => { SFX.play('click'); closeModal(); res(b.dataset.c); });
   });
 }
@@ -1573,7 +1939,7 @@ function pickTarget(title, sub, skipLabel) {
   return new Promise(res => {
     const list = G.players.map((p, i) => ({ p, i })).filter(o => o.i !== ME && !o.p.out);
     openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p>
-      <div class="list">${list.map(o => `<button data-t="${o.i}"><span style="display:flex;gap:8px;align-items:center"><span class="ini">${initials(o.p.name)}</span>${esc(o.p.name)}</span><span class="mono">${o.p.hand.length} cards</span></button>`).join('')}</div>
+      <div class="list">${list.map(o => `<button data-t="${o.i}"><span style="display:flex;gap:8px;align-items:center"><span class="ini">${initials(o.p.name)}</span>${esc(o.p.name)}</span><span class="mono">${t('cardsN', o.p.hand.length)}</span></button>`).join('')}</div>
       ${skipLabel ? `<button class="btn wide" id="skipT" style="margin-top:16px">${esc(skipLabel)}</button>` : ''}`);
     $('modalBody').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { SFX.play('click'); closeModal(); res(+b.dataset.t); });
     if (skipLabel) $('skipT').onclick = () => { SFX.play('click'); closeModal(); res(null); };
@@ -1585,11 +1951,11 @@ function pickExtras(card, same) {
     let order = same.slice(); // tap order = play order; the card you picked always goes first
     const draw = () => {
       const slot = (c, cls, num, k) => `<div class="slot">${num ? `<span class="ord">${num}</span>` : ''}${faceHTML(G.f(c), G.side, cls).replace('class="card', (k != null ? `data-k="${k}" ` : '') + 'class="card')}</div>`;
-      openModal(`<h2>Play them together?</h2><p>Tap cards in the order you want them played. Tap a numbered card to take it out. The last card sets the color.</p>
+      openModal(`<h2>${t('togetherQ')}</h2><p>${t('togetherSub')}</p>
         <div class="pick">${slot(card, 'lead', 1, null)}${same.map((c, k) => { const at = order.indexOf(c); return slot(c, at >= 0 ? 'on' : 'off', at >= 0 ? at + 2 : 0, k); }).join('')}</div>
-        <button class="btn primary wide" id="pxGo">Play ${order.length + 1} card${order.length ? 's' : ''}</button>
-        <button class="btn wide" id="pxClear" style="margin-top:8px">${order.length ? 'Clear order' : 'Select all'}</button>
-        <button class="textlink" id="pxCancel">Cancel</button>`);
+        <button class="btn primary wide" id="pxGo">${t('playN', order.length + 1)}</button>
+        <button class="btn wide" id="pxClear" style="margin-top:8px">${order.length ? t('clearOrder') : t('selectAll')}</button>
+        <button class="textlink" id="pxCancel">${t('cancel')}</button>`);
       $('modalBody').querySelectorAll('[data-k]').forEach(el => el.onclick = () => {
         const c = same[+el.dataset.k];
         order = order.includes(c) ? order.filter(x => x !== c) : order.concat(c);
@@ -1608,47 +1974,17 @@ function showEnd() {
   const ranked = G.players.map((p, i) => ({ p, i })).sort((a, b) => (a.i === G.winner ? -1 : b.i === G.winner ? 1 : 0) || (a.p.elim - b.p.elim) || a.p.hand.length - b.p.hand.length);
   const won = G.winner === ME;
   const controls = !isHost
-    ? `<p style="margin:16px 0 0">Waiting for the host to deal the next round.</p><button class="textlink" id="menu">Leave room</button>`
-    : `<button class="btn primary wide" id="again">Play again</button><button class="textlink" id="menu">Back to lobby</button>`;
-  openModal(`<h2>${won ? 'You win' : esc(w.name) + ' wins'}</h2>
-    <p>${won ? 'Hand emptied.' : 'Final card counts:'}</p>
-    <div class="list">${ranked.map((o, k) => `<div class="li"><span>${k + 1}. ${esc(o.p.name)}</span><span class="mono">${o.i === G.winner ? 'winner' : o.p.hand.length + ' cards'}</span></div>`).join('')}</div>
+    ? `<p style="margin:16px 0 0">${t('waitNext')}</p><button class="textlink" id="menu">${t('leaveRoom')}</button>`
+    : `<button class="btn primary wide" id="again">${t('playAgain')}</button><button class="textlink" id="menu">${t('backLobby')}</button>`;
+  openModal(`<h2>${won ? t('youWin') : esc(t('wins', w.name))}</h2>
+    <p>${won ? t('handEmptied') : t('finalCounts')}</p>
+    <div class="list">${ranked.map((o, k) => `<div class="li"><span>${k + 1}. ${esc(o.p.name)}</span><span class="mono">${o.i === G.winner ? t('winner') : t('cardsN', o.p.hand.length)}</span></div>`).join('')}</div>
     ${controls}`);
   if ($('again')) $('again').onclick = () => { closeModal(); conn.send({ t: 'start' }); };
   $('menu').onclick = () => { closeModal(); if (isHost) conn.send({ t: 'tolobby' }); else leaveRoom(); };
 }
 function showRules() {
-  openModal(`<h2>How to play</h2><div class="rulestext">
-    <h3>Basics</h3><ul><li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
-    <li>The deck never runs out. Cards come from a mix of classic, Flip and No Mercy cards.</li>
-    <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> UNO, <b>P</b> pass.</li>
-    <li>The host can switch each rule and each extra card (Mirror, Shield, Double Flip, Wild Duel, Wild Draw 15, Black Hole) on or off in the lobby.</li></ul>
-    <h3>Flip</h3><ul><li>Every card has a light side and a dark side. <b>Flip</b> turns every card over at once.</li>
-    <li>You can see the backs of other players' cards and of the next draw card, but not your own backs.</li>
-    <li><b>Double Flip</b> turns the table for one turn. It flips back after the next player acts.</li></ul>
-    <h3>Drawing</h3><ul><li>Every card is drawn by hand, one tap per card, like a real deck. That covers taking a stack, Color Roulette, Wild Draw Color, the UNO penalty and the cards you lose in a duel.</li>
-    <li>While you owe cards, you can't play until they are picked up.</li></ul>
-    <h3>Stacks</h3><ul><li>Answer a draw card with one of equal or higher value: +1, +2, +4, +5, +6, +8, +10, +15. If you can't, take the whole stack and lose your turn.</li>
-    <li><b>Mirror</b> sends the whole stack back to whoever fed it last.</li>
-    <li><b>Shield</b> stays in front of you and breaks the next stack that reaches you.</li></ul>
-    <h3>Other rules</h3><ul>
-    <li><b>Draw until color</b>: with nothing to play, you draw one card at a time and can't pass until you draw the current color or a wild. A drawn card that matches only by number or symbol can still be played, but it doesn't end the run.</li>
-    <li><b>7</b> lets you swap hands with one player, or keep yours. <b>0</b> passes every hand along. Each can be turned off separately.</li>
-    <li><b>Same-number drops</b>: play every card with the same number or symbol together. Draw cards add up, skips skip that many players, and an even number of reverses or flips cancels out.</li>
-    <li><b>Jump-in</b>: play an exact match of the top card out of turn. Outlined cards qualify.</li>
-    <li><b>UNO</b>: call it at two cards or right after dropping to one. If you're caught, you draw 2.</li></ul>
-    <h3>Action cards</h3><ul>
-    <li><b>Skip</b>, <b>Reverse</b>, <b>Skip Everyone</b> (you go again), <b>Discard All</b> (discard every card of that color).</li>
-    <li><b>Color Roulette</b>: the next player names a color and turns over cards until it appears, keeping them all.</li>
-    <li><b>Wild Draw Color</b> (dark): you name the color. The next player draws until they hit it.</li>
-    <li><b>Wild Duel</b>: you and a chosen player turn over cards until each hits a number. The lower number takes every card turned over.</li>
-    <li><b>Black Hole</b> (dark): every hand is pooled, shuffled and dealt back out evenly.</li></ul>
-    <h3>Rooms</h3><ul><li>Create a room and share the code or link. Up to 6 players, no accounts.</li>
-    <li>The server runs the match, so everyone always sees the same table.</li>
-    <li>Lose your connection or close the tab, and you have 60 seconds to come back to your seat with your cards. Opening the page again rejoins you.</li>
-    <li>While a player is away, their turn is skipped after 15 seconds, and they take any stack waiting on them. A connected but idle player is skipped after 60 seconds.</li>
-    <li>Press Leave, or stay away longer than a minute, and you're out of that match. Everyone else keeps playing, and the last player left wins.</li></ul>
-    </div><button class="btn primary wide" id="closeR">Close</button>`);
+  openModal(`<h2>${t('howTo')}</h2><div class="rulestext">${RULES_HTML[LANG]}</div><button class="btn primary wide" id="closeR">${t('close')}</button>`);
   $('closeR').onclick = () => { closeModal(); if (G && G.winner !== null) showEnd(); };
 }
 

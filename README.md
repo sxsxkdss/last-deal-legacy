@@ -48,14 +48,16 @@ The simplest setup is to use the Render link for everything. If you'd rather kee
 ## Rules
 
 - **Manual drawing:** every card is drawn by hand, one tap per card. That covers taking a stack, Color Roulette, Wild Draw Color, the UNO penalty and the cards lost in a duel. You can't play while you owe cards.
+- **Languages:** English and Russian, picked from the browser's language. Switch any time on the start screen or in the Menu. The game log is translated on each player's screen.
+- **Sound:** card sounds are synthesized in the browser (slides, slaps, riffles, chimes), with no audio files to download.
 - **Phones:** the layout switches to a single column with swipeable seats, big Draw/Pass/UNO buttons, a one-line log and a Menu for everything else.
 
 - **Deck:** endless and two-sided. Each card has a light and a dark face, drawn from a mix of classic, Flip and No Mercy cards, plus a few originals: Mirror, Shield, Double Flip, Wild Duel, Wild Draw 15 and Black Hole. The host can switch each original off.
 - **Flip:** turns every card over. You see the backs of other players' cards and of the next draw card.
 - **Stacking:** +1 → +2 → +4 → +5 → +6 → +8 → +10 → +15. Mirror sends a stack back, and Shield breaks one.
-- **Same-number drops:** play every card of one number or symbol at once, in the order you choose. The last card sets the color.
+- **Same-number drops:** play every card of one number or symbol at once, in the order you choose, matching wilds included. The last card sets the color.
 - **Draw until playable:** one card per tap, and you can't pass until one fits.
-- **Other rules:** 7 swaps hands (optional each time), 0 rotates hands, jump-in, and the UNO penalty. Each rule can be switched on or off.
+- **Other rules:** 7 swaps hands (optional each time), 0 rotates hands, jump-in with an exact copy of the top card (wilds included), and the UNO penalty. Each rule can be switched on or off.
 
 ## Credits
 
