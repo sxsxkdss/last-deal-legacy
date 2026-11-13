@@ -72,6 +72,10 @@ input[type=text]:focus{border-color:var(--text)}
 .msg{color:var(--muted);min-height:20px;margin-top:8px}
 .textlink{color:var(--muted);text-decoration:underline;text-underline-offset:3px;margin-top:24px;display:inline-block}
 .textlink:hover{color:var(--text)}
+.rv{padding:8px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px}
+.rv:last-child{border-bottom:1px solid var(--line)}
+.rv .mono{color:var(--muted)}
+.rv.off{color:var(--muted)}
 .code{font:500 48px/56px var(--f-mono);letter-spacing:.24em;cursor:pointer}
 .seatrow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
 .seatrow:last-child{border-bottom:1px solid var(--line)}
@@ -254,12 +258,18 @@ input[type=text]:focus{border-color:var(--text)}
     <div class="code" id="lbCode" title="Copy code">----</div>
     <p class="lede" id="lbHint" style="margin:8px 0 24px"></p>
     <div class="actions-row hidden" id="shareBox" style="margin-bottom:24px"><input type="text" id="shareLink" readonly style="flex:1"><button class="btn" id="btnCopyLink">Copy link</button></div>
-    <span class="label">Players</span>
-    <div id="lbSeats" style="margin-top:8px"></div>
+    <div class="field"><span class="label">Your name</span><input id="lbName" type="text" maxlength="14"></div>
+    <div class="section"><span class="label">Players</span><div id="lbSeats" style="margin-top:8px"></div></div>
     <div id="lbHost">
-      <div class="field" style="border-top:none"><span class="label">Bots</span><div class="seg" id="segRoomBots"></div></div>
-      <button class="btn primary wide" id="btnRoomStart">Start game</button>
+      <div class="section">
+        <div class="field"><span class="label">Bots</span><div class="seg" id="segRoomBots"></div></div>
+        <div class="field"><span class="label">Bot speed</span><div class="seg" id="segRoomSpeed"></div></div>
+      </div>
+      <div class="section"><button class="btn primary wide" id="btnRoomStart">Start game</button></div>
+      <div class="section"><span class="label">Rules</span><div id="lbRules"></div></div>
+      <div class="section"><span class="label">Extra cards</span><div id="lbCards"></div></div>
     </div>
+    <div id="lbGuest" class="section hidden"><span class="label">Table rules (set by the host)</span><div id="lbRulesView" style="margin-top:8px"></div></div>
     <div class="msg" id="lbWait"></div>
     <button class="textlink" id="btnLeave">Leave room</button>
   </div>
@@ -792,8 +802,7 @@ if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, dese
 
 </script>
 <script>
-// ===== NETWORK: peer-to-peer rooms (PeerJS, no accounts) with claude.ai room fallback =====
-const PEER_PREFIX = 'unoflipnomercy-';
+// ===== NETWORK: encrypted relay rooms over public MQTT brokers (no accounts), claude.ai room inside Claude =====
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 let _roomNS;
 async function getRoomNS() {
@@ -802,92 +811,164 @@ async function getRoomNS() {
   return _roomNS;
 }
 const inClaude = () => !!(window.claude && typeof window.claude.use === 'function');
-function loadPeerJS() {
-  return new Promise(res => {
-    if (window.Peer) return res(true);
-    let done = false; const fin = ok => { if (!done) { done = true; res(ok); } };
-    const add = (src, next) => { const s = document.createElement('script'); s.src = src; s.onload = () => fin(!!window.Peer); s.onerror = next; document.head.appendChild(s); };
-    add('https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js', () => add('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', () => fin(false)));
-    setTimeout(() => fin(!!window.Peer), 10000);
-  });
-}
-function openPeer(id) {
-  return new Promise((res, rej) => {
-    let p, opened = false;
-    try { p = id ? new Peer(id, { debug: 0 }) : new Peer({ debug: 0 }); } catch (e) { return rej({ type: 'browser-incompatible' }); }
-    const to = setTimeout(() => { if (!opened) { try { p.destroy(); } catch (e) {} rej({ type: 'timeout' }); } }, 10000);
-    p.on('open', () => { opened = true; clearTimeout(to); res(p); });
-    p.on('error', e => { if (!opened) { clearTimeout(to); try { p.destroy(); } catch (x) {} rej(e || { type: 'error' }); } });
-  });
-}
 
-// ---- P2P host: keeps one data channel per friend, sends each one a private view ----
-class PeerHost {
-  constructor(h) { this.h = h; this.conns = new Map(); this.kind = 'p2p'; this.redacts = true; this.selfId = 'host'; }
+// ---- relay rooms: public MQTT brokers over secure WebSockets, end-to-end encrypted with the room code ----
+// The host joins every broker; each friend uses the first one their network can reach.
+const BROKERS = [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://mqtt.eclipseprojects.io:443/mqtt',
+  'wss://test.mosquitto.org:8081/mqtt'
+];
+function loadScript(srcs) {
+  return new Promise(res => {
+    let k = 0;
+    const next = () => {
+      if (k >= srcs.length) return res(false);
+      const s = document.createElement('script'); s.src = srcs[k++];
+      s.onload = () => res(true); s.onerror = next; document.head.appendChild(s);
+    };
+    next();
+  });
+}
+async function loadMqtt() {
+  if (window.mqtt) return true;
+  await loadScript(['https://unpkg.com/mqtt@5/dist/mqtt.min.js', 'https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js']);
+  return !!window.mqtt;
+}
+const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+async function roomCrypto(code) {
+  const enc = new TextEncoder(), C = code.toUpperCase();
+  const base = await crypto.subtle.importKey('raw', enc.encode(C), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: enc.encode('unoflipnomercy/v2'), iterations: 120000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode('unoflipnomercy-topic/' + C)));
+  const topic = 'unofnm2/' + Array.from(h.slice(0, 12), x => x.toString(16).padStart(2, '0')).join('');
+  return {
+    topic,
+    async seal(obj) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(obj))));
+      const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return b64(out);
+    },
+    async open(str) {
+      try { const raw = unb64(str); const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12)); return JSON.parse(new TextDecoder().decode(pt)); }
+      catch (e) { return null; } // not ours, or tampered
+    }
+  };
+}
+const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), x => x.toString(36).padStart(2, '0')).join('').slice(0, 10);
+function connectBroker(url, opts, timeout = 6000) {
+  return new Promise((res, rej) => {
+    let c;
+    try { c = mqtt.connect(url, Object.assign({ connectTimeout: timeout, reconnectPeriod: 3000, clean: true, keepalive: 20 }, opts)); }
+    catch (e) { return rej(e); }
+    const to = setTimeout(() => { try { c.end(true); } catch (e) {} rej({ type: 'timeout' }); }, timeout + 500);
+    c.once('connect', () => { clearTimeout(to); res(c); });
+    c.on('error', () => {});
+  });
+}
+// ordered async pipeline so encrypted messages keep their order
+function queue() { let p = Promise.resolve(); return fn => (p = p.then(fn).catch(() => {})); }
+
+class RelayHost {
+  constructor(h) { this.h = h; this.kind = 'relay'; this.redacts = true; this.selfId = 'host'; this.clients = new Map(); this.links = []; this.q = queue(); this.rq = queue(); this.n = 0; }
   async start(code) {
-    this.peer = await openPeer(PEER_PREFIX + code);
-    this.peer.on('connection', conn => this.add(conn));
-    this.peer.on('error', () => {});
-    this.peer.on('disconnected', () => { try { if (!this.closed) this.peer.reconnect(); } catch (e) {} });
+    this.cx = await roomCrypto(code);
+    const T = this.cx.topic, will = await this.cx.seal({ t: 'gone' });
+    const tries = BROKERS.map(url => connectBroker(url, { clientId: 'h' + rid(), will: { topic: T + '/h', payload: will, qos: 0 } }).then(c => this.attach(c)).catch(() => null));
+    // a busy code would already have a host pinging on it
+    const first = await Promise.race([Promise.any(tries).catch(() => null), new Promise(r => setTimeout(() => r(null), 9000))]);
+    if (!first) throw { type: 'relay-down' };
+    this.busyCheck = true; this.pub('/h', { t: 'whohost', from: this.hostTag });
+    await new Promise(r => setTimeout(r, 1500)); this.busyCheck = false;
+    if (this.collision) { this.close(); throw { type: 'unavailable-id' }; }
     this.hb = setInterval(() => this.beat(), 4000);
   }
-  add(conn) {
-    this.conns.set(conn.peer, { conn, last: Date.now() });
-    conn.on('data', d => {
-      const c = this.conns.get(conn.peer); if (!c || !d || typeof d !== 'object') return;
-      c.last = Date.now();
-      if (d.t === 'hello') this.h.join(conn.peer, cleanName(d.nick) || 'Player');
-      else if (d.t === 'act' && d.a && typeof d.a === 'object') this.h.act(conn.peer, d.a);
-    });
-    const gone = () => { if (this.conns.has(conn.peer)) { this.conns.delete(conn.peer); this.h.leave(conn.peer); } };
-    conn.on('close', gone); conn.on('error', gone);
+  attach(c) {
+    if (this.closed) { c.end(true); return null; }
+    const T = this.cx.topic;
+    c.subscribe([T + '/s', T + '/h']);
+    c.on('message', (topic, payload) => this.rq(async () => {
+      const m = await this.cx.open(new TextDecoder().decode(payload)); if (!m) return;
+      if (topic === T + '/h') {
+        if (m.from === this.hostTag) return;
+        if (m.t === 'ping' && this.busyCheck) this.collision = true;
+        if (m.t === 'whohost' && !this.busyCheck && !this.closed) this.pub('/h', { t: 'ping', from: this.hostTag });
+        return;
+      }
+      const id = String(m.from || '').slice(0, 16); if (!id) return;
+      if (m.t === 'hello') { this.clients.set(id, { last: Date.now() }); this.h.join(id, cleanName(m.nick) || 'Player'); }
+      else if (m.t === 'leave') { if (this.clients.delete(id)) this.h.leave(id); }
+      else if (!this.clients.has(id)) return;
+      else { this.clients.get(id).last = Date.now(); if (m.t === 'act' && m.a && typeof m.a === 'object') this.h.act(id, m.a); }
+    }));
+    this.links.push(c);
+    return c;
   }
+  pub(sub, obj) {
+    this.q(async () => {
+      const p = await this.cx.seal(obj);
+      for (const c of this.links) if (c.connected) try { c.publish(this.cx.topic + sub, p); } catch (e) {}
+    });
+  }
+  get hostTag() { return this._tag || (this._tag = rid()); }
   beat() {
     const now = Date.now();
-    for (const [id, c] of [...this.conns]) {
-      if (now - c.last > 16000) { try { c.conn.close(); } catch (e) {} this.conns.delete(id); this.h.leave(id); }
-      else this.send(id, { t: 'ping' });
-    }
+    for (const [id, c] of [...this.clients]) if (now - c.last > 16000) { this.clients.delete(id); this.h.leave(id); }
+    this.pub('/h', { t: 'ping', from: this.hostTag });
   }
-  send(id, msg) { const c = this.conns.get(id); if (c && c.conn.open) try { c.conn.send(msg); } catch (e) {} }
-  lobby(l) { for (const id of this.conns.keys()) this.send(id, { t: 'lobby', l }); }
+  lobby(l) { this.lastLobby = l; this.pub('/h', { t: 'lobby', l, n: ++this.n }); }
   state(viewFor, seatOf, lobby) {
-    for (const id of this.conns.keys()) {
+    for (const id of this.clients.keys()) {
       const seat = seatOf(id);
-      this.send(id, seat == null ? { t: 'lobby', l: lobby } : { t: 'state', st: viewFor(seat) });
+      this.pub('/c/' + id, seat == null ? { t: 'lobby', l: lobby, n: ++this.n } : { t: 'state', st: viewFor(seat), n: ++this.n });
     }
   }
-  close() { this.closed = true; clearInterval(this.hb); try { this.peer.destroy(); } catch (e) {} }
+  close() {
+    this.closed = true; clearInterval(this.hb);
+    if (this.cx) this.q(async () => { const p = await this.cx.seal({ t: 'gone' }); for (const c of this.links) try { c.publish(this.cx.topic + '/h', p); } catch (e) {} });
+    this.q(async () => { for (const c of this.links) try { c.end(false); } catch (e) {} });
+  }
 }
-class PeerClient {
-  constructor(h) { this.h = h; this.kind = 'p2p'; }
+class RelayClient {
+  constructor(h) { this.h = h; this.kind = 'relay'; this.selfId = rid(); this.q = queue(); this.rq = queue(); this.lastN = 0; }
   async start(code, nick) {
-    this.peer = await openPeer();
-    this.selfId = this.peer.id;
+    this.cx = await roomCrypto(code); this.nick = nick;
+    const T = this.cx.topic, will = await this.cx.seal({ t: 'leave', from: this.selfId });
+    // race every broker; keep the first that answers and drop the rest
+    const tries = BROKERS.map(url => connectBroker(url, { clientId: 'c' + rid(), will: { topic: T + '/s', payload: will, qos: 0 } }, 6000));
+    let c = null;
+    try { c = await Promise.any(tries); } catch (e) { throw { type: 'relay-down' }; }
+    tries.forEach(p => p.then(x => { if (x !== c) try { x.end(true); } catch (e) {} }, () => {}));
+    this.c = c;
+    c.subscribe([T + '/h', T + '/c/' + this.selfId]);
     return new Promise((res, rej) => {
-      let opened = false;
-      const conn = this.peer.connect(PEER_PREFIX + code, { reliable: true, serialization: 'json' });
-      this.conn = conn;
-      const to = setTimeout(() => { if (!opened) { this.close(); rej({ type: 'peer-unavailable' }); } }, 12000);
-      this.peer.on('error', e => { if (!opened) { clearTimeout(to); this.close(); rej(e || { type: 'error' }); } });
-      conn.on('open', () => {
-        opened = true; clearTimeout(to); this.last = Date.now();
-        conn.send({ t: 'hello', nick });
-        this.wd = setInterval(() => { if (Date.now() - this.last > 16000) this.gone(); }, 3000);
-        res(this);
-      });
-      conn.on('data', d => {
-        this.last = Date.now(); if (!d || typeof d !== 'object') return;
-        if (d.t === 'ping') { try { conn.send({ t: 'pong' }); } catch (e) {} }
-        else if (d.t === 'lobby' && d.l) this.h.lobby(d.l);
-        else if (d.t === 'state' && d.st) this.h.state(d.st);
-      });
-      conn.on('close', () => { if (opened) this.gone(); });
+      let found = false;
+      const hello = () => this.send({ t: 'hello', nick: this.nick });
+      hello(); this.helloTimer = setInterval(() => { if (!found) hello(); }, 1500);
+      const to = setTimeout(() => { if (!found) { this.close(); rej({ type: 'peer-unavailable' }); } }, 10000);
+      c.on('message', (topic, payload) => this.rq(async () => {
+        const m = await this.cx.open(new TextDecoder().decode(payload)); if (!m) return;
+        this.last = Date.now();
+        if (m.t === 'gone') { if (found) this.gone(); return; }
+        if (m.t === 'ping') { if (found) this.send({ t: 'pong' }); return; }
+        if (m.t !== 'lobby' && m.t !== 'state') return;
+        if (typeof m.n === 'number') { if (m.n <= this.lastN) return; this.lastN = m.n; }
+        if (!found) { found = true; clearTimeout(to); clearInterval(this.helloTimer); this.wd = setInterval(() => { if (Date.now() - this.last > 16000) this.gone(); }, 3000); res(this); }
+        if (m.t === 'lobby' && m.l) this.h.lobby(m.l); else if (m.st) this.h.state(m.st);
+      }));
     });
   }
+  send(obj) { this.q(async () => { const p = await this.cx.seal(Object.assign({ from: this.selfId }, obj)); if (this.c && this.c.connected) try { this.c.publish(this.cx.topic + '/s', p); } catch (e) {} }); }
+  rename(nick) { this.nick = nick; this.send({ t: 'hello', nick }); }
+  act(a) { this.send({ t: 'act', a }); }
   gone() { if (this.dead) return; this.dead = true; clearInterval(this.wd); this.h.gone(); }
-  act(a) { try { this.conn.send({ t: 'act', a }); } catch (e) {} }
-  close() { this.dead = true; clearInterval(this.wd); try { this.peer.destroy(); } catch (e) {} }
+  close() {
+    this.dead = true; clearInterval(this.wd); clearInterval(this.helloTimer);
+    this.send({ t: 'leave' });
+    this.q(async () => { try { this.c && this.c.end(false); } catch (e) {} });
+  }
 }
 
 // ---- claude.ai room (used only when the page runs inside Claude, where WebRTC is unavailable) ----
@@ -905,6 +986,7 @@ class RoomHost {
       const pr = p.presence || {}; const nick = cleanName(pr.nick);
       if (pr.join !== true || !nick) continue;
       live.add(p.peer);
+      if (this.known.has(p.peer) && this.known.get(p.peer) !== nick) { this.known.set(p.peer, nick); this.h.join(p.peer, nick); }
       if (!this.known.has(p.peer)) {
         this.known.set(p.peer, nick);
         this.lastAct[p.peer] = pr.act && typeof pr.act.id === 'number' ? pr.act.id : 0;
@@ -946,18 +1028,20 @@ class RoomClient {
     });
   }
   act(a) { this.actId = Math.max(this.actId + 1, Date.now() % 1e9); this.R.presence({ act: Object.assign({ id: this.actId }, a) }).catch(() => {}); }
+  rename(nick) { this.R.presence({ nick }).catch(() => {}); }
   close() { try { this.R.leave(); } catch (e) {} }
 }
 
+const relayReady = async () => !!(window.crypto && crypto.subtle && await loadMqtt());
 async function openHost(code, h) {
   if (inClaude()) { const t = new RoomHost(h); await t.start(code); return t; }
-  if (!(await loadPeerJS()) || !window.RTCPeerConnection) throw { type: 'no-p2p' };
-  const t = new PeerHost(h); await t.start(code); return t;
+  if (!(await relayReady())) throw { type: 'no-relay' };
+  const t = new RelayHost(h); await t.start(code); return t;
 }
 async function openClient(code, nick, h, onCreate) {
   if (inClaude()) { const t = new RoomClient(h); onCreate(t); return t.start(code, nick); }
-  if (!(await loadPeerJS()) || !window.RTCPeerConnection) throw { type: 'no-p2p' };
-  const t = new PeerClient(h); onCreate(t); return t.start(code, nick);
+  if (!(await relayReady())) throw { type: 'no-relay' };
+  const t = new RelayClient(h); onCreate(t); return t.start(code, nick);
 }
 
 </script>
@@ -1090,10 +1174,23 @@ function seg(el, opts, key, fmt, after) {
 seg($('segBots'), [1, 2, 3, 4, 5], 'bots');
 seg($('segSpeed'), ['slow', 'normal', 'fast'], 'speed');
 seg($('segMercy'), [25, 35, 50, 0], 'mercy', v => v ? v + ' cards' : 'Off');
-$('ruleBox').innerHTML = RULES.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
-$('ruleBox').addEventListener('change', e => { if (e.target.dataset.rule) { S.rules[e.target.dataset.rule] = e.target.checked; saveSettings(); } });
-$('cardBox').innerHTML = EXTRA_INFO.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
-$('cardBox').addEventListener('change', e => { if (e.target.dataset.card) { S.cards[e.target.dataset.card] = e.target.checked; saveSettings(); } });
+function drawToggles() {
+  const rules = RULES.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
+  const cards = EXTRA_INFO.map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
+  $('ruleBox').innerHTML = rules; $('lbRules').innerHTML = rules;
+  $('cardBox').innerHTML = cards; $('lbCards').innerHTML = cards;
+}
+drawToggles();
+function onToggle(e) {
+  const t = e.target; let hit = false;
+  if (t.dataset.rule) { S.rules[t.dataset.rule] = t.checked; hit = true; }
+  if (t.dataset.card) { S.cards[t.dataset.card] = t.checked; hit = true; }
+  if (!hit) return;
+  saveSettings();
+  document.querySelectorAll(`[data-rule="${t.dataset.rule}"],[data-card="${t.dataset.card}"]`).forEach(x => { if (x !== t) x.checked = t.checked; });
+  if (MODE === 'host') hostRefresh(true);
+}
+for (const id of ['ruleBox', 'cardBox', 'lbRules', 'lbCards']) $(id).addEventListener('change', onToggle);
 const tableRules = extra => Object.assign({}, S.rules, { cards: Object.assign({}, S.cards) }, extra);
 $('pname').value = S.name;
 $('btnStart').onclick = startLocal;
@@ -1104,7 +1201,17 @@ document.querySelectorAll('[data-rules]').forEach(b => b.onclick = showRules);
 $('btnSound').onclick = () => { S.sound = !S.sound; saveSettings(); $('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off'; };
 $('btnSound').textContent = S.sound ? 'Sound on' : 'Sound off';
 (function readHash() { const m = /^#join-([a-z0-9]{4})$/i.exec(location.hash || ''); if (m) { $('joinCode').value = m[1].toUpperCase(); startMsg('Enter your name, then Join.'); } })();
-function readName() { S.name = cleanName($('pname').value) || 'You'; saveSettings(); return S.name; }
+function readName() { S.name = cleanName($('pname').value) || 'You'; saveSettings(); $('lbName').value = S.name; return S.name; }
+let renameTimer;
+$('lbName').addEventListener('input', () => {
+  clearTimeout(renameTimer);
+  renameTimer = setTimeout(() => {
+    const nm = cleanName($('lbName').value); if (!nm || nm === S.name) return;
+    S.name = nm; saveSettings(); $('pname').value = nm;
+    if (MODE === 'host') hostRefresh(true);
+    else if (MODE === 'client' && net && net.rename) net.rename(nm);
+  }, 350);
+});
 function show(screen) { for (const id of ['start', 'lobby', 'game']) $(id).classList.toggle('hidden', id !== screen); if (screen !== 'game') document.body.classList.remove('dark'); }
 function startMsg(t) { $('startMsg').textContent = t; }
 
@@ -1127,13 +1234,14 @@ const randCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Mat
 function netErr(e) {
   const t = e && e.type;
   if (t === 'peer-unavailable') return 'No room with that code. Check the code, or ask the host to create the room first.';
-  if (t === 'no-p2p' || t === 'browser-incompatible') return 'Online play is not available in this browser.';
   if (t === 'no-room') return 'Online rooms are not available in this view.';
+  if (t === 'no-relay') return 'Online play needs the page served over https (GitHub Pages works) and the relay library to load.';
+  if (t === 'relay-down') return 'Could not reach any relay server. Check your connection or VPN and try again.';
   if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'timeout') return 'Could not reach the matchmaking server. Check your connection and try again.';
   return 'Could not connect (' + (t || 'error') + '). Try again.';
 }
 const hostHandlers = {
-  join(id, nick) { if (!roomPeers.has(id)) roomPeers.set(id, { nick }); hostRefresh(true); },
+  join(id, nick) { const p = roomPeers.get(id); if (p) p.nick = nick; else roomPeers.set(id, { nick }); hostRefresh(true); },
   leave(id) {
     roomPeers.delete(id);
     if (G && peerSeat[id] != null) {
@@ -1156,7 +1264,9 @@ async function createRoom() {
   if (!t) { startMsg('Could not open a room. Try again.'); return; }
   startMsg(''); net = t; roomCode = code; MODE = 'host'; roomPeers = new Map(); peerSeat = {}; G = null; ME = 0;
   seg($('segRoomBots'), [0, 1, 2, 3, 4], 'roomBots', null, () => hostRefresh(true));
-  if (net.kind === 'p2p') { $('shareBox').classList.remove('hidden'); $('shareLink').value = location.href.split('#')[0] + '#join-' + code; }
+  seg($('segRoomSpeed'), ['slow', 'normal', 'fast'], 'speed', null, () => seg($('segSpeed'), ['slow', 'normal', 'fast'], 'speed'));
+  drawToggles();
+  if (net.kind === 'relay') { $('shareBox').classList.remove('hidden'); $('shareLink').value = location.href.split('#')[0] + '#join-' + code; }
   else $('shareBox').classList.add('hidden');
   hostRefresh(true);
   show('lobby');
@@ -1166,7 +1276,10 @@ function hostSeats() {
   for (const [id, p] of roomPeers) { if (humans.length >= 6) break; humans.push({ nick: p.nick, av: '', id }); }
   return { humans, bots: Math.min(S.roomBots, 6 - humans.length) };
 }
-function lobbyObj() { const { humans, bots } = hostSeats(); return { code: roomCode, seats: humans.map(h => [h.nick, h.av, h.id]), bots, live: !!(G && G.winner === null) }; }
+function lobbyObj() {
+  const { humans, bots } = hostSeats();
+  return { code: roomCode, seats: humans.map(h => [h.nick, h.av, h.id]), bots, live: !!(G && G.winner === null), rules: Object.assign({}, S.rules), cards: Object.assign({}, S.cards) };
+}
 function hostRefresh(force) {
   if (MODE !== 'host' || !net) return;
   const l = lobbyObj();
@@ -1242,6 +1355,12 @@ $('btnLeave').onclick = leaveRoom;
 function renderLobby(l, isHost) {
   $('lbCode').textContent = roomCode.toUpperCase();
   $('lbHost').classList.toggle('hidden', !isHost);
+  $('lbGuest').classList.toggle('hidden', isHost || !l || !l.rules);
+  if (document.activeElement !== $('lbName')) $('lbName').value = S.name;
+  if (!isHost && l && l.rules) {
+    const row = (name, on) => `<div class="rv ${on ? '' : 'off'}"><span>${esc(name)}</span><span class="mono">${on ? 'on' : 'off'}</span></div>`;
+    $('lbRulesView').innerHTML = RULES.map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_INFO.map(([k, t]) => row(t, !l.cards || l.cards[k] !== false)).join('');
+  }
   if (!isHost) $('shareBox').classList.add('hidden');
   $('lbHint').textContent = isHost ? 'Friends open this page, enter the code and press Join.' : 'Connected.';
   if (!l) { $('lbSeats').innerHTML = ''; return; }
