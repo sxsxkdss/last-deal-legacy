@@ -16,7 +16,7 @@ const IDLE_SKIP_MS = 60000;   // a connected but idle player's turn is skipped a
 const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
 const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan'];
+const EXTRA = [];
 const RULE_KEYS = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
 const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
 

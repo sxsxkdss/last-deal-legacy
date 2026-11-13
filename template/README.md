@@ -10,7 +10,7 @@ This `template/` folder is **not** read by the game. It holds starting points: c
 
 ```
 assets/
-  cards/      L-r-7.png, D-w-bhole.png ...   card faces
+  cards/      L-r-7.png, D-w-wdc.png ...     card faces
   sounds/     play.ogg, play-2.ogg, win.mp3  sound effects (+ music.ogg)
   font/       ui.woff2, display.ttf          fonts
   bg.png                                     background (replaces the swirl)
@@ -19,7 +19,7 @@ assets/
 
 ## Cards
 
-`template/cards/` has **every card in the game** exported at 256×376 px in the current look, plus empty frames in `template/cards/_blank/`.
+`template/cards/` has **every card in the game** (141) exported at 256×376 px in the current look, plus empty frames in `template/cards/_blank/`.
 
 - **Name:** `<side>-<color>-<value>.png`
   - side: `L` light, `D` dark
@@ -29,19 +29,25 @@ assets/
 - **Format:** PNG, WebP, GIF, JPG or SVG. Transparent corners are fine.
 - Pixel art: set `"pixelated": true` in `pack.json` so it scales with hard edges.
 
-| value | card | value | card |
-|---|---|---|---|
-| `0`–`9` | numbers | `wild` | Wild |
-| `skip` | Skip | `wd2` `wd4` `wd6` `wd10` `wd15` | Wild Draw 2 / 4 / 6 / 10 / 15 |
-| `rev` | Reverse | `wrd4` `wrd8` | Wild Reverse Draw 4 / 8 |
-| `skipall` | Skip Everyone | `wdc` | Wild Draw Color |
-| `d1` `d2` `d4` `d5` | Draw 1 / 2 / 4 / 5 | `roul` | Color Roulette |
-| `flip` | Flip | `bhole` | Black Hole (dark) |
-| `dflip` | Double Flip | `mul2` `mul3` | Mult ×2 / ×3 (wild) |
-| `discall` | Discard All | `devil` | 666 (dark wild) |
-| `mirror` | Mirror | `spin` | Jackpot (wild) |
-| `shield` | Shield | `lucky` | Lucky |
-| `glass` | Glass | `loan` | Loan |
+| value | card | sides |
+|---|---|---|
+| `0` | 0 | light |
+| `1`–`9` | numbers | both |
+| `skip` | Skip | light |
+| `rev` | Reverse | both |
+| `skipall` | Skip Everyone | both |
+| `d1` `d2` `d4` | Draw 1 / 2 / 4 | light |
+| `d5` | Draw 5 | dark |
+| `flip` | Flip | both |
+| `discall` | Discard All | both |
+| `wild` | Wild | both |
+| `wd2` `wd4` | Wild Draw 2 / 4 | light |
+| `wd6` `wd10` | Wild Draw 6 / 10 | both |
+| `wrd4` | Wild Reverse Draw 4 | both |
+| `roul` | Wild Color Roulette | both |
+| `wdc` | Wild Draw Color | dark |
+
+The complete list of file names is in `template/cards/CARDS.txt`.
 
 Which colors and sides each value exists on: just look at the file names in `template/cards/`.
 
@@ -59,23 +65,17 @@ Which colors and sides each value exists on: just look at the file names in `tem
 | `play` | a card hits the pile |
 | `draw` | a card is drawn |
 | `flip` | the table flips sides |
-| `shuffle` | Black Hole deals hands out |
 | `stack` | a draw stack grows |
 | `took` | someone takes a stack |
 | `uno` | someone calls UNO |
-| `skip` | Skip / Reverse / Skip Everyone |
-| `swap` | hands swap / rotate, Mirror, Shield |
+| `skip` | someone is skipped, Reverse, Skip Everyone |
+| `swap` | hands swap (7) or rotate (0) |
 | `turn` | your turn starts |
 | `ko` | a player is knocked out |
 | `win` | the game is won |
-| `bad` | penalty, caught without UNO, loan due |
+| `bad` | penalty, caught without UNO |
 | `click` | buttons and picks |
 | `tick` / `reel` / `chaos` | chaos slot machine: spinning, each reel stopping, the result |
-| `mult` | Mult ×2 / ×3 |
-| `lucky` | Lucky hits |
-| `glass` | Glass |
-| `devil` | 666 |
-| `coin` | taking a Loan |
 
 ## Fonts
 
