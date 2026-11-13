@@ -872,7 +872,7 @@ function connectBroker(url, opts, timeout = 6000) {
 function queue() { let p = Promise.resolve(); return fn => (p = p.then(fn).catch(() => {})); }
 
 class RelayHost {
-  constructor(h) { this.h = h; this.kind = 'relay'; this.redacts = true; this.selfId = 'host'; this.clients = new Map(); this.links = []; this.q = queue(); this.rq = queue(); this.n = 0; }
+  constructor(h) { this.h = h; this.kind = 'relay'; this.redacts = true; this.selfId = 'host'; this.clients = new Map(); this.left = new Set(); this.links = []; this.q = queue(); this.rq = queue(); this.n = 0; }
   async start(code) {
     this.cx = await roomCrypto(code);
     const T = this.cx.topic, will = await this.cx.seal({ t: 'gone' });
@@ -898,10 +898,20 @@ class RelayHost {
         return;
       }
       const id = String(m.from || '').slice(0, 16); if (!id) return;
-      if (m.t === 'hello') { this.clients.set(id, { last: Date.now() }); this.h.join(id, cleanName(m.nick) || 'Player'); }
-      else if (m.t === 'leave') { if (this.clients.delete(id)) this.h.leave(id); }
-      else if (!this.clients.has(id)) return;
-      else { this.clients.get(id).last = Date.now(); if (m.t === 'act' && m.a && typeof m.a === 'object') this.h.act(id, m.a); }
+      const known = this.clients.get(id);
+      if (m.t === 'leave') {
+        if (known && (!m.conn || !known.conn || m.conn === known.conn)) { this.clients.delete(id); this.left.add(id); this.h.leave(id); }
+        return;
+      }
+      if (this.left.has(id)) return; // said goodbye; late packets don't bring them back
+      if (m.t === 'hello' || !known) {
+        // a hello, or any message from a player we lost track of: (re)admit them
+        this.clients.set(id, { last: Date.now(), conn: m.conn || (known && known.conn) });
+        this.h.join(id, cleanName(m.nick) || 'Player');
+        if (m.t !== 'act') return;
+      }
+      const cl = this.clients.get(id); cl.last = Date.now(); if (m.conn) cl.conn = m.conn;
+      if (m.t === 'act' && m.a && typeof m.a === 'object') this.h.act(id, m.a);
     }));
     this.links.push(c);
     return c;
@@ -935,12 +945,16 @@ class RelayClient {
   constructor(h) { this.h = h; this.kind = 'relay'; this.selfId = rid(); this.q = queue(); this.rq = queue(); this.lastN = 0; }
   async start(code, nick) {
     this.cx = await roomCrypto(code); this.nick = nick;
-    const T = this.cx.topic, will = await this.cx.seal({ t: 'leave', from: this.selfId });
-    // race every broker; keep the first that answers and drop the rest
-    const tries = BROKERS.map(url => connectBroker(url, { clientId: 'c' + rid(), will: { topic: T + '/s', payload: will, qos: 0 } }, 6000));
+    const T = this.cx.topic;
+    // race every broker; keep the first that answers and drop the rest.
+    // Each connection's leave-notice carries its own tag, so a dropped spare can't kick us out.
+    const tags = BROKERS.map(() => rid());
+    const wills = await Promise.all(tags.map(tag => this.cx.seal({ t: 'leave', from: this.selfId, conn: tag })));
+    const tries = BROKERS.map((url, i) => connectBroker(url, { clientId: 'c' + rid(), will: { topic: T + '/s', payload: wills[i], qos: 0 } }, 6000).then(c => { c._tag = tags[i]; return c; }));
     let c = null;
     try { c = await Promise.any(tries); } catch (e) { throw { type: 'relay-down' }; }
-    tries.forEach(p => p.then(x => { if (x !== c) try { x.end(true); } catch (e) {} }, () => {}));
+    this.conn = c._tag;
+    tries.forEach(p => p.then(x => { if (x !== c) try { x.end(false); } catch (e) {} }, () => {}));
     this.c = c;
     c.subscribe([T + '/h', T + '/c/' + this.selfId]);
     return new Promise((res, rej) => {
@@ -952,15 +966,20 @@ class RelayClient {
         const m = await this.cx.open(new TextDecoder().decode(payload)); if (!m) return;
         this.last = Date.now();
         if (m.t === 'gone') { if (found) this.gone(); return; }
+        if (this.dead) return;
         if (m.t === 'ping') { if (found) this.send({ t: 'pong' }); return; }
         if (m.t !== 'lobby' && m.t !== 'state') return;
         if (typeof m.n === 'number') { if (m.n <= this.lastN) return; this.lastN = m.n; }
         if (!found) { found = true; clearTimeout(to); clearInterval(this.helloTimer); this.wd = setInterval(() => { if (Date.now() - this.last > 16000) this.gone(); }, 3000); res(this); }
-        if (m.t === 'lobby' && m.l) this.h.lobby(m.l); else if (m.st) this.h.state(m.st);
+        if (m.t === 'lobby' && m.l) {
+          const seated = Array.isArray(m.l.seats) && m.l.seats.some(s => s[2] === this.selfId);
+          if (!seated && !m.l.live && (m.l.seats || []).length < 6 && Date.now() - (this.lastHello || 0) > 1500) { this.lastHello = Date.now(); this.send({ t: 'hello' }); }
+          this.h.lobby(m.l);
+        } else if (m.st) this.h.state(m.st);
       }));
     });
   }
-  send(obj) { this.q(async () => { const p = await this.cx.seal(Object.assign({ from: this.selfId }, obj)); if (this.c && this.c.connected) try { this.c.publish(this.cx.topic + '/s', p); } catch (e) {} }); }
+  send(obj) { if (this.dead && obj.t !== 'leave') return; this.q(async () => { const p = await this.cx.seal(Object.assign({ from: this.selfId, conn: this.conn, nick: this.nick }, obj)); if (this.c && this.c.connected) try { this.c.publish(this.cx.topic + '/s', p); } catch (e) {} }); }
   rename(nick) { this.nick = nick; this.send({ t: 'hello', nick }); }
   act(a) { this.send({ t: 'act', a }); }
   gone() { if (this.dead) return; this.dead = true; clearInterval(this.wd); this.h.gone(); }
@@ -1341,7 +1360,7 @@ async function joinRoom(raw) {
   if (!$('start').classList.contains('hidden')) { renderLobby(null, false); $('lbWait').textContent = 'Connected. Waiting for the host.'; show('lobby'); }
 }
 function hostLeft() {
-  token++; busy = false;
+  token++; busy = false; G = null; // stops a pending end-of-game screen from covering this notice
   openModal(`<h2>The host left</h2><p>The room closed because the host disconnected.</p><button class="btn primary wide" id="hl">Back to menu</button>`);
   $('hl').onclick = leaveRoom;
 }
@@ -1371,7 +1390,8 @@ function renderLobby(l, isHost) {
   const total = l.seats.length + l.bots;
   if (isHost) { $('btnRoomStart').disabled = total < 2; $('lbWait').textContent = total < 2 ? 'Add a bot or wait for a friend to join.' : `${total} of 6 seats. Online games have no Mercy limit.`; }
   else if (l.live) $('lbWait').textContent = 'A game is in progress. You\'ll get a seat when the host deals the next round.';
-  else $('lbWait').textContent = l.seats.some(s => s[2] === me) ? 'You have a seat. Waiting for the host to start.' : 'The room is full (6 seats). You get a seat if someone leaves.';
+  else if (l.seats.some(s => s[2] === me)) $('lbWait').textContent = 'You have a seat. Waiting for the host to start.';
+  else $('lbWait').textContent = l.seats.length >= 6 ? 'The room is full (6 seats). You get a seat if someone leaves.' : 'Joining…';
 }
 
 // ================= ACTIONS =================
