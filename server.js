@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
-const { Game, serialize, cardCode } = require('./engine.js');
+const { Game, Bot, serialize, cardCode } = require('./engine.js');
 
 const PORT = process.env.PORT || 3000;
 const MAX_SEATS = 6;
@@ -16,8 +16,9 @@ const IDLE_SKIP_MS = 60000;   // a connected but idle player's turn is skipped a
 const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
 const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const EXTRA = ['mirror', 'shield', 'dflip', 'duel', 'wd15', 'bhole'];
-const RULE_KEYS = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno'];
+const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan'];
+const RULE_KEYS = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
 
 const clean = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 const validToken = t => typeof t === 'string' && /^[a-z0-9]{12,40}$/.test(t);
@@ -50,20 +51,20 @@ function newCode() {
 function makeRoom(hostToken) {
   const room = {
     code: newCode(), host: hostToken, members: new Map(), order: [],
-    rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true },
+    rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true, chaos: true },
     cards: Object.fromEntries(EXTRA.map(k => [k, true])),
     G: null, seats: [], timer: null, emptySince: null
   };
   rooms.set(room.code, room);
   return room;
 }
-const online = m => !!(m.ws && m.ws.readyState === 1);
+const online = m => !!(m && (m.bot || (m.ws && m.ws.readyState === 1)));
 function seatOf(room, token) { const i = room.seats.indexOf(token); return i < 0 ? null : i; }
 function lobbyFor(room, viewer) {
   const list = room.order.map(t => room.members.get(t)).filter(Boolean);
   return {
     code: room.code,
-    players: list.map(m => [m.name, online(m) ? 1 : 0, m.token === room.host ? 1 : 0, m.token === viewer ? 1 : 0]),
+    players: list.map(m => [m.name, online(m) ? 1 : 0, m.token === room.host ? 1 : 0, m.token === viewer ? 1 : 0, m.bot ? 1 : 0]),
     live: !!(room.G && room.G.winner === null),
     rules: room.rules, cards: room.cards,
     host: viewer === room.host
@@ -74,7 +75,7 @@ function sync(room) {
   // mark who is connected, so seats show "away"
   if (room.G) room.seats.forEach((t, i) => { const m = room.members.get(t); room.G.players[i].away = !(m && online(m)); });
   for (const m of room.members.values()) {
-    if (!online(m)) continue;
+    if (m.bot || !online(m)) continue;
     const seat = room.G ? seatOf(room, m.token) : null;
     if (room.G && seat !== null) {
       const st = serialize(room.G, seat, 12);
@@ -83,6 +84,7 @@ function sync(room) {
     } else send(m.ws, { t: 'lobby', lobby: lobbyFor(room, m.token) });
   }
   armTimer(room);
+  armBots(room);
 }
 // skip the turn of someone who is away or idle, so the table never freezes
 function armTimer(room) {
@@ -90,6 +92,7 @@ function armTimer(room) {
   const G = room.G; if (!G || G.winner !== null) return;
   const pi = G.roulette !== null ? G.roulette : G.turn;
   const m = room.members.get(room.seats[pi]);
+  if (m && m.bot) return; // bots act on their own clock
   const wait = m && online(m) ? IDLE_SKIP_MS : AWAY_SKIP_MS;
   const key = `${G.seq}:${G.turn}:${G.roulette}:${G.evSeq}`;
   room.timer = setTimeout(() => {
@@ -97,6 +100,54 @@ function armTimer(room) {
     if (G.skipTurn(pi)) sync(room);
   }, wait);
 }
+// ---------- bots (for testing, or to fill seats) ----------
+// One action per tick, so humans can follow along; the next tick is armed by sync().
+function armBots(room) {
+  clearTimeout(room.botTimer); room.botTimer = null;
+  const G = room.G; if (!G || G.winner !== null) return;
+  const job = nextBotJob(room); if (!job) return;
+  room.botTimer = setTimeout(() => {
+    if (room.G !== G || G.winner !== null) return;
+    const j = nextBotJob(room); if (!j) return;
+    try { j.run(); } catch (e) { console.error('bot error', e); }
+    sync(room);
+  }, job.wait);
+}
+function nextBotJob(room) {
+  const G = room.G, isBot = i => { const m = room.members.get(room.seats[i]); return !!(m && m.bot) && !G.players[i].out; };
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  // bots catch humans who forgot to call UNO
+  for (let i = 0; i < G.players.length; i++) {
+    if (!isBot(i) && G.players[i].vulnerable && G.players[i].hand.length === 1) {
+      const catcher = G.players.findIndex((p, k) => isBot(k));
+      if (catcher >= 0) return { wait: rnd(1500, 2600), run: () => G.catchUno(catcher, i) };
+    }
+  }
+  // owed cards first (UNO penalty, chaos tax, lost duel)
+  for (let i = 0; i < G.players.length; i++) if (isBot(i) && G.owes(i)) return { wait: rnd(160, 260), run: () => G.draw(i) };
+  if (G.roulette !== null && isBot(G.roulette)) { const v = G.roulette; return { wait: rnd(700, 1100), run: () => G.resolveRoulette(Bot.bestColor(G, G.players[v].hand, G.side)) }; }
+  if (G.debt && isBot(G.debt.pi)) { const v = G.debt.pi; return { wait: rnd(140, 240), run: () => G.draw(v) }; }
+  const pi = G.turn;
+  if (!isBot(pi)) {
+    // now and then a bot slams an exact copy out of turn
+    const j = Bot.jumpCandidate(G);
+    if (j && isBot(j.pi) && Math.random() < 0.5) return { wait: rnd(900, 1800), run: () => botPlay(G, j.pi, j.card) };
+    return null;
+  }
+  return { wait: rnd(650, 1150), run: () => {
+    const p = G.players[pi], m = Bot.choose(G, pi);
+    if (m) { if (p.hand.length - 1 - (m.extra || []).length <= 1 && Math.random() < 0.85) G.callUno(pi); G.play(pi, m.cardId, m); return; }
+    if (G.drewBy === pi) { G.pass(pi); return; }
+    G.draw(pi);
+  } };
+}
+function botPlay(G, pi, card) {
+  const p = G.players[pi], f = G.f(card);
+  const extra = G.rules.multi ? p.hand.filter(c => c !== card && G.f(c).v === f.v && (G.f(c).c === 'w') === (f.c === 'w')) : [];
+  const rest = p.hand.filter(c => c !== card && !extra.includes(c));
+  G.play(pi, card.id, { color: Bot.bestColor(G, rest, G.side), flipColor: Bot.bestColor(G, rest, G.side === 'L' ? 'D' : 'L'), extra: extra.map(c => c.id) });
+}
+
 function startGame(room) {
   const players = room.order.map(t => room.members.get(t)).filter(m => m && online(m)).slice(0, MAX_SEATS);
   if (players.length < 2) return 'Need at least 2 connected players.';
@@ -209,6 +260,20 @@ function handle(ws, msg) {
       if (err) send(ws, { t: 'error', code: 'start', msg: err });
       sync(room); return;
     }
+    case 'addbot': {
+      if (!isHost || (room.G && room.G.winner === null) || room.order.length >= 10) return;
+      const used = new Set([...room.members.values()].map(x => x.name));
+      const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot ' + (room.order.length + 1);
+      const token = 'bot' + crypto.randomBytes(8).toString('hex');
+      room.members.set(token, { token, name, bot: true, ws: null }); room.order.push(token);
+      sync(room); return;
+    }
+    case 'rmbot': {
+      if (!isHost || (room.G && room.G.winner === null)) return;
+      const t = [...room.order].reverse().find(x => room.members.get(x) && room.members.get(x).bot);
+      if (t) { room.members.delete(t); room.order = room.order.filter(x => x !== t); }
+      sync(room); return;
+    }
     case 'tolobby': {
       if (!isHost || (room.G && room.G.winner === null)) return;
       room.G = null; room.seats = []; sync(room); return;
@@ -244,13 +309,13 @@ setInterval(() => {
       });
       if (changed) sync(room);
     }
-    const anyOnline = [...room.members.values()].some(online);
-    if (!anyOnline) { room.emptySince = room.emptySince || now; if (now - room.emptySince > ROOM_TTL_MS) { clearTimeout(room.timer); rooms.delete(code); } continue; }
+    const anyOnline = [...room.members.values()].some(m => !m.bot && online(m));
+    if (!anyOnline) { room.emptySince = room.emptySince || now; clearTimeout(room.botTimer); if (now - room.emptySince > ROOM_TTL_MS) { clearTimeout(room.timer); rooms.delete(code); } continue; }
     const host = room.members.get(room.host);
     if (!host || !online(host)) {
       host && (host.awaySince = host.awaySince || now);
       if (!host || now - host.awaySince > 20000) {
-        const next = room.order.map(t => room.members.get(t)).find(online);
+        const next = room.order.map(t => room.members.get(t)).find(m => m && !m.bot && online(m));
         if (next) { room.host = next.token; if (host) host.awaySince = null; sync(room); }
       }
     } else host.awaySince = null;
