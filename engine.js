@@ -321,9 +321,11 @@ class Game {
     } else {
       // one card per draw: the player keeps drawing by hand until something is playable
       this.drawRun = (this.drawRunPi === pi ? this.drawRun || 0 : 0) + got.length; this.drawRunPi = pi;
-      if (got[0] && this.canPlay(got[0])) {
+      // the run only ends on the current color (or a wild); a matching number or symbol doesn't count
+      const f = got[0] && this.f(got[0]);
+      if (f && (f.c === 'w' || f.c === this.color)) {
         this.drewBy = pi;
-        this.addLog(`${p.name} draws ${this.drawRun} card${this.drawRun > 1 ? 's' : ''} before finding a playable one.`);
+        this.addLog(`${p.name} draws ${this.drawRun} card${this.drawRun > 1 ? 's' : ''} before hitting ${COLOR_NAME[this.color]}.`);
         this.drawRun = 0;
       }
     }

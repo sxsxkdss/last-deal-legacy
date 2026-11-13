@@ -625,9 +625,11 @@ class Game {
     } else {
       // one card per draw: the player keeps drawing by hand until something is playable
       this.drawRun = (this.drawRunPi === pi ? this.drawRun || 0 : 0) + got.length; this.drawRunPi = pi;
-      if (got[0] && this.canPlay(got[0])) {
+      // the run only ends on the current color (or a wild); a matching number or symbol doesn't count
+      const f = got[0] && this.f(got[0]);
+      if (f && (f.c === 'w' || f.c === this.color)) {
         this.drewBy = pi;
-        this.addLog(`${p.name} draws ${this.drawRun} card${this.drawRun > 1 ? 's' : ''} before finding a playable one.`);
+        this.addLog(`${p.name} draws ${this.drawRun} card${this.drawRun > 1 ? 's' : ''} before hitting ${COLOR_NAME[this.color]}.`);
         this.drawRun = 0;
       }
     }
@@ -826,7 +828,7 @@ const RULES = [
   ['flip', 'Flip cards', 'Flip turns every card to its dark side, and back.'],
   ['stacking', 'Stacking', 'Answer a draw card with one of equal or higher value.'],
   ['multi', 'Same-number drops', 'Play every card with the same number or symbol at once: red 7, then blue 7 and green 7 on top.'],
-  ['drawUntil', 'Draw until playable', 'With nothing to play, you draw one card at a time and can\'t pass until one fits.'],
+  ['drawUntil', 'Draw until color', 'With nothing to play, you draw one card at a time and can\'t pass until you draw the current color or a wild.'],
   ['seven', '7 swaps hands', 'Playing a 7 lets you trade hands with any player, if you want to.'],
   ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
   ['jumpIn', 'Jump-in', 'Play an exact match of the top card out of turn.'],
@@ -1272,7 +1274,7 @@ function render() {
   if (G.winner !== null) txt = G.winner === ME ? 'You win' : `${G.players[G.winner].name} wins`;
   else if (me.out) txt = 'You are out. Watching the rest of the game.';
   else if (G.roulette !== null) txt = G.roulette === ME ? 'Roulette: name a color' : `${G.players[G.roulette].name} is naming a color`;
-  else if (myTurn) { you = true; txt = G.pending > 0 ? (G.playable(ME).length ? `Stack +${G.stackMin} or higher, mirror it, or take +${G.pending}` : `Take +${G.pending}`) : (G.drewBy === ME ? 'Play the card you drew, or pass' : (G.playable(ME).length ? 'Your turn: tap or drag a card' : (G.rules.drawUntil ? 'Nothing fits. Keep drawing until something does.' : 'Nothing fits. Draw a card.'))); }
+  else if (myTurn) { you = true; txt = G.pending > 0 ? (G.playable(ME).length ? `Stack +${G.stackMin} or higher, mirror it, or take +${G.pending}` : `Take +${G.pending}`) : (G.drewBy === ME ? 'Play the card you drew, or pass' : (G.playable(ME).length ? 'Your turn: tap or drag a card' : (G.rules.drawUntil ? 'Nothing fits. Keep drawing until you hit ' + COLOR_NAME[G.color] + ' or a wild.' : 'Nothing fits. Draw a card.'))); }
   else txt = `${G.players[G.turn].name}'s turn${away[G.turn] ? ' (away, skipping soon)' : ''}`;
   ban.textContent = txt; ban.className = you ? 'you' : '';
   // me
@@ -1460,7 +1462,7 @@ function showRules() {
     <li><b>Mirror</b> sends the whole stack back to whoever fed it last.</li>
     <li><b>Shield</b> stays in front of you and breaks the next stack that reaches you.</li></ul>
     <h3>Other rules</h3><ul>
-    <li><b>Draw until playable</b>: with nothing to play, you draw one card at a time and can't pass until one fits.</li>
+    <li><b>Draw until color</b>: with nothing to play, you draw one card at a time and can't pass until you draw the current color or a wild. A drawn card that matches only by number or symbol can still be played, but it doesn't end the run.</li>
     <li><b>7</b> lets you swap hands with one player, or keep yours. <b>0</b> passes every hand along. Each can be turned off separately.</li>
     <li><b>Same-number drops</b>: play every card with the same number or symbol together. Draw cards add up, skips skip that many players, and an even number of reverses or flips cancels out.</li>
     <li><b>Jump-in</b>: play an exact match of the top card out of turn. Outlined cards qualify.</li>
