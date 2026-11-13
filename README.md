@@ -49,7 +49,7 @@ The simplest setup is to use the Render link for everything. If you'd rather kee
 
 - **Chaos (on by default):** every 8–12 plays a slot machine spins and lands on a random event: Inflation (draw cards count double for 6 plays), Leader tax (fewest cards picks up 2), Revolution (every hand moves one seat), Flip storm, Color lock (only the color or a wild for 4 plays), Bleed (everyone picks up 1), Jackpot (a lucky player discards 2 random cards) or Mirror world (direction reverses).
 - **Bots:** the host can add bots in the lobby to fill seats or to test on their own. The server plays them.
-- **Effects:** a swirling shader table, CRT scanlines and grain, real pixel art (cards are 20×30 sprites scaled by whole numbers only, a built-in 5×7 bitmap font with Latin and Cyrillic, a dithered fixed-palette background, nothing rotates or blurs), card sway and tilt, particles, screen shake, glitches, and pixel fire that erupts from the pile on huge stacks, multi-drops, multipliers and 666. Switch to "lite" from the log header or the Menu if a device struggles. It starts in lite mode when the system asks for reduced motion.
+- **Effects:** a swirling shader table, CRT scanlines and grain, pixel-art cards and type, card sway and tilt, particles, screen shake, glitches, and pixel fire that erupts from the pile on huge stacks, multi-drops, multipliers and 666. Switch to "lite" from the log header or the Menu if a device struggles. It starts in lite mode when the system asks for reduced motion.
 
 - **Manual drawing:** every card is drawn by hand, one tap per card. That covers taking a stack, Color Roulette, Wild Draw Color, and the UNO penalty. You can't play while you owe cards.
 - **Languages:** English and Russian, picked from the browser's language. Switch any time on the start screen or in the Menu. The game log is translated on each player's screen.
@@ -66,3 +66,9 @@ The simplest setup is to use the Render link for everything. If you'd rather kee
 ## Credits
 
 UNO, UNO Flip and UNO Show 'Em No Mercy are trademarks of Mattel. This is an unofficial fan project, not affiliated with or endorsed by Mattel. If you publish it, consider giving it your own name.
+
+## Your own sprites, fonts and sounds
+
+Drop files into `assets/` and they replace the built-in cards, fonts, sounds and background, one file at a time. No code, no restart: push, `git pull` on the server, refresh. Everything you leave out keeps the built-in version.
+
+`template/` has starting points and the full naming guide: every card exported as a PNG, every sound as a WAV, a pixel font you can draw in text, and an example `pack.json`. Read `template/README.md`.

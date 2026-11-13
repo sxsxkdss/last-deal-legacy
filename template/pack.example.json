@@ -1,0 +1,10 @@
+{
+  "name": "My pack",
+  "pixelated": false,
+  "cardRadius": 0,
+  "crt": true,
+  "volume": 1,
+  "volumes": { "play": 0.8, "win": 1 },
+  "musicVolume": 0.35,
+  "pitchCombos": true
+}

@@ -36,8 +36,47 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  if (url.startsWith('/assets/')) { serveAsset(url, res); return; }
   res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found');
 });
+
+// ---------- asset pack: drop files into ./assets and they replace the built-in cards, fonts and sounds ----------
+const ASSET_DIR = path.join(__dirname, 'assets');
+const MIME = { '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf',
+  '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.json': 'application/json' };
+const IMG = ['.png', '.webp', '.gif', '.jpg', '.jpeg', '.svg'], FONT = ['.woff2', '.woff', '.ttf', '.otf'], SND = ['.ogg', '.mp3', '.wav', '.m4a'];
+const list = dir => { try { return fs.readdirSync(path.join(ASSET_DIR, dir)).filter(f => !f.startsWith('.')); } catch (e) { return []; } };
+// built fresh on every request, so new files show up after a page refresh, no restart needed
+function buildManifest() {
+  const ext = f => path.extname(f).toLowerCase();
+  const m = { cards: list('cards').filter(f => IMG.includes(ext(f))), sounds: {}, font: {}, bg: null, config: {} };
+  for (const f of list('sounds').filter(f => SND.includes(ext(f)))) {
+    const name = path.basename(f, path.extname(f)).replace(/[-_]\d+$/, '').toLowerCase();
+    (m.sounds[name] = m.sounds[name] || []).push(f);
+  }
+  for (const f of list('font').filter(f => FONT.includes(ext(f)))) {
+    const base = path.basename(f, path.extname(f)).toLowerCase();
+    if (base === 'ui' || base === 'display') { if (!m.font[base] || FONT.indexOf(ext(f)) < FONT.indexOf(ext(m.font[base]))) m.font[base] = f; }
+  }
+  const bg = list('').find(f => /^bg\./i.test(f) && IMG.includes(ext(f))); if (bg) m.bg = bg;
+  try { m.config = JSON.parse(fs.readFileSync(path.join(ASSET_DIR, 'pack.json'), 'utf8')); } catch (e) {}
+  return m;
+}
+function serveAsset(url, res) {
+  let rel; try { rel = decodeURIComponent(url.slice('/assets/'.length)); } catch (e) { res.writeHead(400); res.end(); return; }
+  if (rel === 'manifest.json' && !fs.existsSync(path.join(ASSET_DIR, 'manifest.json'))) {
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-cache' }); res.end(JSON.stringify(buildManifest())); return;
+  }
+  const file = path.normalize(path.join(ASSET_DIR, rel));
+  if (!file.startsWith(ASSET_DIR + path.sep)) { res.writeHead(403); res.end(); return; }
+  const type = MIME[path.extname(file).toLowerCase()];
+  if (!type) { res.writeHead(404); res.end(); return; }
+  fs.readFile(file, (err, buf) => {
+    if (err) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found'); return; }
+    res.writeHead(200, { 'content-type': type, 'cache-control': 'no-cache' }); res.end(buf);
+  });
+}
 
 // ---------- rooms ----------
 const rooms = new Map(); // code -> room
