@@ -285,7 +285,7 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 #hand .card.ok:hover { transform: translateY(calc(var(--dy, 0px) - 22px)) rotate(0deg) scale(1.06) var(--tilt, rotate(0deg)); }
 #hand .card:not(.ok):hover { transform: translateY(calc(var(--dy, 0px) - 8px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg)); }
 #hand .card.jump { outline: 2px solid var(--gold); outline-offset: 2px; transform: translateY(calc(var(--dy, 0px) - 6px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg)); }
-#hand .card.dim { opacity: .45; }
+#hand .card.dim { opacity: 1; }
 #hand .card.new { animation: in 160ms ease-out backwards; }
 #hand .card.flipin { animation: fade 180ms ease-out backwards; }
 #hand .card.lifted { opacity: .25; }
@@ -306,23 +306,34 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
   background: radial-gradient(circle at var(--gx, 28%) var(--gy, 18%), rgba(255, 248, 230, var(--sheen, .07)), transparent 46%),
     linear-gradient(118deg, transparent 38%, rgba(255, 250, 240, calc(var(--sheen, .07) * .7)) 47%, transparent 56%), var(--cc);
   color: var(--bone);
-  border: calc(var(--cw) * .05) solid #6f6655; border-radius: var(--rad, calc(var(--cw) * .045));
+  border: calc(var(--cw) * .05) solid #6f6655; border-radius: calc(var(--cw) * .07);
   transition: --sheen .2s;
   filter: saturate(.72) brightness(.98) contrast(1.1);
-  box-shadow: inset 0 0 calc(var(--cw) * .28) rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(0, 0, 0, .5), 0 0 0 1px #000, 0 9px 14px rgba(0, 0, 0, .85);
+  box-shadow: inset 0 0 calc(var(--cw) * .28) rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(0, 0, 0, .5);
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
 }
+/* the shadows of torn cards are cast by whatever they lie on */
+#hand, .piles, #fx, .pick, .colors, .draftpick { filter: drop-shadow(0 7px 7px rgba(0, 0, 0, .75)) drop-shadow(0 0 1px rgba(0, 0, 0, .9)); }
 .card.c-r { --cc: var(--r); } .card.c-y { --cc: var(--y); } .card.c-g { --cc: var(--g); } .card.c-b { --cc: var(--b); }
 .card.c-p { --cc: var(--p); } .card.c-t { --cc: var(--t); } .card.c-o { --cc: var(--o); } .card.c-v { --cc: var(--v); }
 .card.c-w { --cc: #100d0b; }
 /* grime, a ring stain, scratches */
-.card::before { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; border-radius: inherit; mix-blend-mode: multiply;
-  background: radial-gradient(circle at var(--sx, 30%) var(--sy, 70%), transparent 16%, rgba(70, 38, 12, .22) 17.5% 19%, transparent 20.5%),
-    radial-gradient(ellipse at 50% 120%, rgba(30, 15, 5, .55), transparent 60%),
+.card::before { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; mix-blend-mode: multiply;
+  background:
+    /* a cigarette burn: charred core, a scorched brown halo */
+    radial-gradient(circle at var(--bx, 80%) var(--by, 85%), rgba(12, 5, 1, calc(var(--bo, 0) * 1)) 0, rgba(40, 14, 3, calc(var(--bo, 0) * .9)) calc(var(--bs, 14%) * .35), rgba(130, 60, 15, calc(var(--bo, 0) * .45)) calc(var(--bs, 14%) * .7), transparent var(--bs, 14%)),
+    /* a glass ring */
+    radial-gradient(circle at var(--rx, 30%) var(--ry, 70%), transparent calc(var(--rs, 18%) - 2.2%), rgba(80, 42, 12, var(--ro, 0)) calc(var(--rs, 18%) - 1%), rgba(80, 42, 12, calc(var(--ro, 0) * .6)) var(--rs, 18%), transparent calc(var(--rs, 18%) + 1.4%)),
+    /* a coffee splash */
+    radial-gradient(ellipse var(--ks, 24%) calc(var(--ks, 24%) * .7) at var(--kx, 30%) var(--ky, 30%), rgba(95, 58, 22, var(--ko, 0)), rgba(95, 58, 22, calc(var(--ko, 0) * .35)) 60%, transparent 72%),
+    /* a crease where the card was bent */
+    linear-gradient(var(--ca, 30deg), transparent calc(var(--cp, 50%) - .8%), rgba(0, 0, 0, var(--co, 0)) var(--cp, 50%), rgba(255, 245, 225, calc(var(--co, 0) * .5)) calc(var(--cp, 50%) + .4%), transparent calc(var(--cp, 50%) + 1.2%)),
+    /* grime from hands, heavier on one side */
+    linear-gradient(var(--ga, 180deg), rgba(30, 15, 5, var(--go, .5)), transparent 55%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 .card::after { content: ''; position: absolute; inset: calc(var(--cw) * .045); z-index: 4; pointer-events: none; border: 1px solid rgba(216, 206, 180, .28); border-radius: calc(var(--cw) * .03); mix-blend-mode: screen;
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-opacity='.35' stroke-width='.6' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100'/></svg>") center / cover; }
-.card.st0 { --sx: 24%; --sy: 72%; } .card.st1 { --sx: 78%; --sy: 24%; } .card.st2 { --sx: 68%; --sy: 80%; }
-.card.st3 { --sx: 30%; --sy: 28%; } .card.st4 { --sx: 84%; --sy: 58%; } .card.st5 { --sx: 12%; --sy: 46%; }
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-width='.6' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100M15 150l30-8M100 30l8 40M55 90l20-6'/></svg>") var(--sx2, 50%) var(--sy2, 50%) / var(--ss, 120%) auto;
+  opacity: calc(.4 + var(--so, .3)); }
 /* the face: stencil marks straight on the colour */
 .card .oval { position: absolute; left: 50%; top: 50%; width: 86%; height: 70%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
 .card .mid { display: flex; flex-direction: column; align-items: center; font: 700 calc(var(--cw) * .5)/.9 var(--f-card); letter-spacing: -.01em; color: inherit;
@@ -357,7 +368,7 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 .card.s-D:not(.c-w)::after { border-color: rgba(0, 0, 0, .45); }
 .card.s-D.c-w { border-color: #3b3128; }
 /* in your hand: playable cards lit, the rest in shadow but still legible */
-#hand .card.ok { filter: saturate(.8) brightness(1.02) contrast(1.12); box-shadow: 0 0 0 2px var(--gold), 0 10px 18px rgba(0, 0, 0, .6); }
+#hand .card.ok { filter: saturate(.8) brightness(1.02) contrast(1.12) drop-shadow(0 0 2px var(--gold)); }
 #hand .card:not(.ok):not(.jump) { filter: saturate(.6) brightness(.84) contrast(1.08); }
 .card.spr { filter: none; }
 #hand .card.s-D:not(.ok):not(.jump) { filter: saturate(.75) brightness(1) contrast(1.06); }
@@ -567,25 +578,13 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 
 
 /* ---------- worn harder: chewed corners, burns and coffee, print that's flaking off ---------- */
-.card.st0 { --rad: 14% 6% 9% 4% / 10% 4% 7% 3%; } .card.st1 { --rad: 5% 13% 4% 10% / 4% 9% 3% 8%; } .card.st2 { --rad: 9% 4% 15% 7% / 6% 3% 11% 5%; }
-.card.st3 { --rad: 4% 9% 6% 14% / 3% 7% 5% 10%; } .card.st4 { --rad: 12% 11% 5% 6% / 8% 8% 4% 4%; } .card.st5 { --rad: 6% 5% 12% 12% / 5% 4% 9% 9%; }
-.card.st1::before, .card.st4::before { background:
-    radial-gradient(ellipse 22% 15% at 78% 82%, rgba(18, 8, 2, .55) 30%, rgba(120, 50, 10, .35) 55%, transparent 72%),
-    radial-gradient(circle at var(--sx) var(--sy), transparent 16%, rgba(70, 38, 12, .22) 17.5% 19%, transparent 20.5%),
-    radial-gradient(ellipse at 50% 120%, rgba(30, 15, 5, .55), transparent 60%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
-.card.st2::before, .card.st5::before { background:
-    radial-gradient(ellipse 30% 22% at 24% 26%, rgba(90, 55, 20, .35), rgba(90, 55, 20, .12) 60%, transparent 70%),
-    radial-gradient(circle at var(--sx) var(--sy), transparent 16%, rgba(70, 38, 12, .22) 17.5% 19%, transparent 20.5%),
-    radial-gradient(ellipse at 50% 120%, rgba(30, 15, 5, .55), transparent 60%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 /* the stencil ink flakes off in patches */
 .card .mid, .card .cor {
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 2.15'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 2.15'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
-  -webkit-mask-size: 90px 90px; mask-size: 90px 90px;
+  -webkit-mask-size: var(--ms, 90px) var(--ms, 90px); mask-size: var(--ms, 90px) var(--ms, 90px);
+  -webkit-mask-position: var(--mx, 0) var(--my, 0); mask-position: var(--mx, 0) var(--my, 0);
 }
-.card.st3 .mid, .card.st0 .cor { -webkit-mask-position: 37px 11px; mask-position: 37px 11px; }
 /* unique and deal cards: a different, oily iridescence that moves with the tilt */
 .card.uniq { border-color: #a8913f; }
 .card.uniq::after { mix-blend-mode: color-dodge; border-color: rgba(255, 230, 160, .5);
@@ -689,6 +688,14 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 @media (max-width: 520px) { .goods { grid-template-columns: 1fr; } .spark { width: 60px; } }
 .settle .li > span:first-child { display: flex; align-items: center; gap: 4px; flex: none; }
 .settle .li > span.mono { text-align: right; }
+/* masks clip outlines and outer glows, so states show on the card's own edge */
+#hand .card.ok { filter: saturate(.8) brightness(1.04) contrast(1.12); border-color: #d6b452; }
+#hand .card.jump { outline: none; border-color: var(--gold); }
+#hand .card.picked { outline: none; border-color: #f2e6cf; }
+#discard .card.topc { outline: none; }
+.card.peek { outline: none; border-color: #ff5a4d; border-style: dashed; }
+.pick .card.lead, .draftpick .card.lead { outline: none; border-color: var(--stamp); }
+.card.uniq { border-color: #a8913f; }
 
 </style>
 </head>
@@ -4054,19 +4061,74 @@ const CORNER = { swind: ICON.swind, sacr: ICON.sacr, skip: ICON.skip, rev: ICON.
 const SUIT_PATH = { r: 'M5 1L9.5 9H.5z', y: 'M5 .8a4.2 4.2 0 1 0 0 8.4A4.2 4.2 0 1 0 5 .8z', g: 'M1.3 1.3h7.4v7.4H1.3z', b: 'M5 .3L9.7 5 5 9.7.3 5z',
   p: 'M3.6 .8h2.8v2.8h2.8v2.8H6.4v2.8H3.6V6.4H.8V3.6h2.8z', t: 'M5 .6a4.4 4.4 0 1 0 0 8.8A4.4 4.4 0 1 0 5 .6zm0 2.5a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 1 1 0-3.8z', o: 'M1 .8h8L5 5zM1 9.2h8L5 5z', v: 'M6.3.6A4.4 4.4 0 1 0 9.4 7.3 3.5 3.5 0 1 1 6.3.6z' };
 const suitSVG = (c, cls = '') => SUIT_PATH[c] ? `<svg class="suit ${cls}" viewBox="0 0 10 10" aria-hidden="true"><path fill-rule="evenodd" d="${SUIT_PATH[c]}"/></svg>` : '';
+// ================= WEAR: every card is beaten up in its own way =================
+// A seeded random per card decides its stains, burns, creases, scratches, faded ink and the shape of its torn edge.
+const WEAR = (() => {
+  const N = 40; // torn-edge outlines, generated once
+  const rng = seed => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  function outline(r) {
+    // walk around a 100×147 card: fibrous roughness everywhere, rounded worn corners, a chipped corner now and then, a tear or two
+    const W = 100, H = 147, pts = [];
+    const rad = [0, 1, 2, 3].map(() => 3 + r() * 7), chip = [0, 1, 2, 3].map(() => r() < 0.28);
+    const tears = []; const nT = r() < 0.55 ? 1 + (r() < 0.35 ? 1 : 0) : 0;
+    for (let k = 0; k < nT; k++) tears.push({ side: Math.floor(r() * 4), at: 0.15 + r() * 0.7, w: 0.03 + r() * 0.07, d: 2.5 + r() * 6 });
+    const rough = () => r() * 1.5;
+    const edge = (x0, y0, x1, y1, nx, ny, side, len) => {
+      const steps = Math.max(6, Math.round(len / 2.6));
+      for (let k = 0; k <= steps; k++) {
+        const t = k / steps; let d = rough();
+        for (const tr of tears) if (tr.side === side) { const u = Math.abs(t - tr.at) / tr.w; if (u < 1) d += tr.d * (1 - u) * (0.6 + r() * 0.8); }
+        pts.push([x0 + (x1 - x0) * t + nx * d, y0 + (y1 - y0) * t + ny * d]);
+      }
+    };
+    const corner = (cx, cy, a0, i) => {
+      const R = rad[i];
+      if (chip[i]) { const c = R * 1.4; pts.push([cx + Math.cos(a0) * c, cy + Math.sin(a0) * c]); pts.push([cx + Math.cos(a0 + Math.PI / 2) * c, cy + Math.sin(a0 + Math.PI / 2) * c]); return; }
+      for (let k = 0; k <= 5; k++) { const a = a0 + (Math.PI / 2) * (k / 5); const rr = R + rough() * 0.8; pts.push([cx + Math.cos(a) * rr - Math.cos(a0 + Math.PI / 4) * 0, cy + Math.sin(a) * rr]); }
+    };
+    // top edge, top-right corner, right edge, ... (corner centres sit inside by the radius)
+    edge(rad[0], 0, W - rad[1], 0, 0, 1, 0, W); corner(W - rad[1], rad[1], -Math.PI / 2, 1);
+    edge(W, rad[1], W, H - rad[2], -1, 0, 1, H); corner(W - rad[2], H - rad[2], 0, 2);
+    edge(W - rad[2], H, rad[3], H, 0, -1, 2, W); corner(rad[3], H - rad[3], Math.PI / 2, 3);
+    edge(0, H - rad[3], 0, rad[0], 1, 0, 3, H); corner(rad[0], rad[0], Math.PI, 0);
+    return 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
+  }
+  const css = [];
+  for (let i = 0; i < N; i++) {
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 147' preserveAspectRatio='none'><path d='${outline(rng(i * 7919 + 13))}' fill='black'/></svg>`;
+    const url = `url("data:image/svg+xml;utf8,${svg.replace(/#/g, '%23')}")`;
+    css.push(`.card.tear${i}{-webkit-mask-image:${url};mask-image:${url}}`);
+  }
+  const st = document.createElement('style'); st.textContent = css.join('\n'); document.head.appendChild(st);
+  const pc = x => (x * 100).toFixed(0) + '%';
+  return function wear(key) {
+    let h = 2166136261; for (const ch of String(key)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    const r = rng(h), on = p => (r() < p ? 1 : 0);
+    const v = {
+      '--rx': pc(0.15 + r() * 0.7), '--ry': pc(0.15 + r() * 0.7), '--rs': (14 + r() * 14).toFixed(0) + '%', '--ro': (on(0.45) * (0.18 + r() * 0.2)).toFixed(2),
+      '--bx': pc(r()), '--by': pc(r() < 0.5 ? r() * 0.25 : 0.75 + r() * 0.25), '--bs': (10 + r() * 16).toFixed(0) + '%', '--bo': (on(0.32) * (0.5 + r() * 0.4)).toFixed(2),
+      '--kx': pc(0.1 + r() * 0.8), '--ky': pc(0.1 + r() * 0.8), '--ks': (16 + r() * 22).toFixed(0) + '%', '--ko': (on(0.4) * (0.15 + r() * 0.25)).toFixed(2),
+      '--ca': (r() * 180).toFixed(0) + 'deg', '--cp': pc(0.25 + r() * 0.5), '--co': (on(0.38) * (0.25 + r() * 0.3)).toFixed(2),
+      '--ga': (r() * 360).toFixed(0) + 'deg', '--go': (0.35 + r() * 0.4).toFixed(2),
+      '--sx2': pc(r()), '--sy2': pc(r()), '--ss': (90 + r() * 120).toFixed(0) + '%', '--so': (0.15 + r() * 0.4).toFixed(2),
+      '--mx': (r() * 90).toFixed(0) + 'px', '--my': (r() * 90).toFixed(0) + 'px', '--ms': (60 + r() * 80).toFixed(0) + 'px'
+    };
+    return { cls: 'tear' + Math.floor(r() * N), style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
+  };
+})();
 function faceHTML(f, side, cls = '', id = '') {
   // a drawn sprite from the asset pack wins; otherwise the built-in card
   const spr = ASSETS.cardClass(f, side);
   const tip = `data-f="${side}|${esc(f.c)}|${esc(f.v)}"`;
-  const stain = ' st' + (([...String(id !== '' ? id : f.c + f.v)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7)) % 6);
-  if (spr) return `<div class="card s-${side} c-${esc(f.c)} spr ${spr} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}></div>`;
+  const W = WEAR(id !== '' ? 'c' + id : f.c + f.v + side), stain = ' ' + W.cls;
+  if (spr) return `<div class="card s-${side} c-${esc(f.c)} spr ${spr} ${cls}" style="" ${tip} ${id !== '' ? `data-id="${id}"` : ''}></div>`;
   const [m, subKey, sz] = SYM[f.v] || [esc(f.v)];
   const sub = subKey ? CARD_TXT[LANG][subKey] : '';
   const cor = CORNER[f.v] || esc(f.v);
   const uniq = f.v === 'swind' || f.v === 'sacr' || /\buniq\b/.test(cls) ? ' uniq' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];
   const chains = /\blocked\b/.test(cls) ? `<i class="chainov"></i>${chainN ? `<b class="chainn">${chainN}</b>` : ''}` : '';
-  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
+  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
 function sortedHand(h) {
@@ -4091,7 +4153,7 @@ function discardHTML() {
   const base = (G.pileN || codes.length) - codes.length;
   return codes.map((code, k) => {
     const card = codeCard(code), sp = pileSpot(base + k), top = k === codes.length - 1;
-    return faceHTML(card[G.side], G.side, top ? 'topc' : 'under').replace('class="card', `style="--rot:${sp.rot}deg;--dx:${sp.dx}px;--dy:${sp.dy}px;transform:translate(${sp.dx}px,${sp.dy}px) rotate(${sp.rot}deg);z-index:${k}" class="card`);
+    return faceHTML(card[G.side], G.side, top ? 'topc' : 'under').replace('style="', `style="--rot:${sp.rot}deg;--dx:${sp.dx}px;--dy:${sp.dy}px;transform:translate(${sp.dx}px,${sp.dy}px) rotate(${sp.rot}deg);z-index:${k};`);
   }).join('');
 }
 function render() {
@@ -4264,7 +4326,7 @@ function render() {
       let st = `--i:${k};margin-left:${col ? (strip - cw).toFixed(1) : 0}px;z-index:${k};--rot:${(off * step).toFixed(2)}deg;--dy:${Math.min(12, off * off * step * 0.1).toFixed(1)}px`;
       if (row > 0) st += `;margin-top:${(-rowLift).toFixed(1)}px`;
       if (!lastHandIds.has(c.id)) { cls += ' new'; st += `;animation-delay:${Math.min(newIdx++, 7) * 20}ms`; }
-      const html = faceHTML(G.f(c), G.side, cls, c.id).replace('class="card', `style="${st}" class="card`);
+      const html = faceHTML(G.f(c), G.side, cls, c.id).replace('style="', `style="${st};`);
       return (row > 0 && col === 0 ? '<i class="brk"></i>' : '') + html;
     }).join('');
     const byId = Object.fromEntries(me.hand.map(c => [c.id, c]));
