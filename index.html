@@ -406,8 +406,9 @@ body.dark #bottom::before { background: radial-gradient(ellipse at 50% 100%, rgb
 #netBanner { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 120; padding: 4px 12px; border-radius: 2px; font: 500 13px/20px var(--f-type); background: var(--paper); color: var(--ink); }
 
 /* ---------- dialogs ---------- */
-.modal { position: fixed; inset: 0; z-index: 100; padding: 16px; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .62); backdrop-filter: blur(2px); animation: fade 150ms ease-out; }
-.dialog { width: 100%; max-width: 400px; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; padding: 24px; border-radius: 3px; }
+.modal { position: fixed; inset: 0; z-index: 100; padding: 28px 16px 16px; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; overscroll-behavior: contain; background: rgba(0, 0, 0, .68); animation: fade 150ms ease-out; }
+/* the dialog itself never scrolls (the backdrop does), so the tape on top is never clipped */
+.dialog { width: 100%; max-width: 400px; margin: auto; padding: 24px; border-radius: 3px; }
 .dialog:has(.pick.many), .dialog:has(.pick.lots) { max-width: 560px; }
 .dialog .btn.wide { margin-top: 16px; }
 .dialog b { color: #000; }
@@ -3237,8 +3238,8 @@ const JUICE = (() => {
         float sway=sin(t*.35)*.015;
         vec2 lp=vec2(.5+sway,.52)*r;
         float d=length((px-lp)/min(r.x,r.y));
-        float buzz=step(.93,n(vec2(floor(t*12.),3.)));            // a dying bulb: now and then it drops out
-        float fl=1.-heat*.45*step(.8,n(vec2(t*9.,1.)))-.05*n(vec2(t*3.,7.))-.55*buzz;
+        float buzz=step(.985,n(vec2(floor(t*6.),3.)));            // a tired bulb: once in a while it dips
+        float fl=1.-heat*.22*step(.88,n(vec2(t*6.,1.)))-.025*n(vec2(t*2.,7.))-.22*buzz;
         // day: a stronger, wider bulb and some light bounced off the walls; night: one narrow red lamp
         float spread=mix(2.2,2.7,side);
         float lamp=exp(-d*d*spread)*mix(1.45,1.35,side)*fl*(1.+beat*.16)+mix(.07,.055,side);
@@ -3284,10 +3285,11 @@ const JUICE = (() => {
   // ---- particles: no confetti in this room. Ash and dust drift down, a few embers rise and die. ----
   // Callers may still pass colours; only their brightness matters (bright = more embers).
   const ASH = ['#6d665c', '#8a8274', '#4e4942', '#a59c8b', '#3a3632'], EMBER = ['#c2531c', '#8e2a12', '#e07a2e'];
-  let pc, px, parts = [];
+  let pc, px, parts = [], looping = false;
   function burst(x, y, n, colors, power = 1) {
     if (!full()) return;
-    if (!pc) { pc = document.getElementById('fxc'); px = pc.getContext('2d'); const fit = () => { pc.width = innerWidth; pc.height = innerHeight; }; fit(); addEventListener('resize', fit); loop(); }
+    if (!pc) { pc = document.getElementById('fxc'); px = pc.getContext('2d'); const fit = () => { pc.width = innerWidth; pc.height = innerHeight; }; fit(); addEventListener('resize', fit); }
+    if (!looping) { looping = true; requestAnimationFrame(loop); }
     n = Math.round(n * 0.6);
     const hot = Math.min(0.35, 0.08 + power * 0.08);
     for (let i = 0; i < n; i++) {
@@ -3304,8 +3306,8 @@ const JUICE = (() => {
     burst(r.left + r.width * (0.2 + Math.random() * 0.6), r.top + r.height * 0.4, k * 2, null, 2.5);
   }
   function loop() {
+    if (!parts.length) { looping = false; px.clearRect(0, 0, pc.width, pc.height); return; }
     requestAnimationFrame(loop);
-    if (!parts.length) return;
     px.clearRect(0, 0, pc.width, pc.height);
     parts = parts.filter(p => p.life-- > 0);
     for (const p of parts) {
@@ -3375,8 +3377,10 @@ const JUICE = (() => {
   // Works when the music is a file the page can hear (assets/sounds/music.*). A YouTube embed can't be listened to.
   (function listen() {
     let env = 0, avg = 0, last = 0;
+    let lastT = 0;
     (function tick(now) {
       requestAnimationFrame(tick);
+      if (now - lastT < 33) return; lastT = now;
       const lv = typeof ASSETS !== 'undefined' && ASSETS.musicLevel ? ASSETS.musicLevel() : null;
       if (!lv || !full() || S.musicFx === false) { if (env) { env = 0; state.beat = 0; document.documentElement.style.setProperty('--beat', '0'); } return; }
       avg = avg * 0.97 + lv.bass * 0.03;
@@ -3665,6 +3669,8 @@ function onLobby(l) {
   show('lobby');
 }
 let MATCH = null, lastHandHTML = '';
+// write HTML only when it changed: keeps the DOM, hover state and running animations, and saves layout work
+const setHTML = (el, html) => { if (el && el.__html !== html) { el.__html = html; el.innerHTML = html; return true; } return false; };
 function onState(m) {
   let g; try { g = deserialize(m.st); } catch (e) { return; }
   isHost = !!m.host; lastLobby = m.lobby || lastLobby; away = m.st.aw || [];
@@ -4229,7 +4235,7 @@ function render() {
   for (let k = 1; k < n0; k++) playOrder.push((ME + k) % n0); // seats as they come after you, clockwise
   const upNext = G.winner === null ? (G.roulette !== null ? G.nextIdx(G.roulette, 1) : G.nextIdx(G.turn, 1)) : -1;
   const arrow = `<span class="sep">${G.dir === 1 ? '›' : '‹'}</span>`;
-  $('opps').innerHTML = arrow + playOrder.map(i => {
+  setHTML($('opps'), arrow + playOrder.map(i => {
     const p = G.players[i];
     const n = p.hand.length, fanN = Math.min(n, 12);
     const fan = p.hand.slice(-fanN).map((c, k) => { const bf = c[ob] || { c: 'w' }; return `<i class="${ob} ${bf.c === 'w' ? 'w' : ''}" style="left:${k * 9}px;${bf.c !== 'w' ? `background:${CVAR[bf.c]}` : ''}"></i>`; }).join('');
@@ -4258,19 +4264,19 @@ function render() {
       <div class="meta"><span class="cnt">${n}</span><span class="tags">${tags.join(' · ')}</span></div>${dealRow}
       ${G.rules.mercy ? `<div class="bar ${pct >= 80 ? 'hot' : ''}"><div style="width:${pct}%"></div></div>` : ''}${timer}
       ${p.vulnerable && n === 1 && G.rules.uno && me && !me.out ? `<button class="btn catch" data-catch="${i}">${t('catchBtn')}</button>` : ''}</div>`;
-  }).join(arrow) + arrow;
+  }).join(arrow) + arrow);
   // piles: the draw pile shows the back of the next card (its other side)
   const nb = G.next && G.next[ob] ? G.next[ob] : { c: 'w', v: 'wild' };
   const back = me && me.deal === 'sharp' && G.next && G.next[G.side] ? faceHTML(G.next[G.side], G.side, 'peek') : faceHTML(nb, ob);
-  $('drawpile').innerHTML = back + back + back;
+  setHTML($('drawpile'), back + back + back);
   const myTurn = myTurnNow();
   const owe = G.owes(ME), myDebt = G.debt && G.debt.pi === ME && myTurn;
   const canDraw = !me.out && G.winner === null && (owe || myDebt || (myTurn && !G.debt && (G.pending > 0 || G.drewBy !== ME)));
   $('drawpile').classList.toggle('can', canDraw && (owe || myDebt || G.pending > 0 || G.playable(ME).length === 0));
-  $('discard').innerHTML = discardHTML();
+  setHTML($('discard'), discardHTML());
   // hud
   const lcLeft = G.lastCallLeft ? G.lastCallLeft() : null;
-  $('hud').innerHTML = `<span class="phase ${G.side === 'L' ? 'day' : 'night'}"><b>${G.side === 'L' ? '☀' : '☾'}</b>${G.side === 'L' ? t('lightSide') : t('darkSide')}</span>
+  setHTML($('hud'), `<span class="phase ${G.side === 'L' ? 'day' : 'night'}"><b>${G.side === 'L' ? '☀' : '☾'}</b>${G.side === 'L' ? t('lightSide') : t('darkSide')}</span>
     <span class="phaserules">${G.side === 'L' ? t('phaseDayRules') : t('phaseNightRules')}</span>
     <span class="row"><span class="chip">${suitSVG(G.color)}</span><span>${G.roulette !== null ? t('colorPending') : colorName(G.color)}</span></span>
     <span class="row dirtxt">${G.dir === 1 ? t('cw') : t('ccw')}</span>
@@ -4279,7 +4285,7 @@ function render() {
     ${lcLeft !== null && lcLeft <= 30 && G.winner === null ? `<span class="chaosline warn lastcall">${lcLeft ? t('lastCallIn', lcLeft) : t('lastCallNow')}</span>` : ''}
     ${G.maze > 0 ? `<span class="chaosline warn">${t('mazeLeft', G.maze)}</span>` : ''}
     ${G.multNext > 1 ? `<span class="chaosline warn multchip">${t('multNext', G.multNext)}</span>` : ''}
-    ${G.pending > 0 ? `<span class="label" style="margin-top:8px">${t('stack')}</span><span class="stack${G.pending >= 8 ? ' burning' : ''}" style="--heat:${Math.min(1, G.pending / 20).toFixed(2)}">+${G.pending}</span>` : ''}`;
+    ${G.pending > 0 ? `<span class="label" style="margin-top:8px">${t('stack')}</span><span class="stack${G.pending >= 8 ? ' burning' : ''}" style="--heat:${Math.min(1, G.pending / 20).toFixed(2)}">+${G.pending}</span>` : ''}`);
   JUICE.setSide(G.side === 'D'); AMB.setSide(G.side);
   { // the felt table sits under the piles and reaches down under the hand
     const tr = $('table').getBoundingClientRect(), hr = $('bottom').getBoundingClientRect(), orr = $('opps').getBoundingClientRect();
@@ -4300,10 +4306,10 @@ function render() {
   else txt = t('turnOf', G.players[G.turn].name, away[G.turn]);
   ban.textContent = txt; ban.className = you ? 'you' : '';
   // me
-  $('meIni').innerHTML = initials(me.name);
+  setHTML($('meIni'), initials(me.name));
   $('meName').textContent = me.name;
   $('meCnt').textContent = me.hand.length;
-  $('meDeals').innerHTML = MATCH && !MATCH.col[ME] ? dealBadges(me, true) : '';
+  setHTML($('meDeals'), MATCH && !MATCH.col[ME] ? dealBadges(me, true) : '');
   $('meTags').textContent = [MATCH ? (MATCH.col[ME] ? t('tagCollector') : t('tagDebt', me.debt, me.limit || MATCH.limit) + ' · ' + t('tagChips', MATCH.chips[ME])) : '', me.left ? t('tagLeft') : '', me.shield ? t('tagShield') : '', me.loan > 0 ? t('tagLoan', me.loan) : '', me.revenge ? t('tagRevenge') : '', me.marked ? t('tagMarked') : '', upNext === ME && !myTurn ? t('tagNext') : ''].filter(Boolean).join(' · ');
   $('meBarWrap').style.display = G.rules.mercy ? '' : 'none';
   const mpct = G.rules.mercy ? Math.min(100, me.hand.length / G.rules.mercy * 100) : 0;
@@ -4336,7 +4342,7 @@ function render() {
   if (me.deal === 'confess' && !me.used.confess) abBtns.push(`<button class="btn ab" data-ab="confess" ${free ? '' : 'disabled'}>${DEAL_ICON.confess}${confessSel ? t('abConfessGo', confessSel.size) : t('abConfess')}</button>`);
   if (me.deal === 'puppet' && !me.used.puppet) abBtns.push(`<button class="btn ab" data-ab="puppet" ${free ? '' : 'disabled'}>${DEAL_ICON.puppet}${t('abPuppet')}</button>`);
   if (me.deal === 'sharp') abBtns.push(`<button class="btn ab" data-ab="burn" ${free ? '' : 'disabled'}>${DEAL_ICON.sharp}${t('abBurn')}</button>`);
-  ab.innerHTML = abBtns.join(''); ab.classList.toggle('hidden', !abBtns.length || !!(MATCH && MATCH.col[ME]));
+  setHTML(ab, abBtns.join('')); ab.classList.toggle('hidden', !abBtns.length || !!(MATCH && MATCH.col[ME]));
   if (!free && confessSel) confessSel = null;
   dealOffer();
   $('btnSort').textContent = t('sort', sortMode);
