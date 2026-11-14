@@ -729,6 +729,30 @@ body.lite .card::after { display: none; }
 body.lite .card { filter: none; }
 body.lite #hand .card:not(.ok):not(.jump) { filter: brightness(.8); }
 
+/* ---------- your own strip under the table: bigger, and the visitors' odds stand out ---------- */
+#bottom .me { padding: 6px 10px; margin-bottom: 10px; background: rgba(0, 0, 0, .35); border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(232, 226, 210, .08); }
+#bottom .me .who { gap: 12px; flex-wrap: wrap; }
+#bottom .me .ini { width: 34px; height: 34px; font-size: 14px; }
+#meName { font-size: 18px; font-weight: 600; }
+#bottom .me .cnt { font-size: 42px; line-height: 30px; }
+#meTags { font-size: 13px; letter-spacing: .08em; color: var(--chalk); }
+.deals.mine { gap: 6px; margin-left: 4px; }
+.deals.mine .dealb, .deals.mine .chance { font-size: 13px; line-height: 22px; padding: 2px 10px 2px 6px; }
+.deals.mine .dico { width: 20px; height: 20px; }
+/* odds as pills, everywhere */
+.chance { font-weight: 700; border-radius: 999px; }
+.chance.light { background: rgba(255, 226, 150, .9); color: #3d2f12; --cut: rgba(255, 226, 150, .9); }
+.chance.dark { background: #3a0d09; color: #ff9a85; --cut: #3a0d09; box-shadow: 0 0 0 1px #8e1a14; }
+#bottom .chance.light { color: #3d2f12; } #bottom .chance.dark { color: #ff9a85; }
+.chance.hot { animation: oddsPulse 1.6s ease-in-out infinite; }
+@keyframes oddsPulse { 50% { box-shadow: 0 0 0 2px currentColor, 0 0 14px currentColor; } }
+@media (max-width: 820px) {
+  #bottom .me { padding: 4px 6px; }
+  #meName { font-size: 15px; } #bottom .me .cnt { font-size: 32px; line-height: 24px; } #meTags { font-size: 11px; }
+  .deals.mine .dealb, .deals.mine .chance { font-size: 11px; line-height: 18px; }
+  .deals.mine .dico { width: 16px; height: 16px; }
+}
+
 </style>
 </head>
 <body>
@@ -3039,6 +3063,7 @@ RULES_HTML.ru = RULES_HTML.ru.replace('<h3>Матч на долг</h3>', `<h3>Д
     <li>Скованные карты нельзя разыграть или сбросить, но долг за них идёт.</li></ul><h3>Матч на долг</h3>`);
 Object.assign(STR.en, { shopVisitors: 'Call on a visitor', buyCandle: p => `Light a candle: angel +5% (${p}¢)`, buyBlood: p => `Spill some blood: demon +10% (${p}¢)`, signed: 'SIGNED', blessed: 'BLESSED', tOverLimit: 'OVER THE LIMIT' });
 Object.assign(STR.ru, { shopVisitors: 'Позвать гостя', buyCandle: p => `Зажечь свечу: ангел +5% (${p}¢)`, buyBlood: p => `Пролить кровь: демон +10% (${p}¢)`, signed: 'ПОДПИСАНО', blessed: 'БЛАГОСЛОВЛЕНО', tOverLimit: 'ЗА ЛИМИТОМ' });
+Object.assign(STR.en, { oddsAngel: 'angel', oddsDemon: 'demon tonight' }); Object.assign(STR.ru, { oddsAngel: 'ангел', oddsDemon: 'демон ночью' });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -4650,8 +4675,8 @@ let confessSel = null, offerKey = '';
 function dealBadges(p, mine) {
   const out = [];
   if (p.deal) out.push(`<span class="dealb ${isLightDeal(p.deal) ? 'light' : 'dark'}" data-tipdeal="${p.deal}">${DEAL_ICON[p.deal] || ''}<b>${t('deal_' + p.deal)}</b></span>`);
-  if (!p.fallen && !p.dealLight) out.push(`<span class="chance light" title="${t('angelChance')}">${DEAL_ICON.angel}${Math.round(p.angel || 0)}%</span>`);
-  if (!p.dealDark && (p.demon || 0) > 0) out.push(`<span class="chance dark" title="${t('demonChance')}">${DEAL_ICON.demon}${Math.min(100, p.demon)}%</span>`);
+  if (!p.fallen && !p.dealLight) out.push(`<span class="chance light${(p.angel || 0) >= 20 ? ' hot' : ''}" title="${t('angelChance')}">${DEAL_ICON.angel}${mine ? t('oddsAngel') + ' ' : ''}${Math.round(p.angel || 0)}%</span>`);
+  if (!p.dealDark && (p.demon || 0) > 0) out.push(`<span class="chance dark${p.demon >= 30 ? ' hot' : ''}" title="${t('demonChance')}">${DEAL_ICON.demon}${mine ? t('oddsDemon') + ' ' : ''}${Math.min(100, p.demon)}%</span>`);
   if (p.fallen && !p.dealDark) out.push(`<span class="chance dark">${DEAL_ICON.demon}—</span>`);
   return out.length ? `<div class="deals${mine ? ' mine' : ''}">${out.join('')}</div>` : '';
 }
