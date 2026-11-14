@@ -388,6 +388,16 @@ body{font-family:var(--f-px)}
 /* pixel fire */
 #fire{position:fixed;pointer-events:none;z-index:60;image-rendering:pixelated;mix-blend-mode:screen;opacity:0;transition:opacity .25s}
 body.lite #fire{display:none}
+
+/* card tooltip */
+#cardtip{position:fixed;left:0;top:0;z-index:300;max-width:260px;padding:8px 10px 9px;background:#0d0d10;color:#f4f1ea;border:2px solid #f4f1ea;box-shadow:4px 4px 0 #000;font:500 13px/17px var(--f-ui);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity 120ms ease-out,transform 120ms ease-out}
+#cardtip.show{opacity:1;transform:none}
+#cardtip.s-D{border-color:#ff2d55}
+#cardtip b{display:block;font:700 15px/18px var(--f-px);text-transform:uppercase}
+#cardtip .tipside{display:block;font:500 11px/14px var(--f-mono);opacity:.6;margin-top:1px}
+#cardtip p{margin:6px 0 0}
+body.lite #cardtip{transition:none}
+#hand .card{-webkit-touch-callout:none;user-select:none}
 </style>
 </head>
 <body>
@@ -1504,6 +1514,83 @@ const RULES_HTML = {
     <li>Если игрока нет, его ход пропускается через 15 секунд. Нажали «Выйти» или отсутствуете больше минуты — вы выбываете из партии; побеждает последний оставшийся.</li></ul>`
 };
 
+// ---------- hover tooltip text: what every card does ----------
+const CARD_DESC = {
+  en: {
+    num: 'Play on the same color or the same number.',
+    0: 'If the 0 rule is on: everyone passes their hand to the next player.',
+    7: 'If the 7 rule is on: swap hands with a player you pick, or keep yours.',
+    skip: 'The next player loses their turn.',
+    rev: 'Play changes direction. With two players it works like Skip.',
+    skipall: 'Everyone else is skipped. You play again.',
+    d1: 'The next player picks up 1 and loses their turn, unless they stack a draw card of equal or higher value.',
+    d2: 'The next player picks up 2 and loses their turn, unless they stack.',
+    d4: 'The next player picks up 4 and loses their turn, unless they stack.',
+    d5: 'The next player picks up 5 and loses their turn, unless they stack.',
+    flip: 'Every card turns over: the light side becomes dark, or back.',
+    dflip: 'Flips the table for one turn, then it flips back.',
+    discall: 'Also discard every other card of this color from your hand.',
+    mirror: 'Sends the draw stack on the table back to whoever fed it last.',
+    shield: 'Breaks the next draw stack that reaches you.',
+    wild: 'Play on anything and pick the color.',
+    wd2: 'Pick the color. The next player picks up 2, unless they stack.',
+    wd4: 'Pick the color. The next player picks up 4, unless they stack.',
+    wrd4: 'Pick the color and reverse play. The player now next picks up 4, unless they stack.',
+    wrd8: 'Pick the color and reverse play. The player now next picks up 8, unless they stack.',
+    wd6: 'Pick the color. The next player picks up 6, unless they stack.',
+    wd10: 'Pick the color. The next player picks up 10, unless they stack.',
+    wd15: 'Pick the color. The next player picks up 15, unless they stack. The top of the stack ladder.',
+    wdc: 'Pick the color. The next player draws until they hit it.',
+    roul: 'The next player names a color and draws until it turns up.',
+    bhole: 'Every hand is pooled, shuffled and dealt back out evenly.',
+    mul2: 'Doubles the draw stack on the table (up to +60). With no stack, doubles the next draw card. Can be played on a stack.',
+    mul3: 'Triples the draw stack on the table (up to +60). With no stack, triples the next draw card. Can be played on a stack.',
+    lucky: '1 in 3 chance that two random cards leave your hand.',
+    glass: 'The next player picks up 2. 1 in 4 it shatters, and you pick them up instead.',
+    devil: 'A pact: everyone else picks up 2, you pick up 1.',
+    spin: 'Pulls the chaos lever: a random event right now.',
+    loan: 'Two random cards leave your hand now. After 3 more of your plays, you pick up 4.',
+    duel: 'You and a chosen player turn over cards; the lower number takes them all.'
+  },
+  ru: {
+    num: 'Кладётся на тот же цвет или то же число.',
+    0: 'Если включено правило 0: все передают руки следующему игроку.',
+    7: 'Если включено правило 7: поменяйтесь руками с выбранным игроком или оставьте свою.',
+    skip: 'Следующий игрок пропускает ход.',
+    rev: 'Направление игры меняется. Вдвоём работает как пропуск.',
+    skipall: 'Все остальные пропускают ход. Вы ходите снова.',
+    d1: 'Следующий берёт 1 и пропускает ход, если не положит сверху «Возьми» такую же или старше.',
+    d2: 'Следующий берёт 2 и пропускает ход, если не продолжит стопку.',
+    d4: 'Следующий берёт 4 и пропускает ход, если не продолжит стопку.',
+    d5: 'Следующий берёт 5 и пропускает ход, если не продолжит стопку.',
+    flip: 'Все карты переворачиваются: светлая сторона становится тёмной или обратно.',
+    dflip: 'Переворачивает стол на один ход, потом обратно.',
+    discall: 'Сбросьте вместе с ней все остальные карты этого цвета из руки.',
+    mirror: 'Отправляет стопку «Возьми» тому, кто положил в неё последнюю карту.',
+    shield: 'Отбивает следующую стопку «Возьми», которая дойдёт до вас.',
+    wild: 'Кладётся на что угодно, вы выбираете цвет.',
+    wd2: 'Выберите цвет. Следующий берёт 2, если не продолжит стопку.',
+    wd4: 'Выберите цвет. Следующий берёт 4, если не продолжит стопку.',
+    wrd4: 'Выберите цвет и разверните игру. Тот, кто теперь следующий, берёт 4, если не продолжит стопку.',
+    wrd8: 'Выберите цвет и разверните игру. Тот, кто теперь следующий, берёт 8, если не продолжит стопку.',
+    wd6: 'Выберите цвет. Следующий берёт 6, если не продолжит стопку.',
+    wd10: 'Выберите цвет. Следующий берёт 10, если не продолжит стопку.',
+    wd15: 'Выберите цвет. Следующий берёт 15, если не продолжит стопку. Самая старшая карта стопки.',
+    wdc: 'Выберите цвет. Следующий тянет карты, пока не выпадет этот цвет.',
+    roul: 'Следующий называет цвет и тянет карты, пока он не выпадет.',
+    bhole: 'Все руки собираются, перемешиваются и раздаются поровну.',
+    mul2: 'Удваивает стопку «Возьми» на столе (до +60). Если стопки нет — удваивает следующую карту «Возьми». Можно класть на стопку.',
+    mul3: 'Утраивает стопку «Возьми» на столе (до +60). Если стопки нет — утраивает следующую карту «Возьми». Можно класть на стопку.',
+    lucky: 'С шансом 1 к 3 две случайные карты уходят из руки.',
+    glass: 'Следующий берёт 2. С шансом 1 к 4 стекло бьётся, и берёте вы.',
+    devil: 'Сделка: все остальные берут 2, вы берёте 1.',
+    spin: 'Дёргает рычаг хаоса: случайное событие прямо сейчас.',
+    loan: 'Две случайные карты уходят из руки сейчас. Через 3 ваших хода возьмите 4.',
+    duel: 'Вы и выбранный игрок открываете карты; у кого число меньше — забирает все.'
+  }
+};
+const cardDesc = f => { const D = CARD_DESC[LANG] || CARD_DESC.en; if (!f) return ''; if (D[f.v]) return D[f.v] + (/^\d$/.test(f.v) ? ' ' + D.num : ''); return /^\d$/.test(f.v) ? D.num : ''; };
+
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
 const ASSETS = (() => {
@@ -2270,11 +2357,12 @@ const CORNER = { skip: ICON.skip, rev: ICON.rev, d1: '+1', d2: '+2', d4: '+4', d
 function faceHTML(f, side, cls = '', id = '') {
   // a drawn sprite from the asset pack wins; otherwise the built-in card
   const spr = ASSETS.cardClass(f, side);
-  if (spr) return `<div class="card s-${side} c-${esc(f.c)} spr ${spr} ${cls}" ${id !== '' ? `data-id="${id}"` : ''}></div>`;
+  const tip = `data-f="${side}|${esc(f.c)}|${esc(f.v)}"`;
+  if (spr) return `<div class="card s-${side} c-${esc(f.c)} spr ${spr} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}></div>`;
   const [m, subKey, sz] = SYM[f.v] || [esc(f.v)];
   const sub = subKey ? CARD_TXT[LANG][subKey] : '';
   const cor = CORNER[f.v] || esc(f.v);
-  return `<div class="card s-${side} c-${esc(f.c)} ${cls}" ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span></div>`;
+  return `<div class="card s-${side} c-${esc(f.c)} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span></div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
 function sortedHand(h) {
@@ -2594,6 +2682,46 @@ function showRules() {
   openModal(`<h2>${t('howTo')}</h2><div class="rulestext">${RULES_HTML[LANG]}</div><button class="btn primary wide" id="closeR">${t('close')}</button>`);
   $('closeR').onclick = () => { closeModal(); if (G && G.winner !== null) showEnd(); };
 }
+
+
+// ---------- card tooltip: name + what it does, on hover (mouse) or long-press (touch) ----------
+const TIP = (() => {
+  const el = document.createElement('div'); el.id = 'cardtip'; el.setAttribute('role', 'tooltip'); document.body.appendChild(el);
+  let cur = null, pressT = 0, suppressClick = false;
+  const faceOf = card => { const [side, c, v] = (card.dataset.f || '').split('|'); return v ? { side, f: { c, v } } : null; };
+  function show(card) {
+    const d = faceOf(card); if (!d) return;
+    cur = card;
+    const side = d.side === 'D' ? t('tDark') : t('tLight');
+    el.innerHTML = `<b>${esc(cardName(d.f))}</b><span class="tipside">${esc(side)}</span>${cardDesc(d.f) ? `<p>${esc(cardDesc(d.f))}</p>` : ''}`;
+    el.className = 'show s-' + d.side;
+    const r = card.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    let x = r.left + r.width / 2 - w / 2, y = r.top - h - 10;
+    if (y < 6) y = r.bottom + 10;
+    x = Math.max(6, Math.min(innerWidth - w - 6, x));
+    el.style.left = x + 'px'; el.style.top = Math.min(innerHeight - h - 6, y) + 'px';
+  }
+  function hide() { cur = null; el.className = ''; }
+  document.addEventListener('pointerover', e => {
+    if (e.pointerType !== 'mouse') return;
+    const card = e.target.closest && e.target.closest('.card[data-f]');
+    if (card && card !== cur) show(card); else if (!card && cur) hide();
+  });
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') { hide(); return; }
+    const card = e.target.closest && e.target.closest('.card[data-f]');
+    clearTimeout(pressT); hide();
+    if (card) pressT = setTimeout(() => { show(card); suppressClick = true; }, 450);
+  }, true);
+  const end = () => { clearTimeout(pressT); if (cur && suppressClick) setTimeout(hide, 1600); };
+  document.addEventListener('pointerup', end, true);
+  document.addEventListener('pointercancel', end, true);
+  // a long-press to read a card must not also play it
+  document.addEventListener('click', e => { if (suppressClick) { suppressClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.card[data-f]')) e.preventDefault(); });
+  addEventListener('scroll', hide, true);
+  return { hide };
+})();
 
 </script>
 </body>
