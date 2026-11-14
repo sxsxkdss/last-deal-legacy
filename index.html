@@ -1830,25 +1830,35 @@ const JUICE = (() => {
     let gl; try { gl = cv.getContext('webgl', { antialias: false, alpha: false }); } catch (e) {}
     if (!gl) { cv.classList.add('nogl'); return; }
     const vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+    // Balatro-style "paint swirl" (our own take on the look: polar twist + domain warp + three paint bands
+    // with highlights), recoloured: green felt and gold on the light side, magenta and violet on the dark side.
     const fs = `precision mediump float;uniform float t;uniform vec2 r;uniform float side;uniform float heat;
       void main(){
-        vec2 uv=(gl_FragCoord.xy-.5*r)/min(r.x,r.y);
+        vec2 uv=(gl_FragCoord.xy-.5*r)/length(r);
         float len=length(uv);
-        float ang=atan(uv.y,uv.x)+t*.12*(1.+heat*2.5)-len*(2.2+heat*2.);
-        uv=vec2(cos(ang),sin(ang))*len;
-        vec2 p=uv*3.2;
-        for(int i=0;i<5;i++){p+=vec2(sin(p.y*1.27+t*.35),cos(p.x*1.13-t*.29))*.55;}
-        float v=sin(p.x+p.y)*.5+.5;
-        float w=sin(length(p)*1.6-t*.55)*.5+.5;
-        vec3 a=mix(vec3(.04,.32,.28),vec3(.52,.04,.16),side);
-        vec3 b=mix(vec3(.01,.09,.11),vec3(.12,.0,.07),side);
-        vec3 c=mix(vec3(.92,.66,.14),vec3(1.,.18,.42),side);
-        vec3 col=mix(b,a,v);
-        col=mix(col,c,smoothstep(.78,1.,w)*.32);
-        col=mix(col,vec3(1.,.08,.06),heat*.45*w);
-        col=floor(col*10.)/10.;
-        float vig=smoothstep(1.35,.25,len);
-        gl_FragColor=vec4(col*vig*.9,1.);
+        float spin=t*.07*(1.+heat*3.);
+        float ang=atan(uv.y,uv.x)+spin-5.2*(.28*len+.72);
+        uv=vec2(cos(ang),sin(ang))*len*28.;
+        float mv=t*(.9+heat*1.6);
+        vec2 w=vec2(uv.x-uv.y);
+        for(int i=0;i<5;i++){
+          w+=cos(min(uv.x,uv.y))+uv;
+          uv+=.5*vec2(sin(4.31+.37*w.y+mv*.143),cos(w.x-.121*mv));
+          uv-=.9*sin(uv.x-uv.y)-.9*cos(uv.y*.67+uv.x);
+        }
+        float cm=1.95+heat*.6;
+        float paint=clamp(length(uv)*.036*cm,0.,2.);
+        float b1=max(0.,1.-cm*abs(1.-paint));
+        float b2=max(0.,1.-cm*abs(paint));
+        float b3=1.-min(1.,b1+b2);
+        float glow=.22*max(b1*5.-4.,0.)+.38*max(b2*5.-4.,0.);
+        vec3 a=mix(vec3(.10,.55,.42),vec3(.80,.10,.38),side);
+        vec3 b=mix(vec3(.86,.62,.13),vec3(.42,.13,.72),side);
+        vec3 c=mix(vec3(.03,.10,.10),vec3(.07,.02,.06),side);
+        a=mix(a,vec3(1.,.24,.10),heat*.7);
+        vec3 col=.08*a+.92*(a*b1+b*b2+c*b3)+glow;
+        float vig=smoothstep(1.05,.2,len);
+        gl_FragColor=vec4(col*(.5+.5*vig)*.68,1.);
       }`;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
@@ -2411,7 +2421,9 @@ function tick() {
 
 // ================= INPUT =================
 function myTurnNow() { return !!(G && G.turn === ME && G.roulette === null && G.winner === null && G.players[ME] && !G.players[ME].out); }
-function usable(card) { if (!G || busy || G.winner !== null || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
+// could this card go down right now (ignores whether a choice dialog is open)
+function fits(card) { if (!G || G.winner !== null || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
+function usable(card) { return !busy && fits(card); }
 async function useCard(card, el, fromRect) {
   if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
   const me = G.players[ME], face = G.f(card);
@@ -2934,7 +2946,7 @@ function pickExtras(card, same) {
       $('pxGo').onclick = () => {
         const o = order(); if (!o.length) return;
         // the first card has to be one you could play on its own
-        if (!usable(o[0])) { warn = t('firstMustFit'); SFX.play('bad'); draw(); return; }
+        if (!fits(o[0])) { warn = t('firstMustFit'); SFX.play('bad'); draw(); return; }
         closeModal(); res({ lead: o[0], extra: o.slice(1) });
       };
       $('pxCancel').onclick = () => { closeModal(); res(null); };
