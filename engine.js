@@ -39,6 +39,18 @@ function comboOf(faces) {
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const LAST_CALL = 250;
+// ---- debt match: what a card left in your hand costs you at the end of a deal ----
+function debtValue(f) {
+  if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
+  if (f.c === 'w') return ['wild'].includes(f.v) ? 40 : 50;
+  if (['d4', 'd5', 'skipall'].includes(f.v)) return 30;
+  if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 20;
+  return 50; // house cards
+}
+// tokens sold in the shop; price in chips
+const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
+const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25 };
+const DEBT_LIMITS = [250, 500, 1000];
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
 const PRESETS = (() => {
@@ -82,11 +94,9 @@ function faceName(f) { return f.c === 'w' ? VALUE_NAME[f.v] : COLOR_NAME[f.c] + 
 class Game {
   constructor(names, humans, rules) {
     rules = Object.assign({}, rules);
-    if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
-    delete rules.sevenZero;
     this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
     // cut from the game: 7 swap, 0 rotate, jump-in, revenge, snitch, finisher
-    Object.assign(this.rules, { seven: false, zero: false, jumpIn: false, revenge: false, snitch: false, finisher: false });
+    Object.assign(this.rules, { jumpIn: false, revenge: false, snitch: false, finisher: false });
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -96,6 +106,10 @@ class Game {
     this.next = this.newCard();
     this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, unoCalled: false, vulnerable: false, shield: false, oweN: 0, owed: [], av: '', peer: '' }));
     for (const p of this.players) for (let i = 0; i < this.rules.handSize; i++) p.hand.push(this.newCard());
+    // debt match: house tokens bought in the shop (seat -> ids) and the chips earned this deal
+    this.perks = rules.perks || {};
+    this.chipsWon = this.players.map(() => 0);
+    this.padUsed = this.players.map(() => false);
     let top;
     do { top = this.newCard(); } while (top.L.c === 'w' || isNaN(+top.L.v));
     this.top = top; this.color = top.L.c; this.dir = 1;
@@ -176,6 +190,7 @@ class Game {
     if (this.roulette !== null && this.players[this.roulette].out) { this.roulette = null; }
     if (this.debt && this.players[this.debt.pi].out) this.debt = null;
   }
+  hasPerk(pi, id) { const l = this.perks && this.perks[pi]; return !!(l && l.includes(id)); }
   // Last Call: after LAST_CALL handovers the house closes. Fewest cards wins; a tie goes to whoever sits soonest in turn order.
   lastCallLeft() { return this.rules.lastCall === false ? null : Math.max(0, LAST_CALL - (this.turnNo || 0)); }
   lastCallCheck() {
@@ -240,7 +255,10 @@ class Game {
       { n: p.name, j: jump ? 1 : 0, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
     this.ev('play', { pi, code: cardCode(last), side: this.side, jump, k });
     if (k > 1) this.ev('multi', { pi, k });
-    const combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
+    let combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
+    if (combo && combo.key === 'pair' && this.hasPerk(pi, 'sharp')) combo = Object.assign({}, combo, { key: 'three', d: COMBOS.three.d, mult: Math.max(1, COMBOS.three.d) }); // Sharp: a pair plays as three of a kind
+    if (combo && this.chipsWon) this.chipsWon[pi] += Math.max(1, Math.round(combo.chips * combo.mult / 10));
+    if (this.chipsWon && !/^\d$/.test(face.v) && this.hasPerk(pi, 'counter')) this.chipsWon[pi] += 1; // Bookkeeper
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
     this.drewBy = -1;
@@ -266,26 +284,6 @@ class Game {
       this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0 });
     }
     switch (face.v) {
-      case '7':
-        if (this.rules.seven && opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out) {
-          const t = this.players[opts.target];
-          [p.hand, t.hand] = [t.hand, p.hand];
-          this.addLog(`${p.name} swaps hands with ${t.name} (${p.hand.length} ↔ ${t.hand.length}).`, 'swap', 'swap', { n: p.name, t: t.name, a: p.hand.length, b: t.hand.length });
-          this.ev('swap', { a: pi, b: opts.target });
-          for (const q of [p, t]) if (q.hand.length !== 1) q.vulnerable = false;
-        }
-        break;
-      case '0':
-        if (this.rules.zero) {
-          const order = []; let i = pi;
-          do { order.push(i); i = this.nextIdx(i, 1); } while (i !== pi && order.length < 20);
-          const hands = order.map(j => this.players[j].hand);
-          order.forEach((j, k) => { this.players[order[(k + 1) % order.length]].hand = hands[k]; });
-          for (const q of this.players) q.vulnerable = false;
-          this.addLog(`Everyone passes their hand ${this.dir === 1 ? 'clockwise' : 'counter-clockwise'}!`, 'swap', 'rotate', { cw: this.dir === 1 ? 1 : 0 });
-          this.ev('rotate', {});
-        }
-        break;
       case 'skip':
         steps = 1 + k;
         for (let s = 1; s <= k; s++) this.ev('skip', { pi: this.nextIdx(pi, s) });
@@ -664,6 +662,7 @@ class Game {
       // taking the stack: the cards are picked up one by one
       if (this.rules.finisher !== false && p.hand.length <= 2) { this.pending += 4; this.addLog(`FINISHER: ${p.name} was about to win. The stack grows to +${this.pending}.`, 'bad', 'finisher', { n: p.name, k: this.pending }); this.ev('finisher', { pi, k: this.pending }); }
       if (p.marked) { p.marked = false; this.pending *= 2; this.addLog(`The devil collects: ${p.name}'s stack is doubled to +${this.pending}.`, 'bad', 'dealDue', { n: p.name, k: this.pending }); this.ev('dealDue', { pi, k: this.pending }); }
+      if (this.hasPerk(pi, 'pad') && this.padUsed && !this.padUsed[pi]) { this.padUsed[pi] = true; this.pending = Math.ceil(this.pending / 2); this.addLog(`${p.name}'s padding takes half the hit: +${this.pending}.`, 'win', 'pad', { n: p.name, k: this.pending }); this.ev('pad', { pi, k: this.pending }); }
       this.debt = { pi, n: this.pending, got: 0, kind: 'stack' };
       this.addLog(`${p.name} takes the +${this.pending} stack.`, 'bad', 'takes', { n: p.name, k: this.pending });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
@@ -719,9 +718,8 @@ class Game {
   rollChaos() {
     this.chaosIn = 8 + Math.floor(Math.random() * 5);
     const act = this.players.map((p, i) => i).filter(i => !this.players[i].out);
-    const pool = ['inflation', 'revolution', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
+    const pool = ['inflation', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
     if (!this.rules.flip) pool.splice(pool.indexOf('storm'), 1);
-    if (this.debt || this.roulette !== null) { const s = pool.indexOf('revolution'); if (s >= 0) pool.splice(s, 1); }
     const e = pool[Math.floor(Math.random() * pool.length)];
     const data = { e };
     switch (e) {
@@ -734,12 +732,6 @@ class Game {
         break;
       }
       case 'bleed': for (const i of act) this.players[i].oweN = (this.players[i].oweN || 0) + 1; break; // everyone pays 1
-      case 'revolution': {                        // every hand moves one seat along
-        const hands = act.map(i => this.players[i].hand);
-        act.forEach((i, k) => { this.players[act[(k + 1) % act.length]].hand = hands[k]; });
-        for (const i of act) this.players[i].vulnerable = false;
-        break;
-      }
       case 'storm': {                             // the table flips
         this.side = other(this.side);
         const nf = this.f(this.top);
@@ -827,7 +819,7 @@ class Game {
     if (!this.canGamble(pi)) return null;
     const p = this.players[pi], k = this.pending;
     this.seq++;
-    if (Math.random() < 0.5) {
+    if (Math.random() < (this.hasPerk(pi, 'luck') ? 2 / 3 : 0.5)) {
       this.addLog(`${p.name} spins the revolver… click. The +${k} stack is gone.`, 'win', 'gambleWin', { n: p.name, k });
       this.ev('gamble', { pi, ok: 1, k });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.drewBy = -1;
@@ -924,12 +916,6 @@ const Bot = {
           const gain = rest.reduce((a, c) => a + Bot.strength(g.back(c)) - Bot.strength(g.f(c)), 0);
           s += gain * 0.7 + (nl <= 3 ? 5 : 0);
         }
-        if (f.v === '7' && g.rules.seven) { const diff = p.hand.length - 1 - minOther.q.hand.length; s += diff >= 2 ? 6 * diff : 0; }
-        if (f.v === '0' && g.rules.zero) {
-          const n = g.players.length; let j = pi;
-          do { j = (j - g.dir + n) % n; } while (g.players[j].out);
-          s += (p.hand.length - 1 - g.players[j].hand.length) * 5;
-        }
         if (f.c !== 'w') s += colorCount(f.c) * 0.8;
       }
       if (s > bestScore) { bestScore = s; best = card; }
@@ -945,12 +931,11 @@ const Bot = {
       if (hi - lo + 1 >= 3 && hi - lo + 1 > extra.length + 1) { extra = []; for (let x = lo; x <= hi; x++) if (x !== +bf.v) extra.push(byNum[x]); }
     }
     const rest = p.hand.filter(c => c !== best && !extra.includes(c));
-    const swapGain = minOther ? rest.length - minOther.q.hand.length : 0;
     return {
       cardId: best.id, extra: extra.map(c => c.id),
       color: bf.c === 'w' ? this.bestColor(g, rest, g.side) : null,
       flipColor: (bf.v === 'flip' || bf.v === 'dflip') ? this.bestColor(g, rest, other(g.side)) : null,
-      target: bf.v === 'duel' || bf.v === 'gift' ? minOther.i : (bf.v === '7' && g.rules.seven && swapGain >= 2 ? minOther.i : null)
+      target: bf.v === 'duel' || bf.v === 'gift' ? minOther.i : null
     };
   },
   jumpCandidate(g) {
@@ -1007,4 +992,4 @@ Object.defineProperty(Game.prototype, 'turn', {
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL };
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS };

@@ -47,6 +47,7 @@ The simplest setup is to use the Render link for everything. If you'd rather kee
 
 ## Rules
 
+- **Debt match** (default): a match is a run of deals. Before each deal everyone drafts (passes two cards to a neighbour). When someone empties their hand, the others pay the house for what they hold (numbers at face value, action cards 20, big draws 30, wilds 40, wild draws and house cards 50). Over the debt limit (250 / 500 / 1000) you become the house's collector: no more winning, but once per deal you can slip someone two cards or pull the slot lever. The last player under the limit wins. Chips (deal wins, poker hands) buy tokens, debt payoff and dirty tricks in the house shop between deals. **Single deal** is still there in the lobby.
 - **Basics:** match the top card by colour or symbol, or play a wild. Empty your hand to win. Call **Last card** (button **LAST** / **ОДНА**) at two cards or right after dropping to one; get caught and you draw 2.
 - **Table presets:** the host picks one of three tables in the lobby. **Classic**: plain cards and stacking, no house tricks. **Back room** (default): the house table, balanced. **No limits**: every rule and every card on. Every rule and card can still be switched one by one under *Fine-tune*.
 - **Day and night:** every card has two faces. A **Shift** card turns the table over. Day: the slot machine runs, poker hands pay you, the revolver needs +8. Night: no slots, poker hands hit the next player, the revolver works from +4, the dynamite burns. **Eclipse** swaps for one turn.

@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
-const { Game, Bot, serialize, cardCode, PRESETS } = require('./engine.js');
+const { Game, Bot, serialize, cardCode, PRESETS, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS } = require('./engine.js');
 
 const PORT = process.env.PORT || 3000;
 const MAX_SEATS = 6;
@@ -92,7 +92,8 @@ function makeRoom(hostToken) {
     code: newCode(), host: hostToken, members: new Map(), order: [],
     rules: Object.assign({}, PRESETS.den.rules),
     cards: Object.assign({}, PRESETS.den.cards),
-    G: null, seats: [], timer: null, emptySince: null
+    G: null, seats: [], timer: null, emptySince: null,
+    mode: 'debt', limit: 500, M: null
   };
   rooms.set(room.code, room);
   return room;
@@ -104,13 +105,15 @@ function lobbyFor(room, viewer) {
   return {
     code: room.code,
     players: list.map(m => [m.name, online(m) ? 1 : 0, m.token === room.host ? 1 : 0, m.token === viewer ? 1 : 0, m.bot ? 1 : 0]),
-    live: !!(room.G && room.G.winner === null),
-    rules: room.rules, cards: room.cards,
+    live: !!(room.M ? room.M.phase !== 'over' : room.G && room.G.winner === null),
+    rules: room.rules, cards: room.cards, mode: room.mode, limit: room.limit,
     host: viewer === room.host
   };
 }
 function send(ws, obj) { if (ws && ws.readyState === 1) try { ws.send(JSON.stringify(obj)); } catch (e) {} }
 function sync(room) {
+  const M = room.M;
+  if (M && M.phase === 'play' && room.G && room.G.winner !== null) settle(room);
   // mark who is connected, so seats show "away"
   if (room.G) room.seats.forEach((t, i) => { const m = room.members.get(t); room.G.players[i].away = !(m && online(m)); });
   for (const m of room.members.values()) {
@@ -119,7 +122,7 @@ function sync(room) {
     if (room.G && seat !== null) {
       const st = serialize(room.G, seat, 12);
       st.aw = room.G.players.map(p => (p.away ? 1 : 0));
-      send(m.ws, { t: 'state', code: room.code, seat, host: m.token === room.host, st, lobby: lobbyFor(room, m.token) });
+      send(m.ws, { t: 'state', code: room.code, seat, host: m.token === room.host, st, lobby: lobbyFor(room, m.token), match: matchFor(room, seat) });
     } else send(m.ws, { t: 'lobby', lobby: lobbyFor(room, m.token) });
   }
   armTimer(room);
@@ -128,7 +131,7 @@ function sync(room) {
 // skip the turn of someone who is away or idle, so the table never freezes
 function armTimer(room) {
   clearTimeout(room.timer); room.timer = null;
-  const G = room.G; if (!G || G.winner !== null) return;
+  const G = room.G; if (!G || G.winner !== null || (room.M && room.M.phase !== 'play')) return;
   const pi = G.roulette !== null ? G.roulette : G.turn;
   const m = room.members.get(room.seats[pi]);
   if (m && m.bot) return; // bots act on their own clock
@@ -143,7 +146,7 @@ function armTimer(room) {
 // One action per tick, so humans can follow along; the next tick is armed by sync().
 function armBots(room) {
   clearTimeout(room.botTimer); room.botTimer = null;
-  const G = room.G; if (!G || G.winner !== null) return;
+  const G = room.G; if (!G || G.winner !== null || (room.M && room.M.phase !== 'play')) return;
   const job = nextBotJob(room); if (!job) return;
   room.botTimer = setTimeout(() => {
     if (room.G !== G || G.winner !== null) return;
@@ -198,9 +201,163 @@ function startGame(room) {
   if (players.length < 2) return 'Need at least 2 connected players.';
   const used = new Set();
   const names = players.map(m => { let n = m.name, k = 2; while (used.has(n)) n = m.name.slice(0, 11) + ' ' + k++; used.add(n); return n; });
-  room.G = new Game(names, names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0 }));
   room.seats = players.map(m => m.token);
+  room.M = null;
+  if (room.mode === 'debt') {
+    const n = names.length;
+    room.M = { names, limit: room.limit, round: 0, phase: 'play', debt: Array(n).fill(0), chips: Array(n).fill(0), tokens: names.map(() => []),
+      col: Array(n).fill(false), colUsed: Array(n).fill(false), setup: Array(n).fill(0), offers: names.map(() => []), done: Array(n).fill(false),
+      pass: names.map(() => null), last: null, champ: null, deadline: 0 };
+    newDeal(room);
+    return null;
+  }
+  room.G = new Game(names, names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0 }));
   return null;
+}
+
+// ================= DEBT MATCH =================
+// draft -> deal -> settle (cards left = debt) -> shop -> next draft. Over the limit: you become the house's collector.
+const DRAFT_MS = 30000, SHOP_MS = 45000;
+const isBotSeat = (room, i) => { const m = room.members.get(room.seats[i]); return !!(m && m.bot); };
+const alive = M => M.col.map((c, i) => (c ? -1 : i)).filter(i => i >= 0);
+function matchFor(room, seat) {
+  const M = room.M; if (!M) return null;
+  return { round: M.round, limit: M.limit, phase: M.phase, left: Math.max(0, M.deadline - Date.now()), debt: M.debt, chips: M.chips, tokens: M.tokens,
+    col: M.col, colUsed: seat !== null ? M.colUsed[seat] : true, setup: M.setup, offers: seat !== null ? M.offers[seat] : [], done: M.done,
+    passed: seat !== null && !!M.pass[seat], last: M.last, champ: M.champ };
+}
+function phaseTimer(room, ms, fn) {
+  clearTimeout(room.phaseTimer);
+  room.M.deadline = Date.now() + ms;
+  room.phaseTimer = setTimeout(() => { try { fn(); } catch (e) { console.error('phase', e); } }, ms);
+}
+function houseCard(G) { for (let k = 0; k < 80; k++) { const c = G.newCard(); if (EXTRA_CARDS.includes(c.L.v) || EXTRA_CARDS.includes(c.D.v)) return c; } return G.newCard(); }
+function newDeal(room) {
+  const M = room.M, n = M.names.length;
+  M.round++;
+  const perks = {}; M.tokens.forEach((l, i) => { if (l.length) perks[i] = l.slice(); });
+  const G = new Game(M.names, M.names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0, perks }));
+  for (let i = 0; i < n; i++) {
+    const p = G.players[i];
+    if (M.col[i]) { p.hand = []; p.out = true; p.elim = true; p.collector = true; continue; }
+    if (M.tokens[i].includes('light')) p.hand.pop();
+    if (M.tokens[i].includes('license')) p.hand.push(houseCard(G));
+    for (let k = 0; k < M.setup[i]; k++) p.hand.push(G.newCard());
+  }
+  M.setup = Array(n).fill(0);
+  if (G.players[G.turn].out) G.turn = G.nextIdx(G.turn, 1);
+  G.turnNo = 0;
+  room.G = G;
+  M.colUsed = Array(n).fill(false); M.pass = M.names.map(() => null); M.done = Array(n).fill(false);
+  M.phase = 'draft';
+  // bots pass two cards they need least: numbers of their thinnest colour
+  for (const i of alive(M)) if (isBotSeat(room, i)) setTimeout(() => { if (room.M === M && M.phase === 'draft' && !M.pass[i]) { M.pass[i] = botPass(G, i); maybeEndDraft(room); } }, 1200 + Math.random() * 2500);
+  phaseTimer(room, DRAFT_MS, () => endDraft(room));
+  // bot collectors strike once, somewhere in the deal
+  for (let i = 0; i < n; i++) if (M.col[i] && isBotSeat(room, i)) setTimeout(() => { if (room.M === M && room.G === G && M.phase === 'play' && G.winner === null && !M.colUsed[i]) { collector(room, i, Math.random() < 0.6 ? 'give' : 'lever', null); sync(room); } }, 25000 + Math.random() * 50000);
+}
+function botPass(G, i) {
+  const h = G.players[i].hand.slice();
+  const cnt = {}; for (const c of h) { const f = G.f(c); cnt[f.c] = (cnt[f.c] || 0) + 1; }
+  h.sort((a, b) => { const fa = G.f(a), fb = G.f(b); const na = /^\d$/.test(fa.v) ? 0 : 1, nb = /^\d$/.test(fb.v) ? 0 : 1; return na - nb || (cnt[fa.c] || 0) - (cnt[fb.c] || 0); });
+  return h.slice(0, 2);
+}
+function maybeEndDraft(room) { const M = room.M; if (alive(M).every(i => M.pass[i])) endDraft(room); else sync(room); }
+function endDraft(room) {
+  const M = room.M, G = room.G; if (!M || M.phase !== 'draft') return;
+  const live = alive(M);
+  for (const i of live) if (!M.pass[i]) M.pass[i] = G.players[i].hand.slice().sort(() => Math.random() - 0.5).slice(0, 2);
+  const give = live.map(i => ({ to: G.nextIdx(i, 1), cards: M.pass[i].filter(c => G.players[i].hand.includes(c)) }));
+  live.forEach((i, k) => { G.players[i].hand = G.players[i].hand.filter(c => !give[k].cards.includes(c)); });
+  for (const g of give) G.players[g.to].hand.push(...g.cards);
+  G.addLog('Everyone passes two cards along. The deal begins.', 'n', 'draftDone', {});
+  M.phase = 'play'; clearTimeout(room.phaseTimer); M.deadline = 0;
+  sync(room);
+}
+function settle(room) {
+  const M = room.M, G = room.G, live = alive(M);
+  const rows = [];
+  const paid = Array(M.names.length).fill(0);
+  for (const i of live) {
+    const p = G.players[i];
+    let vals = p.hand.map(c => debtValue(G.f(c)));
+    if (M.tokens[i].includes('debtor')) vals = p.hand.map((c, k) => (/^\d$/.test(G.f(c).v) && G.f(c).c !== 'w' ? 0 : vals[k]));
+    if (M.tokens[i].includes('safe')) vals = vals.sort((a, b) => b - a).slice(3);
+    paid[i] = i === G.winner ? 0 : vals.reduce((a, b) => a + b, 0);
+  }
+  const total = paid.reduce((a, b) => a + b, 0);
+  for (const i of live) {
+    let chips = (G.chipsWon && G.chipsWon[i]) || 0;
+    if (i === G.winner) chips += 5 + Math.round(total * 0.1);
+    if (M.tokens[i].includes('usurer')) { let j = i; do { j = (j - 1 + M.names.length) % M.names.length; } while (M.col[j] && j !== i); if (j !== i) chips += Math.round(paid[j] * 0.1); }
+    M.chips[i] += chips; M.debt[i] += paid[i];
+    rows.push({ i, cards: G.players[i].hand.length, paid: paid[i], chips });
+  }
+  const out = live.filter(i => M.debt[i] > M.limit);
+  for (const i of out) M.col[i] = true;
+  M.last = { round: M.round, winner: G.winner, rows, out };
+  afterChange(room, () => openShop(room));
+}
+// the match ends when one player (or none) is left under the limit
+function afterChange(room, next) {
+  const M = room.M, live = alive(M);
+  if (live.length <= 1) {
+    M.phase = 'over'; clearTimeout(room.phaseTimer); M.deadline = 0;
+    M.champ = live.length ? live[0] : M.debt.indexOf(Math.min(...M.debt));
+    return;
+  }
+  next();
+}
+function openShop(room) {
+  const M = room.M;
+  M.phase = 'shop'; M.done = M.names.map((_, i) => !!M.col[i]);
+  M.offers = M.names.map((_, i) => (M.col[i] || M.tokens[i].length >= 3 ? [] : TOKENS.filter(t => !M.tokens[i].includes(t)).sort(() => Math.random() - 0.5).slice(0, 3)));
+  for (const i of alive(M)) if (isBotSeat(room, i)) setTimeout(() => { if (room.M === M && M.phase === 'shop') { botShop(M, i); M.done[i] = true; maybeEndShop(room); } }, 2500 + Math.random() * 4000);
+  phaseTimer(room, SHOP_MS, () => endShop(room));
+}
+function botShop(M, i) {
+  while (M.offers[i].length && M.chips[i] >= PRICES.token && M.tokens[i].length < 3 && M.debt[i] < M.limit * 0.6) buy(M, i, { k: 'token', id: M.offers[i][0] });
+  while (M.chips[i] >= PRICES.pay && M.debt[i] > 0) buy(M, i, { k: 'pay' });
+}
+function buy(M, i, a) {
+  if (M.phase !== 'shop' || M.col[i] || M.done[i]) return false;
+  if (a.k === 'token') {
+    if (!M.offers[i].includes(a.id) || M.chips[i] < PRICES.token || M.tokens[i].length >= 3) return false;
+    M.chips[i] -= PRICES.token; M.tokens[i].push(a.id); M.offers[i] = M.offers[i].filter(x => x !== a.id); return true;
+  }
+  if (a.k === 'pay') {
+    if (M.chips[i] < PRICES.pay || M.debt[i] <= 0) return false;
+    M.chips[i] -= PRICES.pay; M.debt[i] = Math.max(0, M.debt[i] - PRICES.payAmount); return true;
+  }
+  if (a.k === 'setup' || a.k === 'interest') {
+    const t = a.target;
+    if (!Number.isInteger(t) || t === i || !M.names[t] || M.col[t] || M.chips[i] < PRICES[a.k]) return false;
+    M.chips[i] -= PRICES[a.k];
+    if (a.k === 'setup') M.setup[t] += 3; else M.debt[t] += Math.max(10, Math.ceil(M.debt[t] * 0.1));
+    return true;
+  }
+  return false;
+}
+function maybeEndShop(room) { const M = room.M; if (M.done.every(Boolean)) endShop(room); else sync(room); }
+function endShop(room) {
+  const M = room.M; if (!M || M.phase !== 'shop') return;
+  for (const i of alive(M)) if (M.debt[i] > M.limit) { M.col[i] = true; M.last.out.push(i); }
+  afterChange(room, () => newDeal(room));
+  sync(room);
+}
+function collector(room, i, k, target) {
+  const M = room.M, G = room.G;
+  if (!M || !G || M.phase !== 'play' || G.winner !== null || !M.col[i] || M.colUsed[i]) return;
+  if (k === 'give') {
+    if (!Number.isInteger(target) || M.col[target] || G.players[target].out) { const l = alive(M).filter(j => !G.players[j].out); if (!l.length) return; target = l.reduce((a, b) => (G.players[b].hand.length < G.players[a].hand.length ? b : a)); }
+    G.players[target].oweN = (G.players[target].oweN || 0) + 2;
+    G.addLog(`The collector ${M.names[i]} slips ${M.names[target]} two cards.`, 'bad', 'colGive', { n: M.names[i], t: M.names[target] });
+    G.ev('colgive', { pi: i, t: target });
+  } else {
+    G.addLog(`The collector ${M.names[i]} pulls the lever.`, 'n', 'colLever', { n: M.names[i] });
+    G.rollChaos();
+  }
+  M.colUsed[i] = true; G.seq++;
 }
 function applyAct(G, pi, a) {
   if (!a || typeof a !== 'object') return;
@@ -268,6 +425,8 @@ function handle(ws, msg) {
     const room = makeRoom(msg.token);
     if (msg.rules && typeof msg.rules === 'object') for (const k of RULE_KEYS) if (k in msg.rules) room.rules[k] = !!msg.rules[k];
     if (msg.cards && typeof msg.cards === 'object') for (const k of EXTRA) if (k in msg.cards) room.cards[k] = !!msg.cards[k];
+    if (msg.mode === 'one' || msg.mode === 'debt') room.mode = msg.mode;
+    if (DEBT_LIMITS.includes(msg.limit)) room.limit = msg.limit;
     attach(ws, room, msg.token, clean(msg.name) || 'Host');
     send(ws, { t: 'joined', code: room.code });
     sync(room);
@@ -294,14 +453,36 @@ function handle(ws, msg) {
       if (room.G && seat !== null && room.G.winner !== null) room.G.players[seat].name = n;
       sync(room); return;
     }
+    case 'draft': {
+      const M = room.M, seat = seatOf(room, m.token);
+      if (!M || M.phase !== 'draft' || seat === null || M.col[seat] || M.pass[seat] || !Array.isArray(msg.cards)) return;
+      const hand = room.G.players[seat].hand, pick = [];
+      for (const code of msg.cards.slice(0, 2)) { const c = hand.find(x => !pick.includes(x) && cardCode(x) === code); if (c) pick.push(c); }
+      if (pick.length !== Math.min(2, hand.length)) return;
+      M.pass[seat] = pick; maybeEndDraft(room); return;
+    }
+    case 'shop': {
+      const M = room.M, seat = seatOf(room, m.token);
+      if (!M || seat === null || !msg.a || typeof msg.a !== 'object') return;
+      if (msg.a.k === 'done') { if (M.phase === 'shop') { M.done[seat] = true; maybeEndShop(room); } return; }
+      if (buy(M, seat, { k: msg.a.k, id: msg.a.id, target: msg.a.target })) sync(room);
+      return;
+    }
+    case 'col': {
+      const seat = seatOf(room, m.token); if (seat === null) return;
+      collector(room, seat, msg.k === 'lever' ? 'lever' : 'give', Number.isInteger(msg.target) ? msg.target : null);
+      sync(room); return;
+    }
     case 'settings': {
-      if (!isHost || (room.G && room.G.winner === null)) return;
+      if (!isHost || (room.G && room.G.winner === null) || (room.M && room.M.phase !== 'over')) return;
+      if (msg.mode === 'one' || msg.mode === 'debt') room.mode = msg.mode;
+      if (DEBT_LIMITS.includes(msg.limit)) room.limit = msg.limit;
       if (msg.rules && typeof msg.rules === 'object') for (const k of RULE_KEYS) if (k in msg.rules) room.rules[k] = !!msg.rules[k];
       if (msg.cards && typeof msg.cards === 'object') for (const k of EXTRA) if (k in msg.cards) room.cards[k] = !!msg.cards[k];
       sync(room); return;
     }
     case 'start': {
-      if (!isHost || (room.G && room.G.winner === null)) return;
+      if (!isHost || (room.G && room.G.winner === null) || (room.M && room.M.phase !== 'over')) return;
       const err = startGame(room);
       if (err) send(ws, { t: 'error', code: 'start', msg: err });
       sync(room); return;
@@ -321,12 +502,13 @@ function handle(ws, msg) {
       sync(room); return;
     }
     case 'tolobby': {
-      if (!isHost || (room.G && room.G.winner === null)) return;
-      room.G = null; room.seats = []; sync(room); return;
+      if (!isHost || (room.G && room.G.winner === null && !(room.M && room.M.phase === 'over'))) return;
+      if (room.M && room.M.phase !== 'over') return;
+      clearTimeout(room.phaseTimer); room.G = null; room.M = null; room.seats = []; sync(room); return;
     }
     case 'act': {
       const seat = seatOf(room, m.token);
-      if (!room.G || seat === null || room.G.winner !== null) return;
+      if (!room.G || seat === null || room.G.winner !== null || (room.M && room.M.phase !== 'play')) return;
       applyAct(room.G, seat, msg.a);
       sync(room); return;
     }
@@ -347,7 +529,7 @@ setInterval(() => {
   const now = Date.now();
   for (const [code, room] of rooms) {
     // disconnected for a full minute in a live match: out, so the others aren't held up
-    if (room.G && room.G.winner === null) {
+    if (room.G && room.G.winner === null && (!room.M || room.M.phase === 'play')) {
       let changed = false;
       room.seats.forEach((t, i) => {
         const m = room.members.get(t);

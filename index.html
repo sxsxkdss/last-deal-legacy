@@ -59,7 +59,7 @@ details > summary { cursor: pointer; }
 #bg.nogl, body.lite #bg { background: radial-gradient(ellipse at 50% 45%, #10291f, #040505 70%); }
 body.dark #bg.nogl, body.dark.lite #bg { background: radial-gradient(ellipse at 50% 45%, #2c0b0e, #050203 70%); }
 #crt { position: fixed; inset: 0; pointer-events: none; z-index: 90;
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .18) 0, rgba(0, 0, 0, .18) 1px, transparent 1px, transparent 3px), radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, .8) 100%); }
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .18) 0, rgba(0, 0, 0, .18) 1px, transparent 1px, transparent 3px), radial-gradient(ellipse at 50% 42%, transparent 52%, rgba(0, 0, 0, .55) 100%); }
 /* day is lighter: a softer vignette, less grain */
 body:not(.dark) #crt { background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .12) 0, rgba(0, 0, 0, .12) 1px, transparent 1px, transparent 3px), radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .6) 100%); }
 body:not(.dark) #grain { opacity: .08; }
@@ -345,8 +345,8 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 .card.c-w .mid { position: absolute; inset: 0; justify-content: center; color: #efe6cf; text-shadow: 0 0 4px #000, 0 2px 0 #000; }
 .card.c-w:has(.mid:empty) .oval { width: 58%; }
 /* night: darker coloured stock, black ink, a black edge (no more black-on-black) */
-.card.s-D { border-color: #15100c; filter: saturate(.85) brightness(.95) contrast(1.1); }
-.card.s-D:not(.c-w) { background: color-mix(in srgb, var(--cc) 82%, #000); color: #0e0a08; }
+.card.s-D { border-color: #15100c; filter: saturate(.9) brightness(1.08) contrast(1.08); }
+.card.s-D:not(.c-w) { background: var(--cc); color: #0e0a08; }
 .card.s-D:not(.c-w) .mid, .card.s-D:not(.c-w) .cor { text-shadow: 0 1px 0 rgba(255, 255, 255, .22); }
 .card.s-D:not(.c-w) .mid .ico { filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .22)); }
 .card.s-D:not(.c-w)::after { border-color: rgba(0, 0, 0, .45); }
@@ -355,7 +355,12 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 #hand .card.ok { filter: saturate(.8) brightness(1.02) contrast(1.12); box-shadow: 0 0 0 2px var(--gold), 0 10px 18px rgba(0, 0, 0, .6); }
 #hand .card:not(.ok):not(.jump) { filter: saturate(.6) brightness(.84) contrast(1.08); }
 .card.spr { filter: none; }
-#hand .card.s-D:not(.ok):not(.jump) { filter: saturate(.65) brightness(.9) contrast(1.08); }
+#hand .card.s-D:not(.ok):not(.jump) { filter: saturate(.75) brightness(1) contrast(1.06); }
+#hand .card.s-D.ok { filter: saturate(.95) brightness(1.15) contrast(1.08); }
+/* the hand sits under its own little light, day and night */
+#bottom { position: relative; }
+#bottom::before { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0; height: 75%; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 50% 100%, rgba(255, 220, 170, .10), transparent 70%); }
+body.dark #bottom::before { background: radial-gradient(ellipse at 50% 100%, rgba(255, 170, 150, .14), transparent 70%); }
 
 /* ---------- side panel: a receipt for the log ---------- */
 .sidehead { min-height: 48px; padding: 6px 16px; display: flex; flex-wrap: wrap; row-gap: 4px; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255, 255, 255, .06); }
@@ -525,6 +530,36 @@ body.lite #cardtip, body.lite #combo { transition: none; }
 body.kick .opp.turn { animation: kick .22s ease-out; }
 @keyframes kick { 40% { translate: 0 -2px; } }
 
+/* ---------- debt match: lobby mode, collector bar, draft, shop ---------- */
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modes .preset:nth-child(2) { rotate: .8deg; }
+.limitrow { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.colbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.colbar .label { color: var(--gold); }
+.opp.collector { opacity: .75; filter: sepia(.4); }
+.draftpick { margin: 12px 0 4px; }
+.draftpick .card.off { opacity: .85; }
+.draftpick .card.lead { outline: 3px solid var(--stamp); outline-offset: 2px; transform: translateY(-6px); }
+.settle .li { font-size: 13px; }
+.settle .outrow { color: var(--stamp); }
+.stampmini { display: inline-block; margin-left: 6px; padding: 0 4px; font: 700 11px/16px var(--f-stamp); letter-spacing: .08em; color: var(--stamp); border: 2px solid var(--stamp); rotate: -4deg; }
+.wallet { display: flex; justify-content: space-between; gap: 12px; margin: 14px 0 4px; padding: 8px 10px; font: 600 14px var(--f-type); background: rgba(0, 0, 0, .08); border: 1px dashed rgba(29, 23, 18, .4); }
+.toks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 6px 0; }
+.tok { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; text-align: left; border-radius: 2px; color: var(--ink);
+  background: var(--paper-2) var(--noise); background-blend-mode: multiply; box-shadow: inset 0 0 10px rgba(40, 25, 10, .35), 0 3px 0 rgba(0, 0, 0, .55); }
+.tok b { font: 700 15px/18px var(--f-stamp); text-transform: uppercase; letter-spacing: .04em; }
+.tok span { font: 500 11px/15px var(--f-type); }
+.tok i { position: absolute; top: 8px; right: 10px; font: 700 13px var(--f-stamp); font-style: normal; color: var(--stamp); }
+.tok.own { background-color: var(--ink); color: var(--paper); box-shadow: 0 0 0 2px var(--stamp); }
+.tok:disabled { opacity: .45; cursor: default; }
+button.tok:hover:not(:disabled) { transform: translateY(-2px); }
+.tricks { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.trick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font: 600 13px var(--f-type); }
+.trick > span { flex: 1 1 100px; }
+.trick .btn { height: 32px; font-size: 11px; padding: 0 8px; }
+#shopPay { margin: 4px 0; }
+@media (max-width: 520px) { .modes { grid-template-columns: 1fr; } .toks { grid-template-columns: 1fr; } }
+
 </style>
 </head>
 <body>
@@ -563,6 +598,9 @@ body.kick .opp.turn { animation: kick .22s ease-out; }
     <div id="lbHost">
       <div class="section actions-row"><button class="btn" id="btnAddBot" data-i18n="addBot"></button><button class="btn" id="btnRmBot" data-i18n="rmBot"></button></div>
       <div class="section"><button class="btn primary wide" id="btnRoomStart" data-i18n="startGame"></button></div>
+      <div class="section"><span class="label" data-i18n="matchMode"></span>
+        <div class="modes" id="lbMode"></div>
+        <div class="limitrow" id="lbLimitRow"><span class="label" data-i18n="debtLimit"></span><div class="seg" id="lbLimit"></div></div></div>
       <div class="section"><span class="label" data-i18n="presets"></span><div class="presets" id="lbPresets"></div>
         <details class="fine" id="lbFine"><summary id="lbFineSum"></summary>
           <span class="label sublabel" data-i18n="rules"></span><div id="lbRules"></div>
@@ -591,7 +629,8 @@ body.kick .opp.turn { animation: kick .22s ease-out; }
   <div id="bottom">
     <div class="me">
       <div class="who"><span class="ini" id="meIni"></span><span id="meName"></span><span class="cnt" id="meCnt"></span><span class="tags label" id="meTags"></span><div class="bar" id="meBarWrap"><div id="meDanger"></div></div></div>
-      <div class="actions">
+      <div class="colbar hidden" id="colBar"><span class="label" id="colTxt"></span><button class="btn" id="btnColGive"></button><button class="btn" id="btnColLever"></button></div>
+        <div class="actions">
         <button class="btn primary" id="btnDraw" data-i18n="draw"></button>
         <button class="btn" id="btnPass" data-i18n="pass"></button>
         <button class="btn gamble hidden" id="btnGamble"></button>
@@ -657,6 +696,18 @@ function comboOf(faces) {
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const LAST_CALL = 250;
+// ---- debt match: what a card left in your hand costs you at the end of a deal ----
+function debtValue(f) {
+  if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
+  if (f.c === 'w') return ['wild'].includes(f.v) ? 40 : 50;
+  if (['d4', 'd5', 'skipall'].includes(f.v)) return 30;
+  if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 20;
+  return 50; // house cards
+}
+// tokens sold in the shop; price in chips
+const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
+const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25 };
+const DEBT_LIMITS = [250, 500, 1000];
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
 const PRESETS = (() => {
@@ -700,11 +751,9 @@ function faceName(f) { return f.c === 'w' ? VALUE_NAME[f.v] : COLOR_NAME[f.c] + 
 class Game {
   constructor(names, humans, rules) {
     rules = Object.assign({}, rules);
-    if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
-    delete rules.sevenZero;
     this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
     // cut from the game: 7 swap, 0 rotate, jump-in, revenge, snitch, finisher
-    Object.assign(this.rules, { seven: false, zero: false, jumpIn: false, revenge: false, snitch: false, finisher: false });
+    Object.assign(this.rules, { jumpIn: false, revenge: false, snitch: false, finisher: false });
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -714,6 +763,10 @@ class Game {
     this.next = this.newCard();
     this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, unoCalled: false, vulnerable: false, shield: false, oweN: 0, owed: [], av: '', peer: '' }));
     for (const p of this.players) for (let i = 0; i < this.rules.handSize; i++) p.hand.push(this.newCard());
+    // debt match: house tokens bought in the shop (seat -> ids) and the chips earned this deal
+    this.perks = rules.perks || {};
+    this.chipsWon = this.players.map(() => 0);
+    this.padUsed = this.players.map(() => false);
     let top;
     do { top = this.newCard(); } while (top.L.c === 'w' || isNaN(+top.L.v));
     this.top = top; this.color = top.L.c; this.dir = 1;
@@ -794,6 +847,7 @@ class Game {
     if (this.roulette !== null && this.players[this.roulette].out) { this.roulette = null; }
     if (this.debt && this.players[this.debt.pi].out) this.debt = null;
   }
+  hasPerk(pi, id) { const l = this.perks && this.perks[pi]; return !!(l && l.includes(id)); }
   // Last Call: after LAST_CALL handovers the house closes. Fewest cards wins; a tie goes to whoever sits soonest in turn order.
   lastCallLeft() { return this.rules.lastCall === false ? null : Math.max(0, LAST_CALL - (this.turnNo || 0)); }
   lastCallCheck() {
@@ -858,7 +912,10 @@ class Game {
       { n: p.name, j: jump ? 1 : 0, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
     this.ev('play', { pi, code: cardCode(last), side: this.side, jump, k });
     if (k > 1) this.ev('multi', { pi, k });
-    const combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
+    let combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
+    if (combo && combo.key === 'pair' && this.hasPerk(pi, 'sharp')) combo = Object.assign({}, combo, { key: 'three', d: COMBOS.three.d, mult: Math.max(1, COMBOS.three.d) }); // Sharp: a pair plays as three of a kind
+    if (combo && this.chipsWon) this.chipsWon[pi] += Math.max(1, Math.round(combo.chips * combo.mult / 10));
+    if (this.chipsWon && !/^\d$/.test(face.v) && this.hasPerk(pi, 'counter')) this.chipsWon[pi] += 1; // Bookkeeper
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
     this.drewBy = -1;
@@ -884,26 +941,6 @@ class Game {
       this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0 });
     }
     switch (face.v) {
-      case '7':
-        if (this.rules.seven && opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out) {
-          const t = this.players[opts.target];
-          [p.hand, t.hand] = [t.hand, p.hand];
-          this.addLog(`${p.name} swaps hands with ${t.name} (${p.hand.length} ↔ ${t.hand.length}).`, 'swap', 'swap', { n: p.name, t: t.name, a: p.hand.length, b: t.hand.length });
-          this.ev('swap', { a: pi, b: opts.target });
-          for (const q of [p, t]) if (q.hand.length !== 1) q.vulnerable = false;
-        }
-        break;
-      case '0':
-        if (this.rules.zero) {
-          const order = []; let i = pi;
-          do { order.push(i); i = this.nextIdx(i, 1); } while (i !== pi && order.length < 20);
-          const hands = order.map(j => this.players[j].hand);
-          order.forEach((j, k) => { this.players[order[(k + 1) % order.length]].hand = hands[k]; });
-          for (const q of this.players) q.vulnerable = false;
-          this.addLog(`Everyone passes their hand ${this.dir === 1 ? 'clockwise' : 'counter-clockwise'}!`, 'swap', 'rotate', { cw: this.dir === 1 ? 1 : 0 });
-          this.ev('rotate', {});
-        }
-        break;
       case 'skip':
         steps = 1 + k;
         for (let s = 1; s <= k; s++) this.ev('skip', { pi: this.nextIdx(pi, s) });
@@ -1282,6 +1319,7 @@ class Game {
       // taking the stack: the cards are picked up one by one
       if (this.rules.finisher !== false && p.hand.length <= 2) { this.pending += 4; this.addLog(`FINISHER: ${p.name} was about to win. The stack grows to +${this.pending}.`, 'bad', 'finisher', { n: p.name, k: this.pending }); this.ev('finisher', { pi, k: this.pending }); }
       if (p.marked) { p.marked = false; this.pending *= 2; this.addLog(`The devil collects: ${p.name}'s stack is doubled to +${this.pending}.`, 'bad', 'dealDue', { n: p.name, k: this.pending }); this.ev('dealDue', { pi, k: this.pending }); }
+      if (this.hasPerk(pi, 'pad') && this.padUsed && !this.padUsed[pi]) { this.padUsed[pi] = true; this.pending = Math.ceil(this.pending / 2); this.addLog(`${p.name}'s padding takes half the hit: +${this.pending}.`, 'win', 'pad', { n: p.name, k: this.pending }); this.ev('pad', { pi, k: this.pending }); }
       this.debt = { pi, n: this.pending, got: 0, kind: 'stack' };
       this.addLog(`${p.name} takes the +${this.pending} stack.`, 'bad', 'takes', { n: p.name, k: this.pending });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
@@ -1337,9 +1375,8 @@ class Game {
   rollChaos() {
     this.chaosIn = 8 + Math.floor(Math.random() * 5);
     const act = this.players.map((p, i) => i).filter(i => !this.players[i].out);
-    const pool = ['inflation', 'revolution', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
+    const pool = ['inflation', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
     if (!this.rules.flip) pool.splice(pool.indexOf('storm'), 1);
-    if (this.debt || this.roulette !== null) { const s = pool.indexOf('revolution'); if (s >= 0) pool.splice(s, 1); }
     const e = pool[Math.floor(Math.random() * pool.length)];
     const data = { e };
     switch (e) {
@@ -1352,12 +1389,6 @@ class Game {
         break;
       }
       case 'bleed': for (const i of act) this.players[i].oweN = (this.players[i].oweN || 0) + 1; break; // everyone pays 1
-      case 'revolution': {                        // every hand moves one seat along
-        const hands = act.map(i => this.players[i].hand);
-        act.forEach((i, k) => { this.players[act[(k + 1) % act.length]].hand = hands[k]; });
-        for (const i of act) this.players[i].vulnerable = false;
-        break;
-      }
       case 'storm': {                             // the table flips
         this.side = other(this.side);
         const nf = this.f(this.top);
@@ -1445,7 +1476,7 @@ class Game {
     if (!this.canGamble(pi)) return null;
     const p = this.players[pi], k = this.pending;
     this.seq++;
-    if (Math.random() < 0.5) {
+    if (Math.random() < (this.hasPerk(pi, 'luck') ? 2 / 3 : 0.5)) {
       this.addLog(`${p.name} spins the revolver… click. The +${k} stack is gone.`, 'win', 'gambleWin', { n: p.name, k });
       this.ev('gamble', { pi, ok: 1, k });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.drewBy = -1;
@@ -1542,12 +1573,6 @@ const Bot = {
           const gain = rest.reduce((a, c) => a + Bot.strength(g.back(c)) - Bot.strength(g.f(c)), 0);
           s += gain * 0.7 + (nl <= 3 ? 5 : 0);
         }
-        if (f.v === '7' && g.rules.seven) { const diff = p.hand.length - 1 - minOther.q.hand.length; s += diff >= 2 ? 6 * diff : 0; }
-        if (f.v === '0' && g.rules.zero) {
-          const n = g.players.length; let j = pi;
-          do { j = (j - g.dir + n) % n; } while (g.players[j].out);
-          s += (p.hand.length - 1 - g.players[j].hand.length) * 5;
-        }
         if (f.c !== 'w') s += colorCount(f.c) * 0.8;
       }
       if (s > bestScore) { bestScore = s; best = card; }
@@ -1563,12 +1588,11 @@ const Bot = {
       if (hi - lo + 1 >= 3 && hi - lo + 1 > extra.length + 1) { extra = []; for (let x = lo; x <= hi; x++) if (x !== +bf.v) extra.push(byNum[x]); }
     }
     const rest = p.hand.filter(c => c !== best && !extra.includes(c));
-    const swapGain = minOther ? rest.length - minOther.q.hand.length : 0;
     return {
       cardId: best.id, extra: extra.map(c => c.id),
       color: bf.c === 'w' ? this.bestColor(g, rest, g.side) : null,
       flipColor: (bf.v === 'flip' || bf.v === 'dflip') ? this.bestColor(g, rest, other(g.side)) : null,
-      target: bf.v === 'duel' || bf.v === 'gift' ? minOther.i : (bf.v === '7' && g.rules.seven && swapGain >= 2 ? minOther.i : null)
+      target: bf.v === 'duel' || bf.v === 'gift' ? minOther.i : null
     };
   },
   jumpCandidate(g) {
@@ -1625,7 +1649,7 @@ Object.defineProperty(Game.prototype, 'turn', {
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL };
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS };
 
 </script>
 <script>
@@ -1866,6 +1890,7 @@ function fmtLog(l, myName) {
   const a = l.a || {}, C = c => colorName(c), N = n => n;
   const L = LANG === 'ru' ? {
     first: () => `Первая карта: ${cardName(a.f)}. Начинает ${N(a.n)}.`,
+    draftDone: () => 'Все передали по две карты. Раздача началась.', colGive: () => `Коллектор ${N(a.n)} подкидывает ${N(a.t)} две карты.`, colLever: () => `Коллектор ${N(a.n)} дёргает рычаг.`, pad: () => `Подкладка ${N(a.n)} гасит половину удара: +${a.k}.`,
     ko: () => `${N(a.n)} набрал(а) ${a.k} ${cardsAcc(a.k)} и выбывает.`,
     lastLeft: () => `${N(a.n)} остаётся последним и побеждает.`,
     play: () => `${N(a.n)} ${a.j ? 'вмешивается:' : 'играет'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? ` и сбрасывает ещё ${a.d} ${cardsAcc(a.d)}` : ''}.`,
@@ -1932,6 +1957,7 @@ function fmtLog(l, myName) {
     chaos: () => `Хаос: ${(STR.ru.ev[a.e] || [a.e])[0]}${(a.w || []).length ? ' (' + a.w.join(', ') + ')' : ''}. ${(STR.ru.ev[a.e] || ['', ''])[1]}.`,
     awaySkip: () => `${N(a.n)} нет на месте. Ход пропущен.`, caught: () => `${N(a.n)} ловит ${N(a.t)} без крика «Одна». ${N(a.t)} берёт 2.`
   } : {
+    draftDone: () => 'Everyone passes two cards along. The deal begins.', colGive: () => `The collector ${N(a.n)} slips ${N(a.t)} two cards.`, colLever: () => `The collector ${N(a.n)} pulls the lever.`, pad: () => `${N(a.n)}'s padding takes half the hit: +${a.k}.`,
     first: () => `First card: ${cardName(a.f)}. ${N(a.n)} starts.`,
     ko: () => `${N(a.n)} hit ${a.k} cards and is knocked out.`,
     lastLeft: () => `${N(a.n)} is the last player left and wins.`,
@@ -2439,6 +2465,49 @@ Object.assign(STR.en, { lastCallIn: k => `Last call in ${k}`, lastCallNow: 'Last
 Object.assign(STR.ru, { lastCallIn: k => `Последний звонок через ${k}`, lastCallNow: 'Последний звонок', tLastCall: 'ПОСЛЕДНИЙ ЗВОНОК', tUno: 'ОДНА!',
   presets: 'Стол', presetClassic: 'Классика', presetClassicD: 'Обычные карты и стопки, без фокусов дома', presetDen: 'Подсобка', presetDenD: 'Стол дома: всё в балансе', presetMayhem: 'Беспредел', presetMayhemD: 'Включено каждое правило и каждая карта', presetCustom: 'Свой', fineTune: 'Тонкая настройка', });
 Object.assign(STR.en, { setMusicFx: 'Room reacts to music' }); Object.assign(STR.ru, { setMusicFx: 'Комната под музыку' });
+// ================= DEBT MATCH =================
+Object.assign(STR.en, {
+  matchMode: 'Match', modeOne: 'Single deal', modeOneD: 'One deal, first to empty their hand wins', modeDebt: 'Debt match', modeDebtD: 'Cards left in hand turn into debt. Over the limit, you work for the house.', debtLimit: 'Debt limit',
+  tagDebt: (d, l) => `debt ${d}/${l}`, tagChips: c => `${c}¢`, tagCollector: 'collector',
+  roundN: k => `deal ${k}`, secsLeft: s => `${s} s left`,
+  draftTitle: 'The draft', draftSub: n => `Pick two cards to pass to ${n}. You get two from the other side.`, draftGo: k => `Pass ${k}/2`, draftWait: 'Passed. Waiting for the others…', draftCol: 'The others are passing cards. A collector sits this one out.',
+  shopTitle: k => `Deal ${k} settled · the house shop`, dealWon: 'WON', outCollector: 'OUT', debtTot: (d, l) => `debt ${d}/${l}`,
+  youCollector: 'You are over the limit. You work for the house now: once per deal you can slip someone two cards or pull the slot lever.', shopWait: 'Done. Waiting for the others…',
+  walletChips: c => `Chips: ${c}¢`, walletDebt: (d, l) => `Debt: ${d} / ${l}`, shopTokens: k => `House tokens (${k}/3)`, noOffers: 'Nothing on the shelf for you.', shopPay: 'Pay down debt', payBtn: (p, a) => `${p}¢ → −${a} debt`,
+  shopTricks: 'Dirty tricks', trickSetup: p => `Set-up: +3 cards next deal (${p}¢)`, trickInterest: p => `Interest: +10% debt (${p}¢)`, shopDone: 'Done shopping',
+  matchWon: 'You beat the house', matchWins: n => `${n} beats the house`, matchOverSub: k => `${k} deals. Everyone else is working off their debt.`,
+  colReady: 'Collector: one job this deal', colUsed: 'Collector: job done this deal', colGive: 'Slip 2 cards', colLever: 'Pull the lever', colGiveQ: 'Who gets two cards?', colGiveSub: 'The house sends its regards.', tColGive: n => `${n} +2`,
+  tok_safe: 'Safe', tokD_safe: 'Your 3 priciest cards never count as debt.', tok_sharp: 'Sharp', tokD_sharp: 'A pair plays as three of a kind.', tok_pad: 'Padding', tokD_pad: 'The first stack you take each deal is halved.',
+  tok_counter: 'Bookkeeper', tokD_counter: '+1¢ for every action card you play.', tok_light: 'Light hand', tokD_light: 'Start every deal with one card fewer.', tok_debtor: 'Debtor', tokD_debtor: 'Number cards never count as debt.',
+  tok_license: 'License', tokD_license: 'Start every deal with a house card.', tok_luck: 'Luck', tokD_luck: 'The revolver clicks 2 times out of 3 for you.', tok_usurer: 'Usurer', tokD_usurer: 'Earn 10% of what the player on your right pays.',
+});
+Object.assign(STR.ru, {
+  matchMode: 'Матч', modeOne: 'Одна раздача', modeOneD: 'Одна раздача: кто первым сбросил руку, тот и выиграл', modeDebt: 'Матч на долг', modeDebtD: 'Оставшиеся в руке карты становятся долгом. Перевалил за лимит — работаешь на дом.', debtLimit: 'Лимит долга',
+  tagDebt: (d, l) => `долг ${d}/${l}`, tagChips: c => `${c}¢`, tagCollector: 'коллектор',
+  roundN: k => `раздача ${k}`, secsLeft: s => `осталось ${s} с`,
+  draftTitle: 'Драфт', draftSub: n => `Выберите две карты для ${n}. Две придут от соседа с другой стороны.`, draftGo: k => `Отдать ${k}/2`, draftWait: 'Отдано. Ждём остальных…', draftCol: 'Остальные передают карты. Коллектор в драфте не участвует.',
+  shopTitle: k => `Расчёт за раздачу ${k} · лавка дома`, dealWon: 'ВЫИГРАЛ', outCollector: 'ВЫЛЕТ', debtTot: (d, l) => `долг ${d}/${l}`,
+  youCollector: 'Вы перевалили за лимит и теперь работаете на дом: раз в раздачу можно подкинуть кому-то две карты или дёрнуть рычаг слотов.', shopWait: 'Готово. Ждём остальных…',
+  walletChips: c => `Фишки: ${c}¢`, walletDebt: (d, l) => `Долг: ${d} / ${l}`, shopTokens: k => `Жетоны дома (${k}/3)`, noOffers: 'Для вас на полке пусто.', shopPay: 'Погасить долг', payBtn: (p, a) => `${p}¢ → −${a} долга`,
+  shopTricks: 'Пакости', trickSetup: p => `Подстава: +3 карты на раздачу (${p}¢)`, trickInterest: p => `Проценты: +10% долга (${p}¢)`, shopDone: 'Закончить покупки',
+  matchWon: 'Вы обыграли дом', matchWins: n => `${n} обыгрывает дом`, matchOverSub: k => `Раздач: ${k}. Остальные отрабатывают долг.`,
+  colReady: 'Коллектор: одно дело на раздачу', colUsed: 'Коллектор: дело сделано', colGive: 'Подкинуть 2', colLever: 'Дёрнуть рычаг', colGiveQ: 'Кому две карты?', colGiveSub: 'Дом передаёт привет.', tColGive: n => `${n} +2`,
+  tok_safe: 'Сейф', tokD_safe: '3 самые дорогие карты в руке не идут в долг.', tok_sharp: 'Шулер', tokD_sharp: 'Пара играет как сет.', tok_pad: 'Подкладка', tokD_pad: 'Первая взятая за раздачу стопка уменьшается вдвое.',
+  tok_counter: 'Счетовод', tokD_counter: '+1¢ за каждую сыгранную карту действия.', tok_light: 'Лёгкая рука', tokD_light: 'Каждая раздача начинается с картой меньше.', tok_debtor: 'Должник', tokD_debtor: 'Цифры не идут в долг.',
+  tok_license: 'Лицензия', tokD_license: 'В начале раздачи у вас карта дома.', tok_luck: 'Фарт', tokD_luck: 'Револьвер щёлкает вхолостую 2 раза из 3.', tok_usurer: 'Ростовщик', tokD_usurer: 'Получаете 10% от того, что платит игрок справа.',
+});
+RULES_HTML.en = RULES_HTML.en.replace('<h3>', `<h3>Debt match</h3><ul>
+    <li>A match is a run of deals. Before each deal you <b>draft</b>: pass two cards to your neighbour, get two from the other side.</li>
+    <li>When someone empties their hand, everyone else <b>pays the house</b> for what they still hold: numbers at face value, action cards 20, big draws 30, wilds 40, wild draws and house cards 50.</li>
+    <li>Go over the <b>debt limit</b> (250 / 500 / 1000, the host picks) and you become the house's <b>collector</b>: you can't win any more, but once per deal you can slip someone two cards or pull the slot lever.</li>
+    <li>The last player under the limit beats the house.</li>
+    <li><b>Chips</b>: the deal winner takes 10% of what the others paid, poker hands pay chips too. Spend them in the <b>house shop</b> between deals: tokens that last the whole match (3 slots), paying down debt, or dirty tricks on a rival.</li></ul><h3>`);
+RULES_HTML.ru = RULES_HTML.ru.replace('<h3>', `<h3>Матч на долг</h3><ul>
+    <li>Матч — это несколько раздач. Перед каждой идёт <b>драфт</b>: две карты отдаёте соседу, две получаете с другой стороны.</li>
+    <li>Когда кто-то сбросил руку, остальные <b>платят дому</b> за оставшиеся карты: цифры по номиналу, карты действия 20, большие «Возьми» 30, джокеры 40, джокеры «Возьми» и карты дома 50.</li>
+    <li>Перевалили за <b>лимит долга</b> (250 / 500 / 1000, выбирает хозяин) — становитесь <b>коллектором</b> дома: выиграть уже нельзя, но раз в раздачу можно подкинуть кому-то две карты или дёрнуть рычаг слотов.</li>
+    <li>Последний, кто остался под лимитом, обыгрывает дом.</li>
+    <li><b>Фишки</b>: победитель раздачи забирает 10% от всего, что заплатили остальные, покерные комбинации тоже платят фишками. Тратятся в <b>лавке дома</b> между раздачами: жетоны на весь матч (3 слота), погашение долга или пакости сопернику.</li></ul><h3>`);
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -2577,15 +2646,15 @@ const JUICE = (() => {
         float buzz=step(.93,n(vec2(floor(t*12.),3.)));            // a dying bulb: now and then it drops out
         float fl=1.-heat*.45*step(.8,n(vec2(t*9.,1.)))-.05*n(vec2(t*3.,7.))-.55*buzz;
         // day: a stronger, wider bulb and some light bounced off the walls; night: one narrow red lamp
-        float spread=mix(2.2,3.6,side);
-        float lamp=exp(-d*d*spread)*mix(1.45,1.2,side)*fl*(1.+beat*.16)+mix(.07,.025,side);
+        float spread=mix(2.2,2.7,side);
+        float lamp=exp(-d*d*spread)*mix(1.45,1.35,side)*fl*(1.+beat*.16)+mix(.07,.055,side);
         vec3 bulb=mix(vec3(1.,.88,.66),vec3(1.,.18,.14),side);
         col*=lamp*bulb*mix(1.9,2.4,side);
         // smoke drifting through the light
         float sm=fbm(px/min(r.x,r.y)*2.5+vec2(t*.03,-t*.05));
         col+=bulb*smoothstep(.45,.9,sm)*exp(-d*d*1.8)*(.06+beat*.05);
         // heavy vignette into darkness
-        col*=smoothstep(mix(1.6,1.2,side),mix(.1,.2,side),d);
+        col*=smoothstep(mix(1.6,1.45,side),mix(.1,.12,side),d);
         // PSX-style: few colour steps with ordered dithering
         vec2 ip=floor(mod(gl_FragCoord.xy,4.));
         float bay=mod(ip.x*2.+ip.y*3.,4.)/4.;
@@ -2779,7 +2848,7 @@ function loadSettings() {
     if (s) {
       const r = Object.assign({}, s.rules || {});
       if ('sevenZero' in r) { if (!('seven' in r)) r.seven = r.sevenZero; if (!('zero' in r)) r.zero = r.sevenZero; delete r.sevenZero; }
-      return Object.assign(d, { vol: typeof s.vol === 'number' ? s.vol : 0.8, ambient: s.ambient === 'off' ? 'off' : 'on', ambVol: typeof s.ambVol === 'number' ? s.ambVol : 0.35, ytUrl: typeof s.ytUrl === 'string' ? s.ytUrl : '', shake: s.shake !== false, musicFx: s.musicFx !== false, bgMotion: s.bgMotion !== false, tips: s.tips !== false }, { name: s.name || d.name, sound: s.sound !== false, fx: s.fx === 'lite' ? 'lite' : (s.fx === 'full' ? 'full' : d.fx), lang: LANGS[s.lang] ? s.lang : d.lang, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
+      return Object.assign(d, { vol: typeof s.vol === 'number' ? s.vol : 0.8, ambient: s.ambient === 'off' ? 'off' : 'on', ambVol: typeof s.ambVol === 'number' ? s.ambVol : 0.35, ytUrl: typeof s.ytUrl === 'string' ? s.ytUrl : '', shake: s.shake !== false, musicFx: s.musicFx !== false, mode: s.mode === 'one' ? 'one' : 'debt', limit: [250, 500, 1000].includes(s.limit) ? s.limit : 500, bgMotion: s.bgMotion !== false, tips: s.tips !== false }, { name: s.name || d.name, sound: s.sound !== false, fx: s.fx === 'lite' ? 'lite' : (s.fx === 'full' ? 'full' : d.fx), lang: LANGS[s.lang] ? s.lang : d.lang, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
     }
   } catch (e) {}
   return d;
@@ -2986,13 +3055,15 @@ function onServer(m) {
 }
 function onLobby(l) {
   lastLobby = l; isHost = !!l.host;
-  if (G) { G = null; busy = false; rouletteOpen = false; closeModal(); }
+  if (G) { G = null; MATCH = null; busy = false; rouletteOpen = false; closeModal(); }
   renderLobby(l);
   show('lobby');
 }
+let MATCH = null;
 function onState(m) {
   let g; try { g = deserialize(m.st); } catch (e) { return; }
   isHost = !!m.host; lastLobby = m.lobby || lastLobby; away = m.st.aw || [];
+  MATCH = m.match || null; if (MATCH) MATCH.until = Date.now() + (MATCH.left || 0);
   // keep card ids stable so only genuinely new cards animate in
   if (G && G.players[ME] && g.gid === lastGid && m.seat === ME) {
     const pool = {}; for (const c of G.players[ME].hand) (pool[cardCode(c)] = pool[cardCode(c)] || []).push(c.id);
@@ -3022,6 +3093,14 @@ function presetOf(rules, cards) {
   return 'custom';
 }
 const PRESET_T = { classic: ['presetClassic', 'presetClassicD'], den: ['presetDen', 'presetDenD'], mayhem: ['presetMayhem', 'presetMayhemD'] };
+function drawMode() {
+  $('lbMode').innerHTML = [['one', 'modeOne', 'modeOneD'], ['debt', 'modeDebt', 'modeDebtD']].map(([k, a, b]) => `<button class="preset ${S.mode === k ? 'on' : ''}" data-mode="${k}"><b>${t(a)}</b><span>${t(b)}</span></button>`).join('');
+  $('lbLimitRow').classList.toggle('hidden', S.mode !== 'debt');
+  $('lbLimit').innerHTML = [250, 500, 1000].map(v => `<button class="${S.limit === v ? 'on' : ''}" data-limit="${v}">${v}</button>`).join('');
+}
+const pushSettings = () => { saveSettings(); drawMode(); if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards, mode: S.mode, limit: S.limit }); };
+$('lbMode').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; S.mode = b.dataset.mode; SFX.play('click'); pushSettings(); });
+$('lbLimit').addEventListener('click', e => { const b = e.target.closest('[data-limit]'); if (!b) return; S.limit = +b.dataset.limit; SFX.play('click'); pushSettings(); });
 function drawPresets() {
   const cur = presetOf(S.rules, S.cards);
   $('lbPresets').innerHTML = Object.keys(PRESET_T).map(k => `<button class="preset ${cur === k ? 'on' : ''}" data-preset="${k}"><b>${t(PRESET_T[k][0])}</b><span>${t(PRESET_T[k][1])}</span></button>`).join('');
@@ -3032,13 +3111,13 @@ $('lbPresets').addEventListener('click', e => {
   const P = PRESETS[b.dataset.preset];
   S.rules = Object.assign({}, S.rules, P.rules); S.cards = Object.assign({}, S.cards, P.cards);
   SFX.play('click'); saveSettings(); drawToggles();
-  if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards });
+  if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards, mode: S.mode, limit: S.limit });
 });
 function drawToggles(dis) {
   const rules = RULES_L().map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
   const cards = EXTRA_L().map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
   $('lbRules').innerHTML = rules; $('lbCards').innerHTML = cards;
-  drawPresets();
+  drawPresets(); drawMode();
 }
 drawToggles();
 function onToggle(e) {
@@ -3047,7 +3126,7 @@ function onToggle(e) {
   if (t.dataset.card) { S.cards[t.dataset.card] = t.checked; hit = true; }
   if (!hit) return;
   saveSettings(); drawPresets();
-  if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards });
+  if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards, mode: S.mode, limit: S.limit });
 }
 for (const id of ['lbRules', 'lbCards']) $(id).addEventListener('change', onToggle);
 $('pname').value = S.name;
@@ -3081,7 +3160,7 @@ JUICE.startBg();
 function readName() { S.name = cleanName($('pname').value) || 'Player'; saveSettings(); $('lbName').value = S.name; return S.name; }
 function show(screen) { for (const id of ['start', 'lobby', 'game']) $(id).classList.toggle('hidden', id !== screen); if (screen !== 'game') document.body.classList.remove('dark'); }
 function startMsg(t) { $('startMsg').textContent = t; }
-function createRoom() { readName(); startMsg(t('connServer')); roomCode = ''; conn.open({ t: 'create', token: TOKEN, name: S.name, rules: S.rules, cards: S.cards }); }
+function createRoom() { readName(); startMsg(t('connServer')); roomCode = ''; conn.open({ t: 'create', token: TOKEN, name: S.name, rules: S.rules, cards: S.cards, mode: S.mode, limit: S.limit }); }
 function joinRoom(raw) {
   const code = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length !== 4) { startMsg(t('enterCode')); return; }
@@ -3125,6 +3204,7 @@ function renderLobby(l) {
     let changed = false;
     for (const k in l.rules) if (S.rules[k] !== l.rules[k]) { S.rules[k] = l.rules[k]; changed = true; }
     for (const k in l.cards) if (S.cards[k] !== l.cards[k]) { S.cards[k] = l.cards[k]; changed = true; }
+    if (l.mode && (S.mode !== l.mode || S.limit !== l.limit)) { S.mode = l.mode; S.limit = l.limit; changed = true; }
     if (changed) { drawToggles(); saveSettings(); }
     const online = l.players.filter(p => p[1]).length;
     $('btnRoomStart').disabled = online < 2;
@@ -3132,7 +3212,7 @@ function renderLobby(l) {
   } else {
     const row = (name, on) => `<div class="rv ${on ? '' : 'off'}"><span>${esc(name)}</span><span class="mono">${on ? t('on') : t('off')}</span></div>`;
     const pk = presetOf(l.rules, l.cards);
-    $('lbRulesView').innerHTML = `<div class="rv"><span>${t('presets')}</span><span class="mono">${pk === 'custom' ? t('presetCustom') : t(PRESET_T[pk][0])}</span></div>`
+    $('lbRulesView').innerHTML = `<div class="rv"><span>${t('matchMode')}</span><span class="mono">${l.mode === 'one' ? t('modeOne') : t('modeDebt') + ' · ' + l.limit}</span></div><div class="rv"><span>${t('presets')}</span><span class="mono">${pk === 'custom' ? t('presetCustom') : t(PRESET_T[pk][0])}</span></div>`
       + `<details class="fine"><summary>${t('fineTune')}</summary>` + RULES_L().map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_L().map(([k, t]) => row(t, l.cards[k] !== false)).join('') + `</details>`;
     $('lbWait').textContent = l.live ? t('inProgress') : t('waitHost');
   }
@@ -3155,7 +3235,8 @@ function act(k, a = {}) { conn.send({ t: 'act', a: Object.assign({ k }, a) }); }
 function tick() {
   render();
   if (!G) return;
-  if (G.winner !== null) { setTimeout(showEnd, 1400); return; }
+  if (MATCH) { matchOverlay(); if (MATCH.phase !== 'play') return; }
+  if (G.winner !== null) { if (!MATCH) setTimeout(showEnd, 1400); return; }
   if (G.roulette === ME && roulettePrompted !== G.seq && !busy) {
     roulettePrompted = G.seq; busy = true; rouletteOpen = true;
     pickColor(t('rouletteTitle'), t('rouletteSub'), G.side).then(c => { busy = false; rouletteOpen = false; act('roul', { color: c }); });
@@ -3166,7 +3247,7 @@ function tick() {
 // ================= INPUT =================
 function myTurnNow() { return !!(G && G.turn === ME && G.roulette === null && G.winner === null && G.players[ME] && !G.players[ME].out); }
 // could this card go down right now (ignores whether a choice dialog is open)
-function fits(card) { if (!G || G.winner !== null || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
+function fits(card) { if (!G || G.winner !== null || (MATCH && MATCH.phase !== 'play') || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
 function usable(card) { return !busy && fits(card); }
 async function useCard(card, el, fromRect) {
   if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
@@ -3197,7 +3278,6 @@ async function useCard(card, el, fromRect) {
   if (face.c === 'w' && face.v !== 'roul') color = await pickColor(t('pickColor'), cardName(face), G.side);
   if ((face.v === 'flip' || face.v === 'dflip') && back.c === 'w') flipColor = await pickColor(t('flipWild'), t('flipWildSub', cardName(back)), G.side === 'L' ? 'D' : 'L');
   const keep = me.hand.length - 1 - extra.length;
-  if (face.v === '7' && G.rules.seven && keep > 0 && G.active().length > 1) target = await pickTarget(t('swapQ'), t('swapSub', keep), t('keepHand'));
   if (face.v === 'gift' && G.active().length > 2) target = await pickTarget(t('giftQ'), t('giftSub', Math.min(2 * (extra.length + 1), Math.max(0, keep))));
   busy = false;
   if (!G || !G.players[ME].hand.some(c => cardCode(c) === cardCode(card))) { tick(); return; }
@@ -3432,11 +3512,15 @@ function render() {
     if (p.left) tags.push(`<b>${t('tagLeft')}</b>`); else if (away[i]) tags.push(`<b>${t('tagAway')}</b>`);
     if (p.oweN > 0) tags.push(`<b>${t('tagOwes', p.oweN)}</b>`);
     if (i === upNext && !turn && !p.out) tags.push(`<b class="next">${t('tagNext')}</b>`);
+    if (MATCH) {
+      if (MATCH.col[i]) tags.unshift(`<b class="next">${t('tagCollector')}</b>`);
+      else tags.unshift(`<b>${t('tagDebt', MATCH.debt[i], MATCH.limit)}</b>`, `${t('tagChips', MATCH.chips[i])}`);
+    }
     if (!tags.length) tags.push(t('tagPlayer'));
     const pct = G.rules.mercy ? Math.min(100, n / G.rules.mercy * 100) : 0;
     const limit = away[i] ? AWAY_MS : IDLE_MS;
     const timer = turn ? `<div class="timer" style="animation-duration:${limit / 1000}s;animation-delay:-${elapsed}s"></div>` : '';
-    return `<div class="opp ${turn ? 'turn' : ''} ${p.out && G.winner !== i ? 'out' : ''}" id="opp${i}">
+    return `<div class="opp ${turn ? 'turn' : ''} ${p.out && G.winner !== i ? 'out' : ''} ${MATCH && MATCH.col[i] ? 'collector' : ''}" id="opp${i}">
       <div class="top"><span class="ini">${initials(p.name)}</span><span class="nm">${esc(p.name)}</span></div>
       <div class="fan">${fan}</div>
       <div class="meta"><span class="cnt">${n}</span><span class="tags">${tags.join(' · ')}</span></div>
@@ -3487,7 +3571,7 @@ function render() {
   $('meIni').innerHTML = initials(me.name);
   $('meName').textContent = me.name;
   $('meCnt').textContent = me.hand.length;
-  $('meTags').textContent = [me.left ? t('tagLeft') : '', me.shield ? t('tagShield') : '', me.loan > 0 ? t('tagLoan', me.loan) : '', me.revenge ? t('tagRevenge') : '', me.marked ? t('tagMarked') : '', upNext === ME && !myTurn ? t('tagNext') : ''].filter(Boolean).join(' · ');
+  $('meTags').textContent = [MATCH ? (MATCH.col[ME] ? t('tagCollector') : t('tagDebt', MATCH.debt[ME], MATCH.limit) + ' · ' + t('tagChips', MATCH.chips[ME])) : '', me.left ? t('tagLeft') : '', me.shield ? t('tagShield') : '', me.loan > 0 ? t('tagLoan', me.loan) : '', me.revenge ? t('tagRevenge') : '', me.marked ? t('tagMarked') : '', upNext === ME && !myTurn ? t('tagNext') : ''].filter(Boolean).join(' · ');
   $('meBarWrap').style.display = G.rules.mercy ? '' : 'none';
   const mpct = G.rules.mercy ? Math.min(100, me.hand.length / G.rules.mercy * 100) : 0;
   $('meDanger').style.width = mpct + '%'; $('meBarWrap').classList.toggle('hot', mpct >= 80);
@@ -3505,6 +3589,14 @@ function render() {
   ub.classList.toggle('called', me.unoCalled);
   ub.classList.toggle('ready', !ub.disabled && !me.unoCalled);
   ub.textContent = me.unoCalled ? t('unoCalled') : t('uno');
+  // a collector works for the house: once per deal, slip someone two cards or pull the lever
+  const isCol = !!(MATCH && MATCH.col[ME] && MATCH.phase === 'play' && G.winner === null);
+  $('colBar').classList.toggle('hidden', !isCol);
+  if (isCol) {
+    $('colTxt').textContent = MATCH.colUsed ? t('colUsed') : t('colReady');
+    $('btnColGive').textContent = t('colGive'); $('btnColLever').textContent = t('colLever');
+    $('btnColGive').disabled = $('btnColLever').disabled = !!MATCH.colUsed;
+  }
   $('btnSort').textContent = t('sort', sortMode);
   $('btnQuit').textContent = t('leave');
   // hand (left alone while a card is being dragged)
@@ -3669,6 +3761,8 @@ function processEvents() {
       case 'shield': SFX.play('swap'); bump(TOAST_PRI.shield, t('tShield', e.k)); break;
       case 'bhole': SFX.play('shuffle'); bump(TOAST_PRI.bhole, t('tBhole')); break;
       case 'chaos': JUICE.slot(e.e); break;
+      case 'colgive': SFX.play('bad'); floatText(e.t, '+2'); bump(5, t('tColGive', nm(e.t))); break;
+      case 'pad': SFX.play('click'); floatText(e.pi, '½'); break;
       case 'flip':
         SFX.play('flip'); JUICE.glitch(); JUICE.shake(2); bump(TOAST_PRI.flip, e.side === 'D' ? t('tDark') : t('tLight'));
         document.querySelectorAll('#hand .card').forEach(el => { el.classList.remove('new'); el.classList.add('flipin'); });
@@ -3783,9 +3877,88 @@ function showEnd() {
   if ($('again')) $('again').onclick = () => { closeModal(); conn.send({ t: 'start' }); };
   $('menu').onclick = () => { closeModal(); if (isHost) conn.send({ t: 'tolobby' }); else leaveRoom(); };
 }
+// ================= DEBT MATCH: draft, settlement + shop, final =================
+let overlayKey = '', draftSel = new Set();
+const secsLeft = () => MATCH ? Math.max(0, Math.ceil((MATCH.until - Date.now()) / 1000)) : 0;
+setInterval(() => { const el = document.getElementById('phaseClock'); if (el) el.textContent = t('secsLeft', secsLeft()); }, 500);
+const TOKEN_T = id => [t('tok_' + id), t('tokD_' + id)];
+function matchOverlay() {
+  const M = MATCH; if (!M || !G) return;
+  const rulesOpen = !$('modal').classList.contains('hidden') && $('modalBody').querySelector('#closeR');
+  if (rulesOpen) return;
+  if (M.phase === 'play') { if (overlayKey) { overlayKey = ''; closeModal(); } return; }
+  // re-render only when something the dialog shows has changed
+  const key = JSON.stringify([M.phase, M.round, M.passed, M.chips, M.debt, M.tokens, M.offers, M.done, M.setup, G.players[ME].hand.length, [...draftSel]]);
+  if (key === overlayKey) return; overlayKey = key;
+  if (M.phase === 'draft') return drawDraft(M);
+  if (M.phase === 'shop') return drawShop(M);
+  if (M.phase === 'over') return drawOver(M);
+}
+function drawDraft(M) {
+  if (M.col[ME]) return openModal(`<h2>${t('draftTitle')}</h2><p>${t('draftCol')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
+  if (M.passed) return openModal(`<h2>${t('draftTitle')}</h2><p>${t('draftWait')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
+  const hand = sortedHand(G.players[ME].hand), to = G.players[G.nextIdx(ME, 1)];
+  for (const id of [...draftSel]) if (!hand.some(c => c.id === id)) draftSel.delete(id);
+  openModal(`<h2>${t('draftTitle')} · ${t('roundN', M.round)}</h2><p>${t('draftSub', esc(to ? to.name : ''))}</p>
+    <div class="pick draftpick">${hand.map(c => `<div class="slot">${faceHTML(G.f(c), G.side, draftSel.has(c.id) ? 'lead' : 'off', c.id)}</div>`).join('')}</div>
+    <button class="btn primary wide" id="draftGo" ${draftSel.size === Math.min(2, hand.length) ? '' : 'disabled'}>${t('draftGo', draftSel.size)}</button>
+    <p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
+  $('modalBody').querySelectorAll('.draftpick .card').forEach(el => el.onclick = () => {
+    const id = +el.dataset.id || el.dataset.id; const c = hand.find(x => String(x.id) === String(el.dataset.id)); if (!c) return;
+    if (draftSel.has(c.id)) draftSel.delete(c.id); else if (draftSel.size < 2) draftSel.add(c.id);
+    SFX.play('click'); overlayKey = ''; matchOverlay();
+  });
+  $('draftGo').onclick = () => { const cards = hand.filter(c => draftSel.has(c.id)).map(cardCode); draftSel.clear(); SFX.play('play'); conn.send({ t: 'draft', cards }); };
+}
+function settleTable(M) {
+  const L = M.last; if (!L) return '';
+  return `<div class="list settle">${L.rows.slice().sort((a, b) => M.debt[a.i] - M.debt[b.i]).map(r => `<div class="li ${L.out.includes(r.i) ? 'outrow' : ''}">
+    <span>${esc(G.players[r.i].name)}${r.i === L.winner ? ` <b class="stampmini">${t('dealWon')}</b>` : ''}${L.out.includes(r.i) ? ` <b class="stampmini">${t('outCollector')}</b>` : ''}</span>
+    <span class="mono">${r.i === L.winner ? '—' : t('cardsN', r.cards)} · +${r.paid} · ${t('debtTot', M.debt[r.i], M.limit)} · +${r.chips}¢</span></div>`).join('')}</div>`;
+}
+function drawShop(M) {
+  const L = M.last, won = L && L.winner === ME;
+  const head = `<h2>${t('shopTitle', M.round)}</h2>${settleTable(M)}`;
+  if (M.col[ME]) return openModal(head + `<p>${t('youCollector')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
+  if (M.done[ME]) return openModal(head + `<p>${t('shopWait')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
+  const chips = M.chips[ME], P = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25 };
+  const rivals = G.players.map((p, i) => i).filter(i => i !== ME && !M.col[i]);
+  const mine = M.tokens[ME].map(id => `<div class="tok own"><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span></div>`).join('');
+  const offers = M.offers.map(id => `<button class="tok" data-tok="${id}" ${chips < P.token || M.tokens[ME].length >= 3 ? 'disabled' : ''}><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span><i>${P.token}¢</i></button>`).join('');
+  openModal(head + `
+    <div class="wallet"><span>${t('walletChips', chips)}</span><span>${t('walletDebt', M.debt[ME], M.limit)}</span></div>
+    <span class="label sublabel">${t('shopTokens', M.tokens[ME].length)}</span>
+    ${mine ? `<div class="toks">${mine}</div>` : ''}
+    <div class="toks">${offers || `<p>${t('noOffers')}</p>`}</div>
+    <span class="label sublabel">${t('shopPay')}</span>
+    <button class="btn" id="shopPay" ${chips < P.pay || M.debt[ME] <= 0 ? 'disabled' : ''}>${t('payBtn', P.pay, P.payAmount)}</button>
+    <span class="label sublabel">${t('shopTricks')}</span>
+    <div class="tricks">${rivals.map(i => `<div class="trick"><span>${esc(G.players[i].name)}${M.setup[i] ? ` · +${M.setup[i]}` : ''}</span>
+      <button class="btn" data-trick="setup" data-t="${i}" ${chips < P.setup ? 'disabled' : ''}>${t('trickSetup', P.setup)}</button>
+      <button class="btn" data-trick="interest" data-t="${i}" ${chips < P.interest ? 'disabled' : ''}>${t('trickInterest', P.interest)}</button></div>`).join('')}</div>
+    <button class="btn primary wide" id="shopDone">${t('shopDone')}</button>
+    <p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
+  $('modalBody').querySelectorAll('[data-tok]').forEach(b => b.onclick = () => { SFX.play('coin'); conn.send({ t: 'shop', a: { k: 'token', id: b.dataset.tok } }); });
+  $('shopPay').onclick = () => { SFX.play('coin'); conn.send({ t: 'shop', a: { k: 'pay' } }); };
+  $('modalBody').querySelectorAll('[data-trick]').forEach(b => b.onclick = () => { SFX.play('bad'); conn.send({ t: 'shop', a: { k: b.dataset.trick, target: +b.dataset.t } }); });
+  $('shopDone').onclick = () => { SFX.play('click'); conn.send({ t: 'shop', a: { k: 'done' } }); };
+}
+function drawOver(M) {
+  const champ = M.champ, won = champ === ME;
+  const order = G.players.map((p, i) => i).sort((a, b) => (a === champ ? -1 : b === champ ? 1 : M.debt[a] - M.debt[b]));
+  const controls = !isHost
+    ? `<p style="margin:16px 0 0">${t('waitNext')}</p><button class="textlink" id="menu">${t('leaveRoom')}</button>`
+    : `<button class="btn primary wide" id="again">${t('playAgain')}</button><button class="textlink" id="menu">${t('backLobby')}</button>`;
+  openModal(`<h2>${won ? t('matchWon') : esc(t('matchWins', G.players[champ].name))}</h2><p>${t('matchOverSub', M.round)}</p>${settleTable(M)}
+    <div class="list">${order.map((i, k) => `<div class="li"><span>${k + 1}. ${esc(G.players[i].name)}</span><span class="mono">${t('debtTot', M.debt[i], M.limit)}</span></div>`).join('')}</div>${controls}`);
+  if ($('again')) $('again').onclick = () => { closeModal(); overlayKey = ''; conn.send({ t: 'start' }); };
+  $('menu').onclick = () => { closeModal(); overlayKey = ''; if (isHost) conn.send({ t: 'tolobby' }); else leaveRoom(); };
+}
+$('btnColGive').onclick = async () => { if (!MATCH || MATCH.colUsed) return; const tg = await pickTarget(t('colGiveQ'), t('colGiveSub'), t('cancel')); if (tg === null) return; conn.send({ t: 'col', k: 'give', target: tg }); };
+$('btnColLever').onclick = () => { if (!MATCH || MATCH.colUsed) return; SFX.play('chaos'); conn.send({ t: 'col', k: 'lever' }); };
 function showRules() {
   openModal(`<h2>${t('howTo')}</h2><div class="rulestext">${RULES_HTML[LANG]}</div><button class="btn primary wide" id="closeR">${t('close')}</button>`);
-  $('closeR').onclick = () => { closeModal(); if (G && G.winner !== null) showEnd(); };
+  $('closeR').onclick = () => { closeModal(); if (MATCH) { overlayKey = ''; matchOverlay(); } else if (G && G.winner !== null) showEnd(); };
 }
 
 
