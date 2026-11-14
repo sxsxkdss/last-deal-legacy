@@ -3125,27 +3125,36 @@ const ASSETS = (() => {
     param.cancelScheduledValues(t);
     try { param.setValueCurveAtTime(c, t, secs); } catch (e) { ramp(param, up ? 1 : 0, secs); }
   }
-  function startDeck(d, fadeIn) { d.el.currentTime = 0; d.el.play().catch(() => {}); ramp(d.g.gain, 1, fadeIn); d.started = true; }
+  // Firefox and Chrome treat element.volume differently once the element is routed through Web Audio, so the level
+  // is split: half on the element (with the fades mirrored there too), half on the graph. Either way the slider works.
+  let master = { v: 0, to: 1, rate: 1 };
+  const env = (d, to, secs) => { d.env = d.env ?? 0; d.to = to; d.rate = Math.abs(to - d.env) / Math.max(0.05, secs); };
+  const halfVol = () => Math.sqrt(musicVol());
+  function stepEnv(o, dt) { if (o.to === undefined) return; const k = o.rate * dt; o.env = (o.env ?? o.v ?? 0); if (Math.abs(o.to - o.env) <= k) o.env = o.to; else o.env += Math.sign(o.to - o.env) * k; }
+  function startDeck(d, fadeIn) { d.el.currentTime = 0; d.el.play().catch(() => {}); ramp(d.g.gain, 1, fadeIn); env(d, 1, fadeIn); d.started = true; }
   function startMusicOnGesture() {
     const want = () => S.sound && S.ambient !== 'off';
     const go = () => {
       if (decks.length || !want() || !SFX.ctx) return; // wait for the first tap: the audio graph needs it
       try {
         const url = 'assets/sounds/' + encodeURIComponent(sounds.music[0]);
-        bus = SFX.ctx.createGain(); bus.gain.value = musicVol();
+        bus = SFX.ctx.createGain(); bus.gain.value = halfVol();
         an = SFX.ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0.6; fbuf = new Uint8Array(an.frequencyBinCount);
         lp = SFX.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.5;
         lp.frequency.value = document.body.classList.contains('dark') ? NIGHT_LP : DAY_LP;
         rate = document.body.classList.contains('dark') ? NIGHT_RATE : 1;
         bus.connect(lp); lp.connect(an); an.connect(SFX.ctx.destination);
-        decks = [makeDeck(url), makeDeck(url)];
+        decks = [makeDeck(url), makeDeck(url)]; decks.forEach(d => { d.env = 0; d.to = 0; d.rate = 1; d.el.volume = 0; }); master = { env: 1, to: 1, rate: 1 };
         cur = 0; startDeck(decks[0], FADE_IN); playing = true;
       } catch (e) { decks = []; an = null; }
     };
     addEventListener('pointerdown', go, { once: false });
+    let last = performance.now();
     setInterval(() => {
+      const now = performance.now(), dt = (now - last) / 1000; last = now;
+      if (decks.length) { stepEnv(master, dt); for (const d of decks) { stepEnv(d, dt); d.el.volume = Math.max(0, Math.min(1, halfVol() * (d.env || 0) * (master.env ?? 1))); } }
       if (!decks.length) { if (want()) go(); return; }
-      ramp(bus.gain, musicVol(), 0.3);
+      ramp(bus.gain, playing ? halfVol() : 0, 0.3);
       // ease the tape speed and the muffling toward day or night over a couple of seconds
       const night = document.body.classList.contains('dark');
       const tr = night ? NIGHT_RATE : 1;
@@ -3153,19 +3162,19 @@ const ASSETS = (() => {
       const tf = night ? NIGHT_LP : DAY_LP;
       if (lp && Math.abs(lp.frequency.value - tf) > 1) lp.frequency.setTargetAtTime(tf, SFX.ctx.currentTime, 0.8);
       const on = want();
-      if (!on && playing) { playing = false; ramp(bus.gain, 0, FADE_TOGGLE); setTimeout(() => { if (!playing) decks.forEach(d => d.el.pause()); }, FADE_TOGGLE * 1000 + 50); return; }
-      if (on && !playing) { playing = true; decks.forEach(d => { if (d.started && d.el.currentTime > 0 && !d.el.ended) d.el.play().catch(() => {}); }); bus.gain.value = 0; ramp(bus.gain, musicVol(), FADE_TOGGLE); return; }
+      if (!on && playing) { playing = false; ramp(bus.gain, 0, FADE_TOGGLE); master.to = 0; master.rate = 1 / FADE_TOGGLE; setTimeout(() => { if (!playing) decks.forEach(d => d.el.pause()); }, FADE_TOGGLE * 1000 + 50); return; }
+      if (on && !playing) { playing = true; decks.forEach(d => { if (d.started && d.el.currentTime > 0 && !d.el.ended) d.el.play().catch(() => {}); }); bus.gain.value = 0; ramp(bus.gain, halfVol(), FADE_TOGGLE); master.env = 0; master.to = 1; master.rate = 1 / FADE_TOGGLE; return; }
       if (!playing) return;
       // the seam: when the current pass is XFADE seconds from its end, the other deck takes over from the top
       const a = decks[cur], dur = a.el.duration;
       if (isFinite(dur) && dur > XFADE * 3 && dur - a.el.currentTime <= XFADE) {
         const b = decks[cur ^ 1];
-        b.el.currentTime = 0; b.el.play().catch(() => {}); b.started = true; curve(b.g.gain, true, XFADE);
-        curve(a.g.gain, false, XFADE);
+        b.el.currentTime = 0; b.el.play().catch(() => {}); b.started = true; curve(b.g.gain, true, XFADE); env(b, 1, XFADE);
+        curve(a.g.gain, false, XFADE); env(a, 0, XFADE);
         const old = a; setTimeout(() => { if (old !== decks[cur]) { old.el.pause(); old.started = false; } }, XFADE * 1000 + 200);
         cur ^= 1;
       } else if (a.el.ended || (a.el.paused && playing && a.started)) { startDeck(a, FADE_IN); }
-    }, 100);
+    }, 50);
   }
   // { bass, level } in 0..1 while the music plays; null otherwise
   function musicLevel() {
