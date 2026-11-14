@@ -7,7 +7,7 @@
 <meta name="description" content="UNO Flip and No Mercy rules in the browser. Endless deck, stacking, light and dark sides. Play friends online, no account needed.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Oswald:wght@400..700&family=Caveat:wght@500..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ---------- tokens ---------- */
 :root{
@@ -505,6 +505,160 @@ body.dark{--felt:#3a0b16;--felt-hi:#5a1424;--brass:#d4483b;--brass-dim:rgba(212,
 .settings input[type=text]{width:100%}
 @media (max-width:520px){.settings .set{grid-template-columns:1fr;gap:6px}}
 .textlink+.textlink{margin-left:16px}
+
+/* ============================ THE BACK ROOM ============================
+   A lamp-lit card table seen from above. Everything is a physical thing on or around it:
+   paper name tags, masking tape, a receipt for the log, rubber stamps for big moments, chalk on the felt.
+   Fonts: Oswald (stamped, condensed), IBM Plex Mono (typed paper), Caveat (chalk/marker). */
+:root{--paper:#ece2cc;--paper-2:#ddd0b3;--ink:#1d1712;--ink-soft:#4a3f33;--stamp:#b3261e;--chalk:rgba(240,234,218,.86);--tape:rgba(232,220,170,.78);
+  --f-stamp:'Oswald','Archivo',system-ui,sans-serif;--f-type:'IBM Plex Mono',ui-monospace,monospace;--f-chalk:'Caveat','Comic Sans MS',cursive;--noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+body.dark{--stamp:#c22a20}
+html{background:#030202!important}body{background:transparent!important}
+#game{border:0!important;background:transparent!important}
+#crt{background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.7) 100%)!important}
+#grain{opacity:.09!important}
+@keyframes vhs{0%,96%,100%{transform:translateY(0)}97%{transform:translateY(-2px)}98%{transform:translateY(1px)}}
+body:not(.lite) #game{animation:vhs 7s steps(1) infinite}
+
+/* ---------- paper things ---------- */
+.page,.dialog,#cardtip,#combo,.opp{background:var(--paper)!important;background-image:var(--noise)!important;background-blend-mode:multiply!important;color:var(--ink)!important;border:0!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 12px 24px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.4)!important}
+.page,.dialog{border-radius:3px!important}
+.page .label,.dialog .label,.page p,.dialog p,.dialog h2,.page .lede{color:var(--ink)!important}
+.dialog h2,.page h2{font-family:var(--f-stamp)!important;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.lede,.dialog p{font-family:var(--f-type)!important;font-size:13px;line-height:19px;color:var(--ink-soft)!important}
+.page input,.dialog input,.page select{background:transparent!important;border:0!important;border-bottom:2px solid var(--ink)!important;border-radius:0!important;color:var(--ink)!important;font-family:var(--f-type)!important}
+.page .field,.dialog .set{border-top:1px dashed rgba(29,23,18,.3)!important}
+.label{font-family:var(--f-type)!important;color:var(--ink-soft)!important;letter-spacing:.12em!important;font-size:11px!important;text-transform:uppercase}
+/* tape on paper */
+.page::before,.dialog::before,.opp::before{content:'';position:absolute;top:-9px;left:50%;width:74px;height:20px;transform:translateX(-50%) rotate(-3deg);background:var(--tape);box-shadow:0 1px 2px rgba(0,0,0,.25);pointer-events:none}
+.page,.dialog{position:relative}
+.textlink{color:var(--ink)!important;font-family:var(--f-type)!important}
+
+/* ---------- buttons: printed labels and a red rubber stamp ---------- */
+.btn{background:var(--paper-2)!important;background-image:var(--noise)!important;background-blend-mode:multiply!important;color:var(--ink)!important;border:0!important;border-radius:2px!important;
+  font-family:var(--f-stamp)!important;font-weight:600!important;text-transform:uppercase;letter-spacing:.06em!important;box-shadow:0 3px 0 rgba(0,0,0,.55),0 6px 12px rgba(0,0,0,.35)!important}
+.btn:hover:not(:disabled){filter:brightness(1.06)}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.55)!important}
+.btn:disabled{opacity:.38}
+.btn.primary{background:var(--stamp)!important;color:#f6ead2!important}
+.btn.gamble{background:#111!important;color:#ff5a4d!important;outline:2px dashed #ff5a4d;outline-offset:-5px}
+.btn.quiet{background:transparent!important;box-shadow:none!important;color:var(--chalk)!important}
+.actions .btn:nth-child(odd){rotate:-.6deg}.actions .btn:nth-child(even){rotate:.5deg}
+.seg{border:2px solid var(--ink)!important;border-radius:2px!important;background:transparent!important}
+.seg button{color:var(--ink)!important;font-family:var(--f-type)!important;background:transparent!important}
+.seg button.on{background:var(--ink)!important;color:var(--paper)!important}
+.settings input[type=range]{accent-color:var(--stamp)}
+.settings .set span{color:var(--ink)!important}
+
+/* ---------- title: a stamped case file ---------- */
+.title{font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;color:var(--ink)!important;text-shadow:none!important;letter-spacing:.02em!important;line-height:.95!important}
+.title span{display:inline-block;color:var(--stamp)!important;border:4px solid var(--stamp);padding:2px 10px;margin-top:6px;rotate:-4deg;opacity:.9;mix-blend-mode:multiply}
+
+/* ---------- the players around the table: paper name tags ---------- */
+#opps{gap:18px!important;padding-top:22px!important}
+.opp{border-radius:2px!important;padding:10px 12px 8px!important;transition:transform .2s,box-shadow .2s!important}
+.opp:nth-child(odd){rotate:-1.5deg}.opp:nth-child(even){rotate:1.2deg}
+.opp .nm{font-family:var(--f-type)!important;font-weight:600;color:var(--ink)!important}
+.opp .cnt{font-family:var(--f-chalk)!important;font-weight:700!important;font-size:34px!important;line-height:28px!important;color:var(--ink)!important;font-variation-settings:normal!important}
+.opp .tags,.opp .tags b{font-family:var(--f-type)!important;color:var(--ink-soft)!important}
+.opp .ini{background:var(--ink)!important;color:var(--paper)!important;border-radius:2px!important}
+.opp.turn{transform:translateY(4px) scale(1.04);box-shadow:0 0 0 3px var(--stamp),0 14px 28px rgba(0,0,0,.6)!important}
+.opp.away{opacity:.55;filter:grayscale(.6)}
+.opp .bar,.opp .fan{opacity:.85}
+
+/* ---------- on the felt: chalk ---------- */
+.piles{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+.piles::after{content:'';position:absolute;inset:-14px;border:2px dashed rgba(240,234,218,.18);border-radius:24px;pointer-events:none}
+#banner{font-family:var(--f-chalk)!important;font-size:26px!important;font-weight:600!important;color:var(--chalk)!important;text-shadow:0 1px 0 rgba(0,0,0,.4)!important;letter-spacing:.01em}
+.hud,.hud .row,.dirtxt{color:var(--chalk)!important;font-family:var(--f-type)!important}
+.chaosline{font-family:var(--f-chalk)!important;font-size:20px!important;color:#ffe2a0!important;text-shadow:none!important}
+.chaosline.dim{color:rgba(240,234,218,.5)!important}
+.phase{font-family:var(--f-stamp)!important;color:var(--chalk)!important;letter-spacing:.12em!important}
+.phase b{background:#ffd27a!important;color:#1a1208!important;box-shadow:0 0 18px rgba(255,210,122,.7)}
+.phase.night b{background:#ff4436!important;color:#1a0505!important;box-shadow:0 0 18px rgba(255,68,54,.8)}
+.phaserules{font-family:var(--f-type)!important;color:rgba(240,234,218,.55)!important}
+.stack{font-family:var(--f-stamp)!important;font-variation-settings:normal!important;color:#ffefd0!important}
+.me .cnt{font-family:var(--f-chalk)!important;font-size:30px!important;color:var(--chalk)!important;font-variation-settings:normal!important}
+#meName{font-family:var(--f-type)!important;color:var(--chalk)!important}
+#meTags{font-family:var(--f-type)!important;color:rgba(240,234,218,.6)!important}
+.me .ini{background:var(--paper)!important;color:var(--ink)!important}
+
+/* ---------- big moments: a rubber stamp hits the table ---------- */
+#toast{font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;color:var(--stamp)!important;text-shadow:none!important;
+  border:5px solid currentColor;padding:0 14px;height:auto!important;line-height:1.15!important;rotate:-7deg!important;mix-blend-mode:screen;filter:contrast(1.2)}
+body.dark #toast{color:#ff5a4d!important}
+#toast.show{animation:stamp .32s cubic-bezier(.2,1.8,.4,1)!important}
+@keyframes stamp{0%{transform:scale(2.2);opacity:0}60%{opacity:1}100%{transform:scale(1)}}
+
+/* ---------- the log: a receipt ---------- */
+#side{background:#0b0908!important;border:0!important}
+.sidehead{border-bottom:1px solid rgba(255,255,255,.06)!important}
+.sidehead .label{color:rgba(240,234,218,.6)!important}
+#side .btn.quiet{color:rgba(240,234,218,.75)!important;font-family:var(--f-type)!important;text-transform:none}
+#log{flex:0 1 auto!important;max-height:calc(100% - 96px);min-height:80px;margin:12px 16px 16px;padding:14px 14px 18px!important;background:#f1ece0;background-image:var(--noise);background-blend-mode:multiply;color:#2a241d!important;font-family:var(--f-type)!important;
+  -webkit-mask:linear-gradient(#000,#000) top/100% calc(100% - 10px) no-repeat,radial-gradient(circle at 5px 100%,transparent 5px,#000 5.5px) bottom left/10px 10px repeat-x;
+  mask:linear-gradient(#000,#000) top/100% calc(100% - 10px) no-repeat,radial-gradient(circle at 5px 100%,transparent 5px,#000 5.5px) bottom left/10px 10px repeat-x;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#log div,#log p{color:#2a241d!important;border-color:rgba(42,36,29,.15)!important}
+
+/* ---------- the cards: worn casino stock with a poker-chip centre ---------- */
+.card{border-radius:calc(var(--cw)*.07)!important;border:calc(var(--cw)*.055) solid #efe6d1!important;background:var(--cc)!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 0 0 1px rgba(0,0,0,.25),0 6px 10px rgba(0,0,0,.5),0 2px 2px rgba(0,0,0,.4)!important}
+.card::before{content:'';position:absolute;inset:0;background:var(--noise);mix-blend-mode:multiply;opacity:.55;pointer-events:none;border-radius:inherit;z-index:3}
+.card::after{content:'';position:absolute;inset:calc(var(--cw)*.035);border:1px solid rgba(255,255,255,.35);border-radius:calc(var(--cw)*.04);pointer-events:none;z-index:2}
+.card.s-D{border-color:#16120f!important}
+.card.s-D::after{border-color:rgba(255,255,255,.12)}
+.card .oval{width:74%!important;height:auto!important;aspect-ratio:1;border-radius:50%!important;transform:translate(-50%,-50%)!important;clip-path:none!important;
+  background:radial-gradient(circle,#f3ead6 0 56%,transparent 57%),repeating-conic-gradient(#f3ead6 0 12deg,transparent 12deg 30deg)!important;box-shadow:0 0 0 2px rgba(0,0,0,.18),0 2px 4px rgba(0,0,0,.35)}
+.card.s-D .oval{background:radial-gradient(circle,#15110e 0 56%,transparent 57%),repeating-conic-gradient(#15110e 0 12deg,transparent 12deg 30deg)!important}
+.card.c-w .oval{background:radial-gradient(circle,#15110e 0 56%,transparent 57%),conic-gradient(var(--r) 0 90deg,var(--b) 0 180deg,var(--y) 0 270deg,var(--g) 0)!important}
+.card.s-D.c-w .oval{background:radial-gradient(circle,#15110e 0 56%,transparent 57%),conic-gradient(var(--p) 0 90deg,var(--t) 0 180deg,var(--o) 0 270deg,var(--v) 0)!important}
+.card.c-w{background:#15110e!important}
+.card .mid{transform:none!important;font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;font-size:calc(var(--cw)*.36)!important;text-shadow:none!important}
+.card.c-w .mid{background:none!important;box-shadow:none!important;color:#f3ead6!important}
+.card.s-D .mid{color:var(--cc)!important}
+.card .mid.sm{font-size:calc(var(--cw)*.22)!important}
+.card .mid .sym{font-size:calc(var(--cw)*.3)!important}
+.card .mid em{font-family:var(--f-type)!important;font-size:calc(var(--cw)*.075)!important;letter-spacing:.06em;color:inherit!important;opacity:.75;margin-top:1px}
+.card .cor{font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;font-size:calc(var(--cw)*.2)!important;color:#f6eeda!important;text-shadow:0 1px 0 rgba(0,0,0,.35);z-index:4}
+.card.c-y .cor,.card.c-t .cor,.card.c-o .cor{color:#1d1712!important;text-shadow:none}
+.card .cor .sym{font-size:calc(var(--cw)*.17)!important}
+#hand .card.ok{box-shadow:0 0 0 2px #ffe2a0,0 10px 18px rgba(0,0,0,.6)!important}
+#discard .card.topc{outline:2px dashed rgba(240,234,218,.55)!important;outline-offset:6px!important}
+
+/* ---------- chooser, tooltips, combo slip, slot machine ---------- */
+.pick .ord{background:var(--stamp)!important;color:#f6ead2!important;font-family:var(--f-stamp)!important;border-radius:50%!important}
+.pickcombo b,#combo .cname{color:var(--ink)!important;font-family:var(--f-stamp)!important;text-shadow:none!important}
+.pickcombo em,#combo .cpay{color:var(--stamp)!important;font-family:var(--f-type)!important}
+#combo{border-radius:3px!important}
+#combo .cwho{color:var(--ink-soft)!important}
+.chips,.mult{font-family:var(--f-stamp)!important;font-variation-settings:normal!important;border-radius:50%!important;min-width:56px!important;aspect-ratio:1;display:inline-grid!important;place-items:center;
+  box-shadow:0 0 0 4px rgba(255,255,255,.35) inset,0 3px 0 rgba(0,0,0,.4)!important}
+#cardtip b{color:var(--ink)!important;font-family:var(--f-stamp)!important;text-transform:uppercase}
+#cardtip .tipside{color:var(--ink-soft)!important}
+#cardtip p{color:var(--ink)!important;font-family:var(--f-type)!important;font-size:12px}
+.slotbox{background:#141110!important;background-image:var(--noise)!important;border:3px solid #6b5a3a!important;box-shadow:0 20px 40px rgba(0,0,0,.7)!important}
+.slottitle{color:#ffd27a!important;font-family:var(--f-stamp)!important}
+.reels b{background:var(--paper)!important;color:var(--ink)!important;font-family:var(--f-stamp)!important;border-radius:3px!important}
+.slotname{font-family:var(--f-stamp)!important;color:#ffe2a0!important}
+.rulestext{color:var(--ink)!important;font-family:var(--f-type)!important;font-size:13px}
+.rulestext h3{color:var(--stamp)!important;font-family:var(--f-stamp)!important}
+.rulestext b{color:var(--ink)!important}
+.rulestag{color:var(--ink-soft)!important}
+.list button,.list .li{color:var(--ink)!important;border-color:rgba(29,23,18,.18)!important;font-family:var(--f-type)!important}
+.list .mono{color:var(--ink-soft)!important}
+.modal{background:rgba(0,0,0,.62)!important;backdrop-filter:blur(2px)}
+.float{background:var(--paper)!important;color:var(--ink)!important;font-family:var(--f-stamp)!important;border-radius:2px!important}
+#lbSeats .li,#lbSeats>div{color:var(--ink)!important}
+#lbRules,#lbCards{color:var(--ink)}
+.opt,.opt span{color:var(--ink)!important}
+.code{font-family:var(--f-stamp)!important;color:var(--stamp)!important;letter-spacing:.2em}
+@media (max-width:820px){
+  #banner{font-size:20px!important}
+  .opp .cnt{font-size:26px!important}
+  .opp::before{width:44px;height:14px;top:-7px}
+  #toast{border-width:3px}
+}
 </style>
 </head>
 <body>
@@ -2473,35 +2627,47 @@ const JUICE = (() => {
     let gl; try { gl = cv.getContext('webgl', { antialias: false, alpha: false }); } catch (e) {}
     if (!gl) { cv.classList.add('nogl'); return; }
     const vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-    // Balatro-style "paint swirl" (our own take on the look: polar twist + domain warp + three paint bands
-    // with highlights), recoloured: green felt and gold on the light side, magenta and violet on the dark side.
-    const fs = `precision mediump float;uniform float t;uniform vec2 r;uniform float side;uniform float heat;
+    // The back room, seen from above: a worn felt table with a wooden rail under one hanging lamp,
+    // darkness all around, slow smoke in the light. Day = a warm bulb, night = a red bulb. Big stacks make it flicker.
+    const fs = `precision mediump float;uniform float t;uniform vec2 r;uniform float side;uniform float heat;uniform vec4 tb;
+      float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+      float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.03+vec2(17.,9.);a*=.5;}return v;}
       void main(){
-        vec2 uv=(gl_FragCoord.xy-.5*r)/length(r);
-        float len=length(uv);
-        float spin=t*.025*(1.+heat*1.5);
-        float ang=atan(uv.y,uv.x)+spin-5.2*(.28*len+.72);
-        uv=vec2(cos(ang),sin(ang))*len*28.;
-        float mv=t*(.3+heat*.5);
-        vec2 w=vec2(uv.x-uv.y);
-        for(int i=0;i<5;i++){
-          w+=cos(min(uv.x,uv.y))+uv;
-          uv+=.5*vec2(sin(4.31+.37*w.y+mv*.143),cos(w.x-.121*mv));
-          uv-=.9*sin(uv.x-uv.y)-.9*cos(uv.y*.67+uv.x);
-        }
-        float cm=1.95+heat*.6;
-        float paint=clamp(length(uv)*.036*cm,0.,2.);
-        float b1=max(0.,1.-cm*abs(1.-paint));
-        float b2=max(0.,1.-cm*abs(paint));
-        float b3=1.-min(1.,b1+b2);
-        float glow=.22*max(b1*5.-4.,0.)+.38*max(b2*5.-4.,0.);
-        vec3 a=mix(vec3(.10,.55,.42),vec3(.80,.10,.38),side);
-        vec3 b=mix(vec3(.72,.52,.12),vec3(.42,.13,.72),side);
-        vec3 c=mix(vec3(.03,.10,.10),vec3(.07,.02,.06),side);
-        a=mix(a,vec3(1.,.24,.10),heat*.7);
-        vec3 col=.08*a+.92*(a*b1+b*b2+c*b3)+glow;
-        float vig=smoothstep(1.05,.2,len);
-        gl_FragColor=vec4(col*(.5+.5*vig)*.68,1.);
+        vec2 px=gl_FragCoord.xy;
+        vec2 c=tb.xy, rad=tb.zw;                        // table centre and half-size, in pixels
+        vec2 q=(px-c)/rad;                               // -1..1 across the table
+        float e=length(q*vec2(1.,1.));                   // rounded-rectangle-ish table: superellipse
+        float sq=pow(pow(abs(q.x),4.)+pow(abs(q.y),4.),.25);
+        float felt=1.-smoothstep(.93,.95,sq);
+        float rail=smoothstep(.93,.95,sq)*(1.-smoothstep(1.04,1.07,sq));
+        // felt: fine nap, scuffs, a worn patch in the middle
+        vec2 fp=px/min(r.x,r.y)*7.;
+        float nap=fbm(fp*6.)*.5+fbm(fp*1.3)*.5;
+        float scuff=smoothstep(.55,.85,fbm(fp*.8+3.))*.35;
+        float wear=smoothstep(.9,.0,length(q*vec2(.9,1.2)))*.18;
+        vec3 feltC=vec3(.09,.27,.19)*(.78+.4*nap)-scuff*.05+wear*vec3(.10,.10,.06);
+        // wooden rail with grain
+        float grain=fbm(vec2(atan(q.y,q.x)*22.,sq*40.));
+        vec3 woodC=vec3(.20,.11,.06)*(.7+.6*grain);
+        // floor: almost black boards
+        vec3 floorC=vec3(.035,.03,.027)*(.7+.5*fbm(vec2(px.x/r.x*3.,px.y/r.y*40.)));
+        vec3 col=mix(floorC,woodC,rail+felt);
+        col=mix(col,feltC,felt);
+        // the lamp: warm by day, red at night; a slow sway and a flicker that worsens with the stack
+        float sway=sin(t*.35)*.015;
+        vec2 lp=vec2(.5+sway,.52)*r;
+        float d=length((px-lp)/min(r.x,r.y));
+        float fl=1.-heat*.35*step(.82,n(vec2(t*9.,1.)))-.04*n(vec2(t*3.,7.));
+        float lamp=exp(-d*d*2.6)*1.25*fl+.06;
+        vec3 bulb=mix(vec3(1.,.82,.55),vec3(1.,.36,.3),side);
+        col*=lamp*bulb*mix(1.6,2.3,side);
+        // smoke drifting through the light
+        float sm=fbm(px/min(r.x,r.y)*2.5+vec2(t*.03,-t*.05));
+        col+=bulb*smoothstep(.45,.9,sm)*exp(-d*d*1.8)*.06;
+        // heavy vignette into darkness
+        col*=smoothstep(1.35,.25,d);
+        gl_FragColor=vec4(col,1.);
       }`;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
     const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
@@ -2510,7 +2676,7 @@ const JUICE = (() => {
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = { t: gl.getUniformLocation(pr, 't'), r: gl.getUniformLocation(pr, 'r'), side: gl.getUniformLocation(pr, 'side'), heat: gl.getUniformLocation(pr, 'heat') };
+    const U = { t: gl.getUniformLocation(pr, 't'), r: gl.getUniformLocation(pr, 'r'), side: gl.getUniformLocation(pr, 'side'), heat: gl.getUniformLocation(pr, 'heat'), tb: gl.getUniformLocation(pr, 'tb') };
     const size = () => { const k = 2; cv.width = Math.ceil(innerWidth / k); cv.height = Math.ceil(innerHeight / k); gl.viewport(0, 0, cv.width, cv.height); };
     size(); addEventListener('resize', size);
     state.gl = gl;
@@ -2523,7 +2689,8 @@ const JUICE = (() => {
       state.heat += (state.heatT - state.heat) * 0.05;
       if (typeof S === 'undefined' || S.bgMotion !== false) state.tAcc = (state.tAcc || 0) + Math.min(0.05, (now - (state.tLast || now)) / 1000); state.tLast = now;
       gl.uniform1f(U.t, 20 + (state.tAcc || 0)); gl.uniform2f(U.r, cv.width, cv.height);
-      gl.uniform1f(U.side, state.side); gl.uniform1f(U.heat, Math.min(1, state.heat));
+      gl.uniform1f(U.side, state.side);
+      { const k = 2, T = state.table || { x: innerWidth * 0.4, y: innerHeight * 0.5, w: innerWidth * 0.38, h: innerHeight * 0.42 }; gl.uniform4f(U.tb, T.x / k, (innerHeight - T.y) / k, T.w / k, T.h / k); } gl.uniform1f(U.heat, Math.min(1, state.heat));
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     })(t0);
   }
@@ -2603,6 +2770,8 @@ const JUICE = (() => {
   }
 
   function setSide(d) { state.sideT = d ? 1 : 0; }
+  // where the table sits on screen (centre and half-size in CSS px)
+  function setTable(rc) { if (rc) state.table = rc; }
   function setHeat(h) { state.heatT = Math.max(0, Math.min(1, h)); }
   // ---- Balatro flame on the multiplier: the stack counter (+N) and an armed ×N burn, hotter as they grow ----
   // Flame shader ported from "Balatro original flame shader" by stryck33 on godotshaders.com (CC0).
@@ -2697,7 +2866,7 @@ const JUICE = (() => {
     kickFlame(S);
     const A = getFlame('arm'); if (A.amount > 0) { A.burst = Math.max(A.burst, 3); kickFlame(A); }
   }
-  return { startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame };
+  return { startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame, setTable };
 })();
 
 // ===== CLIENT: talks to the game server; the server runs every match =====
@@ -3347,7 +3516,12 @@ function render() {
     ${G.maze > 0 ? `<span class="chaosline warn">${t('mazeLeft', G.maze)}</span>` : ''}
     ${G.multNext > 1 ? `<span class="chaosline warn multchip">${t('multNext', G.multNext)}</span>` : ''}
     ${G.pending > 0 ? `<span class="label" style="margin-top:8px">${t('stack')}</span><span class="stack${G.pending >= 8 ? ' burning' : ''}" style="--heat:${Math.min(1, G.pending / 20).toFixed(2)}">+${G.pending}</span>` : ''}`;
-  JUICE.setSide(G.side === 'D'); AMB.setSide(G.side); JUICE.setHeat(G.pending / 22); JUICE.fireLevel(G.pending, G.multNext || 1);
+  JUICE.setSide(G.side === 'D'); AMB.setSide(G.side);
+  { // the felt table sits under the piles and reaches down under the hand
+    const tr = $('table').getBoundingClientRect(), hr = $('bottom').getBoundingClientRect(), orr = $('opps').getBoundingClientRect();
+    const top = orr.top + orr.height * 0.55, bottom = hr.bottom - 6;
+    JUICE.setTable({ x: tr.left + tr.width / 2, y: (top + bottom) / 2, w: tr.width / 2 - 8, h: (bottom - top) / 2 });
+  } JUICE.setHeat(G.pending / 22); JUICE.fireLevel(G.pending, G.multNext || 1);
   // banner
   const ban = $('banner');
   let txt, you = false;
