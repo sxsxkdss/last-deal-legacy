@@ -64,8 +64,8 @@ body.dark #bg.nogl, body.dark.lite #bg { background: radial-gradient(ellipse at 
 body:not(.dark) #crt { background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .12) 0, rgba(0, 0, 0, .12) 1px, transparent 1px, transparent 3px), radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .6) 100%); }
 body:not(.dark) #grain { opacity: .08; }
 body.lite #crt { background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, .75) 100%); }
-#grain { position: fixed; inset: -120px; pointer-events: none; z-index: 91; opacity: .13; background-image: var(--noise); animation: grain .5s steps(5) infinite; }
-@keyframes grain { 0% { transform: translate(0, 0) } 20% { transform: translate(-30px, 20px) } 40% { transform: translate(20px, -40px) } 60% { transform: translate(-50px, -10px) } 80% { transform: translate(40px, 30px) } }
+#grain { position: fixed; inset: -60px; pointer-events: none; z-index: 91; opacity: .13; background-image: var(--noise); animation: grain 2s steps(4) infinite; will-change: transform; }
+@keyframes grain { 0% { transform: translate(0, 0) } 25% { transform: translate(-30px, 20px) } 50% { transform: translate(20px, -40px) } 75% { transform: translate(-40px, -10px) } }
 body.lite #grain { display: none; }
 #fxc { position: fixed; inset: 0; pointer-events: none; z-index: 250; }
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
@@ -279,7 +279,6 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 #hand .card { flex: none; width: var(--hcw, var(--cw)); height: calc(var(--hcw, var(--cw)) * 1.47); cursor: grab; touch-action: none; -webkit-touch-callout: none;
   transform-origin: 50% 100%; transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg));
   transition: transform 150ms ease-out, opacity 150ms ease-out, rotate 120ms ease-out, filter 150ms; }
-body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.lifted) { animation: sway 3.4s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.41s); }
 @keyframes sway { 50% { translate: 0 -4px } }
 #hand .card.ok { transform: translateY(calc(var(--dy, 0px) - 6px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg)); }
 #hand .card.ok:hover { transform: translateY(calc(var(--dy, 0px) - 22px)) rotate(0deg) scale(1.06) var(--tilt, rotate(0deg)); }
@@ -352,12 +351,12 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 /* the face: stencil marks straight on the colour */
 .card .oval { position: absolute; left: 50%; top: 50%; width: 86%; height: 70%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
 .card .mid { display: flex; flex-direction: column; align-items: center; font: 700 calc(var(--cw) * .5)/.9 var(--f-card); letter-spacing: -.01em; color: inherit;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, .65), 0 0 6px rgba(0, 0, 0, .4); filter: url(#rough); }
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .65), 0 0 6px rgba(0, 0, 0, .4); }
 .card .mid.sm { font-size: calc(var(--cw) * .3); }
 .card .mid .ico { display: block; width: calc(var(--cw) * .5); height: calc(var(--cw) * .5); filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .65)); }
 .card .mid em { margin-top: calc(var(--cw) * .04); font: 600 calc(var(--cw) * .072)/1.2 var(--f-type); font-style: normal; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; opacity: .75; }
 .card .sym { display: block; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Apple Symbols', 'DejaVu Sans', sans-serif; font-weight: 700; line-height: 1; font-size: calc(var(--cw) * .3); }
-.card .cor { position: absolute; z-index: 4; font: 700 calc(var(--cw) * .19)/1 var(--f-card); text-shadow: 0 1px 0 rgba(0, 0, 0, .7); filter: url(#rough); }
+.card .cor { position: absolute; z-index: 4; font: 700 calc(var(--cw) * .19)/1 var(--f-card); text-shadow: 0 1px 0 rgba(0, 0, 0, .7); }
 .card .cor .ico { display: block; width: calc(var(--cw) * .17); height: calc(var(--cw) * .17); }
 .card .cor .sym { font-size: calc(var(--cw) * .17); }
 .card .cor.tl { top: 6%; left: 8%; }
@@ -721,6 +720,13 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
     radial-gradient(circle at 44% 66%, rgba(110, 106, 100, .9) 0 6%, transparent 9%),
     radial-gradient(circle at 30% 58%, rgba(160, 155, 146, .8) 0 4%, transparent 6.5%),
     radial-gradient(circle at 68% 36%, rgba(150, 146, 138, .75) 0 3.5%, transparent 6%); }
+
+/* ---------- weak devices (Settings → Effects → Lite, or picked automatically on low-end hardware) ---------- */
+body.lite #hand, body.lite .piles, body.lite #fx, body.lite .pick, body.lite .colors, body.lite .draftpick { filter: none; }
+body.lite .card .mid, body.lite .card .cor { -webkit-mask-image: none; mask-image: none; }
+body.lite .card::after { display: none; }
+body.lite .card { filter: none; }
+body.lite #hand .card:not(.ok):not(.jump) { filter: brightness(.8); }
 
 </style>
 </head>
@@ -3441,7 +3447,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 
 function loadSettings() {
-  const d = { vol: 0.8, ambient: 'on', ambVol: 0.35, ytUrl: '', shake: true, bgMotion: true, tips: true, name: 'Player', sound: true, fx: (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'lite' : 'full', lang: LANG, rules: Object.assign({}, PRESETS.den.rules), cards: Object.assign({}, PRESETS.den.cards) };
+  const d = { vol: 0.8, ambient: 'on', ambVol: 0.35, ytUrl: '', shake: true, bgMotion: true, tips: true, name: 'Player', sound: true, fx: ((window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4 && (navigator.deviceMemory || 8) <= 4)) ? 'lite' : 'full', lang: LANG, rules: Object.assign({}, PRESETS.den.rules), cards: Object.assign({}, PRESETS.den.cards) };
   try {
     const s = JSON.parse(localStorage.getItem('unoFlipNoMercy') || 'null');
     if (s) {
@@ -3658,7 +3664,7 @@ function onLobby(l) {
   renderLobby(l);
   show('lobby');
 }
-let MATCH = null;
+let MATCH = null, lastHandHTML = '';
 function onState(m) {
   let g; try { g = deserialize(m.st); } catch (e) { return; }
   isHost = !!m.host; lastLobby = m.lobby || lastLobby; away = m.st.aw || [];
@@ -4135,7 +4141,13 @@ const WEAR = (() => {
   }
   const st = document.createElement('style'); st.textContent = css.join('\n'); document.head.appendChild(st);
   const pc = x => (x * 100).toFixed(0) + '%';
+  const memo = new Map();
   return function wear(key) {
+    const hit = memo.get(key); if (hit) return hit;
+    if (memo.size > 4000) memo.clear();
+    const out = wearOf(key); memo.set(key, out); return out;
+  };
+  function wearOf(key) {
     let h = 2166136261; for (const ch of String(key)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
     const r = rng(h), on = p => (r() < p ? 1 : 0);
     const v = {
@@ -4160,7 +4172,7 @@ const WEAR = (() => {
     }
     if (burn) Object.assign(v, { '--bx': pc(bx), '--by': pc(by), '--bs': bs.toFixed(3), '--bo': '1', '--bj': ((r() - 0.5) * 7).toFixed(1) + '%', '--bk': ((r() - 0.5) * 7).toFixed(1) + '%', '--ax': pc(bx + ax), '--ay': pc(by + ay) });
     return { cls: 'tear' + Math.floor(r() * N) + (edge ? ' burnt' : ''), burn, style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
-  };
+  }
 })();
 function faceHTML(f, side, cls = '', id = '') {
   // a drawn sprite from the asset pack wins; otherwise the built-in card
@@ -4360,7 +4372,7 @@ function render() {
     wrap.style.flexWrap = rows > 1 ? 'wrap' : 'nowrap';
     wrap.style.justifyContent = 'center';
     let newIdx = 0;
-    wrap.innerHTML = hand.map((c, k) => {
+    const handHTML = hand.map((c, k) => {
       const row = Math.floor(k / per), col = k % per, inRow = Math.min(per, n - row * per);
       let cls = '';
       if (myTurn) cls = G.canPlay(c) ? 'ok' : 'dim';
@@ -4375,8 +4387,13 @@ function render() {
       const html = faceHTML(G.f(c), G.side, cls, c.id).replace('style="', `style="${st};`);
       return (row > 0 && col === 0 ? '<i class="brk"></i>' : '') + html;
     }).join('');
-    const byId = Object.fromEntries(me.hand.map(c => [c.id, c]));
-    wrap.querySelectorAll('.card').forEach(el => attachCard(el, byId[el.dataset.id]));
+    // nothing about the hand changed: keep the DOM (and the hover/tilt) as it is
+    if (handHTML !== lastHandHTML || !wrap.firstElementChild) {
+      lastHandHTML = handHTML;
+      wrap.innerHTML = handHTML;
+      const byId = Object.fromEntries(me.hand.map(c => [c.id, c]));
+      wrap.querySelectorAll('.card').forEach(el => attachCard(el, byId[el.dataset.id]));
+    }
     lastHandIds = new Set(me.hand.map(c => c.id));
   }
   // log

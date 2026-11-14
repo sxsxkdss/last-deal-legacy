@@ -4,6 +4,7 @@
 'use strict';
 const http = require('http');
 const fs = require('fs');
+const zlib = require('zlib');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
@@ -25,18 +26,27 @@ const validToken = t => typeof t === 'string' && /^[a-z0-9]{12,40}$/.test(t);
 
 // ---------- http: the page itself ----------
 const PAGE = path.join(__dirname, 'index.html');
+// the page is read once per change, gzipped once, and answered with 304 when the browser already has it
+let pageCache = null;
+function servePage(req, res) {
+  fs.stat(PAGE, (err, st) => {
+    if (err) { res.writeHead(500); res.end('index.html missing'); return; }
+    const tag = `"${st.size.toString(36)}-${st.mtimeMs.toString(36)}"`;
+    if (!pageCache || pageCache.tag !== tag) {
+      const raw = fs.readFileSync(PAGE);
+      pageCache = { tag, raw, gz: zlib.gzipSync(raw, { level: 9 }) };
+    }
+    const head = { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache', etag: tag, vary: 'accept-encoding' };
+    if (req.headers['if-none-match'] === tag) { res.writeHead(304, head); res.end(); return; }
+    if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) { res.writeHead(200, Object.assign(head, { 'content-encoding': 'gzip', 'content-length': pageCache.gz.length })); res.end(pageCache.gz); }
+    else { res.writeHead(200, Object.assign(head, { 'content-length': pageCache.raw.length })); res.end(pageCache.raw); }
+  });
+}
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
   if (url === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok'); return; }
-  if (url === '/' || url === '/index.html') {
-    fs.readFile(PAGE, (err, buf) => {
-      if (err) { res.writeHead(500); res.end('index.html missing'); return; }
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
-      res.end(buf);
-    });
-    return;
-  }
-  if (url.startsWith('/assets/')) { serveAsset(url, res); return; }
+  if (url === '/' || url === '/index.html') { servePage(req, res); return; }
+  if (url.startsWith('/assets/')) { serveAsset(url, res, req); return; }
   res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found');
 });
 
@@ -63,7 +73,7 @@ function buildManifest() {
   try { m.config = JSON.parse(fs.readFileSync(path.join(ASSET_DIR, 'pack.json'), 'utf8')); } catch (e) {}
   return m;
 }
-function serveAsset(url, res) {
+function serveAsset(url, res, req) {
   let rel; try { rel = decodeURIComponent(url.slice('/assets/'.length)); } catch (e) { res.writeHead(400); res.end(); return; }
   if (rel === 'manifest.json' && !fs.existsSync(path.join(ASSET_DIR, 'manifest.json'))) {
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-cache' }); res.end(JSON.stringify(buildManifest())); return;
@@ -72,9 +82,24 @@ function serveAsset(url, res) {
   if (!file.startsWith(ASSET_DIR + path.sep)) { res.writeHead(403); res.end(); return; }
   const type = MIME[path.extname(file).toLowerCase()];
   if (!type) { res.writeHead(404); res.end(); return; }
-  fs.readFile(file, (err, buf) => {
-    if (err) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found'); return; }
-    res.writeHead(200, { 'content-type': type, 'cache-control': 'no-cache' }); res.end(buf);
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found'); return; }
+    // revalidated with an ETag (304 when unchanged) and streamed with byte ranges, so the music loops
+    // and seeks without the browser downloading the whole file again
+    const tag = `"${st.size.toString(36)}-${st.mtimeMs.toString(36)}"`;
+    const head = { 'content-type': type, 'cache-control': 'no-cache', etag: tag, 'accept-ranges': 'bytes' };
+    if (req && req.headers['if-none-match'] === tag) { res.writeHead(304, head); res.end(); return; }
+    const m = req && /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      let a = m[1] ? +m[1] : st.size - +m[2], b = m[1] && m[2] ? +m[2] : st.size - 1;
+      if (isNaN(a) || a < 0 || a >= st.size || b < a) { res.writeHead(416, { 'content-range': `bytes */${st.size}` }); res.end(); return; }
+      b = Math.min(b, st.size - 1);
+      res.writeHead(206, Object.assign(head, { 'content-range': `bytes ${a}-${b}/${st.size}`, 'content-length': b - a + 1 }));
+      fs.createReadStream(file, { start: a, end: b }).pipe(res);
+      return;
+    }
+    res.writeHead(200, Object.assign(head, { 'content-length': st.size }));
+    fs.createReadStream(file).pipe(res);
   });
 }
 
