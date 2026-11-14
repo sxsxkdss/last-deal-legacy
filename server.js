@@ -16,7 +16,7 @@ const IDLE_SKIP_MS = 60000;   // a connected but idle player's turn is skipped a
 const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
 const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb'];
+const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb', 'd6', 'pill', 'tower', 'glitch', 'brim', 'foot', 'maze', 'deal', 'monstro'];
 const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
 const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
 
@@ -161,6 +161,14 @@ function nextBotJob(room) {
       const catcher = G.players.findIndex((p, k) => isBot(k));
       if (catcher >= 0) return { wait: rnd(1500, 2600), run: () => G.catchUno(catcher, i) };
     }
+  }
+  // cards anyone owes are drawn automatically, one at a time, so everybody sees each card land
+  // (stack pickups, penalties, roulette and draw-color runs, and a draw-until-color run once started)
+  const pace = got => Math.max(120, 340 - (got || 0) * 14);
+  for (let i = 0; i < G.players.length; i++) if (!isBot(i) && G.owes(i)) return { wait: pace(0), run: () => G.draw(i) };
+  if (G.debt && !isBot(G.debt.pi) && G.roulette === null) { const v = G.debt.pi, got = G.debt.got; return { wait: pace(got), run: () => G.draw(v) }; }
+  if (G.rules.drawUntil && G.roulette === null && !G.debt && G.pending === 0 && !isBot(G.turn) && G.drawRunPi === G.turn && (G.drawRun || 0) > 0 && G.drewBy !== G.turn && !G.owes(G.turn)) {
+    const v = G.turn, got = G.drawRun; return { wait: pace(got), run: () => { if (G.drawRunPi === v && G.drawRun > 0 && G.drewBy !== v && G.turn === v) G.draw(v); } };
   }
   // owed cards first (UNO penalty, chaos tax, lost duel)
   for (let i = 0; i < G.players.length; i++) if (isBot(i) && G.owes(i)) return { wait: rnd(160, 260), run: () => G.draw(i) };

@@ -45,7 +45,11 @@ assets/
 | `gift` | Gift | `echo` | Echo (wild) |
 | `freeze` | Freeze (dark) | `interest` | Interest (dark) |
 | `sacrifice` | Sacrifice (dark wild) | `wheel` | Wheel (wild) |
-| `bomb` | Bomb (dark) | | |
+| `bomb` | Bomb (dark) | `d6` | D6 (wild) |
+| `pill` | Pill | `tower` | The Tower |
+| `glitch` | Glitch (wild) | `brim` | Brimstone (dark wild) |
+| `foot` | Mom's Foot (dark) | `maze` | Curse of the Maze (dark) |
+| `deal` | Devil Deal (dark wild) | `monstro` | Monstro (dark wild) |
 
 Which colors and sides each value exists on: just look at the file names in `template/cards/`.
 
