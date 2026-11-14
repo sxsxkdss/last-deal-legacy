@@ -415,6 +415,24 @@ body.lite #cardtip{transition:none}
 #hud .stack{display:inline-block;align-self:flex-start;padding:0 6px}
 #hud .stack.burning{color:#fff;text-shadow:3px 3px 0 #5a0a1c,-2px -2px 0 #5a0a1c,2px -2px 0 #5a0a1c,-2px 2px 0 #5a0a1c}
 body.lite .flame{display:none}
+
+/* combo chooser line + Balatro-style score panel */
+.pickcombo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0;font-family:var(--f-px)}
+.pickcombo b{font-size:18px;color:#fff;text-transform:uppercase;margin-right:4px}
+.pickcombo.bad{color:var(--hot);font-weight:600}
+.pickcombo em{font-style:normal;color:var(--gold);font-size:13px}
+.pickcombo i,#combo i{font-style:normal;color:#fe5f55;font-weight:900}
+.chips,.mult{display:inline-block;min-width:44px;padding:3px 10px;text-align:center;font:900 20px/26px var(--f-ui);font-variation-settings:"wdth" 75;color:#fff;border-radius:6px;box-shadow:0 3px 0 rgba(0,0,0,.6)}
+.chips{background:#009dff}.mult{background:#fe5f55;position:relative;z-index:2}
+#combo{position:fixed;left:50%;top:38%;z-index:150;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 22px 16px;background:#16161c;border:3px solid #fff;border-radius:12px;box-shadow:6px 6px 0 #000;transition:opacity .15s,transform .2s cubic-bezier(.2,1.6,.4,1)}
+#combo.show{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-2deg)}
+#combo .cwho,#combo .cpay{position:relative;z-index:2}
+#combo .cwho{font:500 12px/14px var(--f-mono);color:#aaa}
+#combo .cname{position:relative;z-index:2;font:700 30px/32px var(--f-px);color:#fff;text-transform:uppercase;text-shadow:3px 3px 0 #000}
+#combo .cscore{display:flex;align-items:center;gap:8px}
+#combo .chips,#combo .mult{font-size:30px;line-height:38px;min-width:64px}
+#combo .cpay{font:600 14px/18px var(--f-px);color:var(--gold)}
+body.lite #combo{transition:none}
 </style>
 </head>
 <body>
@@ -511,6 +529,31 @@ const VALUE_NAME = {
   mul2: 'Mult ×2', mul3: 'Mult ×3', lucky: 'Lucky', glass: 'Glass', devil: '666', spin: 'Spin', loan: 'Loan',
   gift: 'Gift', echo: 'Wild Echo', freeze: 'Freeze', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Bomb'
 };
+// ---------- Balatro combos: number cards played together in one drop ----------
+// d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
+const COMBOS = {
+  pair: { d: 0, m: 0 }, twopair: { d: 1, m: 0 }, three: { d: 1, m: 0 }, straight: { d: 1, m: 0 }, flush: { d: 2, m: 0 },
+  fullhouse: { d: 2, m: 0 }, four: { d: 0, m: 1 }, straightflush: { d: 1, m: 2 }, five: { d: 1, m: 2 }
+};
+// faces: [{c, v}] in play order. Returns { key, m, all, chips } for a valid combo, null otherwise.
+function comboOf(faces) {
+  if (!faces || faces.length < 2 || faces.some(f => !/^\d$/.test(f.v) || f.c === 'w')) return null;
+  const n = faces.length, nums = faces.map(f => +f.v), chips = nums.reduce((a, b) => a + b, 0);
+  const cnt = Object.values(nums.reduce((o, x) => (o[x] = (o[x] || 0) + 1, o), {})).sort((a, b) => b - a);
+  const oneColor = faces.every(f => f.c === faces[0].c);
+  const sorted = nums.slice().sort((a, b) => a - b);
+  const run = cnt[0] === 1 && sorted.every((x, i) => !i || x === sorted[i - 1] + 1);
+  let key = null;
+  if (cnt[0] === n) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
+  else if (oneColor && run && n >= 3) key = n >= 5 ? 'straightflush' : 'straight';
+  else if (n === 4 && cnt[0] === 2 && cnt[1] === 2) key = 'twopair';
+  else if (n === 5 && cnt[0] === 3 && cnt[1] === 2) key = 'fullhouse';
+  else if (oneColor && n >= 5) key = 'flush';
+  if (!key) return null;
+  const C = COMBOS[key];
+  const d = key === 'straight' ? n - 2 : C.d;
+  return { key, d, m: C.m, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
+}
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb'];
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
@@ -546,7 +589,7 @@ class Game {
     rules = Object.assign({}, rules);
     if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
     delete rules.sevenZero;
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -645,7 +688,12 @@ class Game {
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
     if (this.rules.multi && Array.isArray(opts.extra)) {
-      for (const id of opts.extra) {
+      if (this.rules.combos !== false && /^\d$/.test(face.v) && face.c !== 'w') {
+        const want = [card];
+        for (const id of opts.extra) { const c = p.hand.find(x => x.id === id); if (c && !want.includes(c)) want.push(c); }
+        if (want.length > 1 && comboOf(want.map(c => this.f(c)))) chain.push(...want.slice(1));
+      }
+      if (chain.length === 1) for (const id of opts.extra) {
         const c = p.hand.find(x => x.id === id);
         // same value; a wild only goes with wilds, a colored card only with colored cards
         if (c && !chain.includes(c) && this.f(c).v === face.v && (this.f(c).c === 'w') === (face.c === 'w')) chain.push(c);
@@ -678,6 +726,7 @@ class Game {
       { n: p.name, j: jump ? 1 : 0, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
     this.ev('play', { pi, code: cardCode(last), side: this.side, jump, k });
     if (k > 1) this.ev('multi', { pi, k });
+    const combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
     this.drewBy = -1;
@@ -692,6 +741,15 @@ class Game {
     }
     let steps = 1;
     const n = this.active().length;
+    if (combo) {
+      // Balatro scoring, UNO payout: throw away extra cards, and the big hands hit everyone
+      let tossed = 0;
+      for (let r = 0; r < combo.d && p.hand.length > 1; r++) { p.hand.splice(Math.floor(Math.random() * p.hand.length), 1); tossed++; }
+      const hit = combo.m ? this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out) : [];
+      for (const i of hit) this.players[i].oweN = (this.players[i].oweN || 0) + combo.m;
+      this.addLog(`${p.name} plays a ${combo.key}: ${combo.chips} × ${combo.mult}.${tossed ? ` ${tossed} more cards gone.` : ''}${hit.length ? ` Everyone else picks up ${combo.m}.` : ''}`, 'stack', 'combo', { n: p.name, h: combo.key, c: combo.chips, x: combo.mult, d: tossed, m: hit.length ? combo.m : 0 });
+      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0 });
+    }
     switch (face.v) {
       case '7':
         if (this.rules.seven && opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out) {
@@ -1216,7 +1274,14 @@ const Bot = {
     }
     const bf = g.f(best);
     // drop every matching card when the table allows it
-    const extra = g.rules.multi ? p.hand.filter(c => c !== best && g.f(c).v === bf.v && (g.f(c).c === 'w') === (bf.c === 'w')) : [];
+    let extra = g.rules.multi ? p.hand.filter(c => c !== best && g.f(c).v === bf.v && (g.f(c).c === 'w') === (bf.c === 'w')) : [];
+    if (g.rules.multi && g.rules.combos !== false && /^\d$/.test(bf.v) && bf.c !== 'w') {
+      // a same-color run through the chosen card beats a plain pair
+      const same = p.hand.filter(c => c !== best && g.f(c).c === bf.c && /^\d$/.test(g.f(c).v));
+      const byNum = {}; for (const c of same) byNum[+g.f(c).v] = byNum[+g.f(c).v] || c;
+      let lo = +bf.v, hi = +bf.v; while (byNum[lo - 1]) lo--; while (byNum[hi + 1]) hi++;
+      if (hi - lo + 1 >= 3 && hi - lo + 1 > extra.length + 1) { extra = []; for (let x = lo; x <= hi; x++) if (x !== +bf.v) extra.push(byNum[x]); }
+    }
     const rest = p.hand.filter(c => c !== best && !extra.includes(c));
     const swapGain = minOther ? rest.length - minOther.q.hand.length : 0;
     return {
@@ -1274,7 +1339,7 @@ function deserialize(st) {
   return g;
 }
 
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES };
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf };
 
 </script>
 <script>
@@ -1345,7 +1410,8 @@ const STR = {
     catchBtn: 'Catch: +2',
     tJump: 'Jump-in', tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Skip everyone', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands rotate',
     tRoulette: 'Roulette', tMulti: k => `${k} at once`, tCaught: 'Caught: +2', tMirror: n => `Mirrored to ${n}`, tShieldUp: 'Shield up', tShield: k => `Shield breaks +${k}`,
-    tBhole: 'Black hole', tMult: x => `×${x}`, tArm: x => `×${x} armed`, tLucky: 'Lucky!', tMiss: 'No luck', tGlass: 'Shatter!', tGlassHit: 'Glass!', tDevil: '666', tLoan: 'Loan', tDue: 'Payday', tFire: 'ON FIRE', tGift: n => `Gift → ${n}`, tEcho: 'Echo', tEchoNone: 'Echo fades', tInterest: 'Interest', tSacrifice: 'Sacrifice', tWheel: n => `Wheel → ${n}`, tBomb: 'BOOM', giftQ: 'Who gets the gift?', giftSub: k => `${k} random cards from your hand go to them.`, tagLoan: n => `loan ${n}`, multNext: x => `next draw ×${x}`, tDark: 'Dark side', tLight: 'Light side', tOut: n => `${n} is out`, tUno: 'UNO',
+    tBhole: 'Black hole', tMult: x => `×${x}`, tArm: x => `×${x} armed`, tLucky: 'Lucky!', tMiss: 'No luck', tGlass: 'Shatter!', tGlassHit: 'Glass!', tDevil: '666', tLoan: 'Loan', tDue: 'Payday', tFire: 'ON FIRE', combo_pair: 'Pair', combo_twopair: 'Two Pair', combo_three: 'Three of a Kind', combo_straight: 'Straight', combo_flush: 'Flush', combo_fullhouse: 'Full House', combo_four: 'Four of a Kind', combo_straightflush: 'Straight Flush', combo_five: 'Five of a Kind',
+    comboToss: n => `−${n} ${n === 1 ? 'card' : 'cards'}`, comboHit: n => `everyone +${n}`, noCombo: 'Not a combo', comboQ: 'Play a combo?', comboSub: 'Pick number cards that make a poker hand: a pair, two pair, three or four of a kind, a straight (3+ in a row, one color), a flush (5 of one color), a full house. They go down left to right; drag to reorder, tap to switch off.', tGift: n => `Gift → ${n}`, tEcho: 'Echo', tEchoNone: 'Echo fades', tInterest: 'Interest', tSacrifice: 'Sacrifice', tWheel: n => `Wheel → ${n}`, tBomb: 'BOOM', giftQ: 'Who gets the gift?', giftSub: k => `${k} random cards from your hand go to them.`, tagLoan: n => `loan ${n}`, multNext: x => `next draw ×${x}`, tDark: 'Dark side', tLight: 'Light side', tOut: n => `${n} is out`, tUno: 'UNO',
     pickColor: 'Pick a color', rouletteTitle: 'Color roulette', rouletteSub: 'Name a color. You draw cards until it shows up and keep all of them.',
     flipWild: 'The flip lands on a wild', flipWildSub: n => `The back of this card is ${n}. Choose its color.`,
     swapQ: 'Swap hands?', swapSub: k => `You keep ${k} ${cardsAcc(k)} after this play. Trade with someone, or keep your hand.`, keepHand: 'Keep my hand',
@@ -1388,7 +1454,8 @@ const STR = {
     catchBtn: 'Поймать: +2',
     tJump: 'Вмешался!', tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропуск всех', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
     tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tCaught: 'Пойман: +2', tMirror: n => `Отражено: ${n}`, tShieldUp: 'Щит поднят', tShield: k => `Щит отбил +${k}`,
-    tBhole: 'Чёрная дыра', tMult: x => `×${x}`, tArm: x => `×${x} заряжен`, tLucky: 'Повезло!', tMiss: 'Мимо', tGlass: 'Вдребезги!', tGlassHit: 'Стекло!', tDevil: '666', tLoan: 'Кредит', tDue: 'Расплата', tFire: 'В ОГНЕ', tGift: n => `Подарок → ${n}`, tEcho: 'Эхо', tEchoNone: 'Эхо затихло', tInterest: 'Проценты', tSacrifice: 'Жертва', tWheel: n => `Колесо → ${n}`, tBomb: 'БУМ', giftQ: 'Кому подарок?', giftSub: k => `${k} случайные карты из вашей руки уйдут ему.`, tagLoan: n => `кредит ${n}`, multNext: x => `след. «Возьми» ×${x}`, tDark: 'Тёмная сторона', tLight: 'Светлая сторона', tOut: n => `${n} выбыл(а)`, tUno: 'УНО',
+    tBhole: 'Чёрная дыра', tMult: x => `×${x}`, tArm: x => `×${x} заряжен`, tLucky: 'Повезло!', tMiss: 'Мимо', tGlass: 'Вдребезги!', tGlassHit: 'Стекло!', tDevil: '666', tLoan: 'Кредит', tDue: 'Расплата', tFire: 'В ОГНЕ', combo_pair: 'Пара', combo_twopair: 'Две пары', combo_three: 'Сет', combo_straight: 'Стрит', combo_flush: 'Флеш', combo_fullhouse: 'Фулл-хаус', combo_four: 'Каре', combo_straightflush: 'Стрит-флеш', combo_five: 'Покер',
+    comboToss: n => `−${n} ${cardsAcc(n)}`, comboHit: n => `всем +${n}`, noCombo: 'Это не комбинация', comboQ: 'Сыграть комбинацию?', comboSub: 'Выберите числовые карты, которые складываются в покерную комбинацию: пара, две пары, сет, каре, стрит (3+ подряд одного цвета), флеш (5 одного цвета), фулл-хаус. Карты ложатся слева направо; перетаскивайте, чтобы поменять порядок, нажмите, чтобы выключить.', tGift: n => `Подарок → ${n}`, tEcho: 'Эхо', tEchoNone: 'Эхо затихло', tInterest: 'Проценты', tSacrifice: 'Жертва', tWheel: n => `Колесо → ${n}`, tBomb: 'БУМ', giftQ: 'Кому подарок?', giftSub: k => `${k} случайные карты из вашей руки уйдут ему.`, tagLoan: n => `кредит ${n}`, multNext: x => `след. «Возьми» ×${x}`, tDark: 'Тёмная сторона', tLight: 'Светлая сторона', tOut: n => `${n} выбыл(а)`, tUno: 'УНО',
     pickColor: 'Выберите цвет', rouletteTitle: 'Цветная рулетка', rouletteSub: 'Назовите цвет. Вы тянете карты, пока он не выпадет, и забираете все.',
     flipWild: 'Флип выпал на джокера', flipWildSub: n => `На обороте этой карты — ${n}. Выберите цвет.`,
     swapQ: 'Поменяться руками?', swapSub: k => `После хода у вас останется ${k} ${cardsW(k)}. Поменяйтесь с кем-нибудь или оставьте свою руку.`, keepHand: 'Оставить свою руку',
@@ -1413,7 +1480,8 @@ const RULES_I18N = {
     ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
     ['jumpIn', 'Jump-in', 'Play an exact copy of the top card out of turn, wilds included.'],
     ['uno', 'UNO penalty', 'Get caught at one card without calling UNO: draw 2.'],
-    ['chaos', 'Chaos', 'Every few plays a slot machine spins and hits the table with a random event.']
+    ['chaos', 'Chaos', 'Every few plays a slot machine spins and hits the table with a random event.'],
+    ['combos', 'Poker combos', 'Number cards can go down together as poker hands (pair, straight, flush, full house…). Bigger hands throw away extra cards; four and five of a kind and straight flushes hit everyone.']
   ],
   ru: [
     ['flip', 'Карты Флип', 'Флип переворачивает все карты на тёмную сторону и обратно.'],
@@ -1424,7 +1492,8 @@ const RULES_I18N = {
     ['zero', '0 — руки по кругу', 'Сыграв 0, все передают руку следующему игроку.'],
     ['jumpIn', 'Вмешательство', 'Точную копию верхней карты, включая джокеров, можно сыграть вне очереди.'],
     ['uno', 'Штраф за УНО', 'Поймали с одной картой без «УНО»: возьмите 2.'],
-    ['chaos', 'Хаос', 'Каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.']
+    ['chaos', 'Хаос', 'Каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.'],
+    ['combos', 'Покерные комбинации', 'Числовые карты можно класть вместе покерными комбинациями (пара, стрит, флеш, фулл-хаус…). Чем сильнее комбинация, тем больше лишних карт уходит из руки; каре, покер и стрит-флеш бьют по всем.']
   ]
 };
 const EXTRA_I18N = {
@@ -1495,6 +1564,7 @@ function fmtLog(l, myName) {
     spin: () => `${N(a.n)} дёргает рычаг.`,
     loan: () => `${N(a.n)} берёт кредит: ${a.g} ${cardsAcc(a.g)} уходят сейчас, через 3 хода — расплата.`,
     loanDue: () => `Кредит ${N(a.n)}: пора платить, ${N(a.n)} берёт ${a.k || 4}.`,
+    combo: () => `${N(a.n)}: ${STR.ru['combo_' + a.h]} ${a.c} × ${a.x}.${a.d ? ` Ещё ${a.d} ${cardsAcc(a.d)} из руки.` : ''}${a.m ? ` Все остальные берут ${a.m}.` : ''}`,
     gift: () => `${N(a.n)} дарит игроку ${N(a.t)} ${a.g} ${cardsAcc(a.g)}.`,
     echo: () => `Эхо ${N(a.n)} повторяет: ${cardName(a.f)}.`,
     echoNone: () => `Эхо ${N(a.n)} затихает: повторять нечего.`,
@@ -1541,6 +1611,7 @@ function fmtLog(l, myName) {
     spin: () => `${N(a.n)} pulls the lever.`,
     loan: () => `${N(a.n)} takes a loan: ${a.g} cards gone now, payback in 3 plays.`,
     loanDue: () => `${N(a.n)}'s loan comes due: pick up ${a.k || 4}.`,
+    combo: () => `${N(a.n)}: ${STR.en['combo_' + a.h]} ${a.c} × ${a.x}.${a.d ? ` ${a.d} more cards gone.` : ''}${a.m ? ` Everyone else picks up ${a.m}.` : ''}`,
     gift: () => `${N(a.n)} gives ${N(a.t)} ${a.g} cards.`,
     echo: () => `${N(a.n)}'s echo repeats ${cardName(a.f)}.`,
     echoNone: () => `${N(a.n)}'s echo fades: nothing to repeat.`,
@@ -1608,6 +1679,9 @@ const RULES_HTML = {
     <li><b>Wheel</b> (wild): a random opponent picks up 4.</li>
     <li><b>Bomb</b> (dark): the next player picks up 3, both of their neighbours pick up 1.</li>
     <li><b>Black Hole</b> (dark): every hand is pooled, shuffled and dealt back out evenly.</li></ul>
+    <h3>Poker combos</h3><ul><li>Number cards can go down together as poker hands. The first card must fit the pile; the last sets the color.</li>
+    <li><b>Pair</b>: just the drop. <b>Two Pair</b>, <b>Three of a Kind</b>: throw away 1 more random card. <b>Straight</b> (3+ in a row, one color): throw away 1 more per card beyond 2. <b>Flush</b> (5 of one color), <b>Full House</b>: throw away 2 more.</li>
+    <li><b>Four of a Kind</b>: everyone else picks up 1. <b>Five of a Kind</b>, <b>Straight Flush</b> (5+ in a row, one color): throw away 1 more and everyone else picks up 2.</li></ul>
     <h3>Chaos</h3><ul><li>Every 8–12 plays a slot machine spins and lands on one event: Inflation (draw cards count double for 6 plays), Leader tax (fewest cards picks up 2), Revolution (hands move one seat), Flip storm, Color lock (only the color or a wild for 4 plays), Bleed (everyone picks up 1), Jackpot (a lucky player discards 2 random cards) or Mirror world (direction reverses).</li></ul>
     <h3>Rooms</h3><ul><li>Up to 6 players, no accounts. The host can add bots in the lobby to fill seats or to test. The server runs the match, so everyone sees the same table.</li>
     <li>Lose your connection and you have 60 seconds to come back to your seat. Opening the page again rejoins you.</li>
@@ -1647,6 +1721,9 @@ const RULES_HTML = {
     <li><b>Колесо</b> (джокер): случайный соперник берёт 4.</li>
     <li><b>Бомба</b> (тёмная): следующий берёт 3, его соседи — по 1.</li>
     <li><b>Чёрная дыра</b> (тёмная): все руки собираются, перемешиваются и раздаются поровну.</li></ul>
+    <h3>Покерные комбинации</h3><ul><li>Числовые карты можно класть вместе покерными комбинациями. Первая карта должна подходить к сбросу, последняя задаёт цвет.</li>
+    <li><b>Пара</b>: просто сброс. <b>Две пары</b>, <b>Сет</b>: ещё 1 случайная карта уходит из руки. <b>Стрит</b> (3+ подряд одного цвета): ещё по 1 карте за каждую сверх двух. <b>Флеш</b> (5 одного цвета), <b>Фулл-хаус</b>: ещё 2 карты.</li>
+    <li><b>Каре</b>: все остальные берут 1. <b>Покер</b> (5 одинаковых), <b>Стрит-флеш</b> (5+ подряд одного цвета): ещё 1 карта уходит, все остальные берут 2.</li></ul>
     <h3>Хаос</h3><ul><li>Каждые 8–12 ходов крутится слот-машина и выпадает событие: Инфляция («Возьми» вдвойне 6 ходов), Налог на лидера (у кого меньше всего карт — берёт 2), Революция (руки сдвигаются на место), Флип-шторм, Блокировка цвета (4 хода только цвет или джокер), Кровопускание (каждый берёт 1), Джекпот (счастливчик сбрасывает 2 случайные карты) или Зазеркалье (направление меняется).</li></ul>
     <h3>Комнаты</h3><ul><li>До 6 игроков, без регистрации. Хозяин может добавить ботов в лобби, чтобы заполнить места или потестировать. Партию ведёт сервер, поэтому у всех один и тот же стол.</li>
     <li>Пропала связь — есть 60 секунд, чтобы вернуться на своё место. Откройте страницу снова, и вы вернётесь.</li>
@@ -1854,7 +1931,7 @@ const JUICE = (() => {
         float b3=1.-min(1.,b1+b2);
         float glow=.22*max(b1*5.-4.,0.)+.38*max(b2*5.-4.,0.);
         vec3 a=mix(vec3(.10,.55,.42),vec3(.80,.10,.38),side);
-        vec3 b=mix(vec3(.86,.62,.13),vec3(.42,.13,.72),side);
+        vec3 b=mix(vec3(.72,.52,.12),vec3(.42,.13,.72),side);
         vec3 c=mix(vec3(.03,.10,.10),vec3(.07,.02,.06),side);
         a=mix(a,vec3(1.,.24,.10),heat*.7);
         vec3 col=.08*a+.92*(a*b1+b*b2+c*b3)+glow;
@@ -2026,7 +2103,7 @@ const JUICE = (() => {
   }
   function kickFlame(F) { if (!F.run) { F.run = true; requestAnimationFrame(() => frameFlame(F)); } }
   function getFlame(key) {
-    if (!flames[key]) flames[key] = key === 'stack' ? makeFlame(key, [0.996, 0.373, 0.333], [1.0, 0.85, 0.35], 3.1) : makeFlame(key, [0.0, 0.58, 1.0], [0.75, 0.95, 1.0], 7.7);
+    if (!flames[key]) flames[key] = key === 'stack' || key === 'combo' ? makeFlame(key, [0.996, 0.373, 0.333], [1.0, 0.85, 0.35], key === 'combo' ? 5.3 : 3.1) : makeFlame(key, [0.0, 0.58, 1.0], [0.75, 0.95, 1.0], 7.7);
     return flames[key];
   }
   // called on every render: the stack counter burns from +8, the armed multiplier always burns
@@ -2039,6 +2116,12 @@ const JUICE = (() => {
     A.amount = multNext > 1 ? Math.min(5, 0.6 + Math.log2(multNext) * 0.8) : 0;
     if (A.amount + A.burst > 0.1) kickFlame(A);
   }
+  // the combo panel's mult box burns for a moment
+  function comboFlame(el, amount, ms) {
+    if (document.body.classList.contains('lite') || !el) return;
+    const C = getFlame('combo'); C.el = el; C.amount = amount; kickFlame(C);
+    clearTimeout(C.timer); C.timer = setTimeout(() => { C.amount = 0; }, ms);
+  }
   // a flare for big moments: multipliers, 666, huge stacks and drops
   function ignite(power = 1) {
     if (document.body.classList.contains('lite')) return;
@@ -2047,7 +2130,7 @@ const JUICE = (() => {
     kickFlame(S);
     const A = getFlame('arm'); if (A.amount > 0) { A.burst = Math.max(A.burst, 3); kickFlame(A); }
   }
-  return { startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite };
+  return { startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame };
 })();
 
 // ===== CLIENT: talks to the game server; the server runs every match =====
@@ -2427,17 +2510,28 @@ function fits(card) { if (!G || G.winner !== null || !G.players[ME] || G.players
 function usable(card) { return !busy && fits(card); }
 async function useCard(card, el, fromRect) {
   if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
-  const me = G.players[ME], face = G.f(card);
-  let back = G.back(card);
+  const me = G.players[ME];
+  let face = G.f(card), back = G.back(card);
   busy = true;
   let color = null, flipColor = null, target = null, extra = [];
   if (G.rules.multi) {
+    const isNum = f => /^\d$/.test(f.v) && f.c !== 'w';
     const same = me.hand.filter(c => c !== card && G.f(c).v === face.v && (G.f(c).c === 'w') === (face.c === 'w'));
-    if (same.length) {
-      const pick = await pickExtras(card, same);
+    let cands = same, pre = same;
+    if (G.rules.combos !== false && isNum(face)) {
+      // Balatro combos: any of your number cards can join, if some combo is possible at all
+      const nums = me.hand.filter(c => c !== card && isNum(G.f(c)));
+      const col = nums.filter(c => G.f(c).c === face.c), byN = {};
+      for (const c of col) byN[+G.f(c).v] = byN[+G.f(c).v] || c;
+      let lo = +face.v, hi = +face.v; while (byN[lo - 1]) lo--; while (byN[hi + 1]) hi++;
+      const run = []; for (let x = lo; x <= hi; x++) if (x !== +face.v) run.push(byN[x]);
+      if (same.length || run.length >= 2 || col.length >= 4) { cands = nums; pre = same.length ? same : run.length >= 2 ? run : []; }
+    }
+    if (cands.length) {
+      const pick = await pickExtras(card, cands, pre);
       if (pick === null) { busy = false; tick(); return; }
       // play order = left-to-right order of the picked cards in the chooser
-      card = pick.lead; extra = pick.extra; back = G.back(card);
+      card = pick.lead; extra = pick.extra; face = G.f(card); back = G.back(card);
     }
   }
   if (face.c === 'w' && face.v !== 'roul') color = await pickColor(t('pickColor'), cardName(face), G.side);
@@ -2863,6 +2957,7 @@ function processEvents() {
       case 'roulette': SFX.play('stack', 3); bump(TOAST_PRI.roulette, t('tRoulette')); break;
       case 'uno': SFX.play('uno'); floatText(e.pi, t('tUno')); break;
       case 'multi': bump(TOAST_PRI.multi, t('tMulti', e.k)); break;
+      case 'combo': showCombo(e); break;
       case 'caught': SFX.play('bad'); floatText(e.pi, t('tCaught')); break;
       case 'ko': SFX.play('ko'); JUICE.glitch(); bump(TOAST_PRI.ko, t('tOut', nm(e.pi))); break;
       case 'win': SFX.play('win'); JUICE.burst(innerWidth / 2, innerHeight * 0.4, 160, ['#ff2d55', '#ffd23f', '#22d3ee', '#a3e635', '#fff'], 2); bump(TOAST_PRI.win, e.pi === ME ? t('youWin') : t('wins', nm(e.pi))); break;
@@ -2902,21 +2997,31 @@ function pickTarget(title, sub, skipLabel) {
   });
 }
 // choose which matching cards go down together, and in what order; resolves to the cards, or null to cancel
-function pickExtras(card, same) {
+function pickExtras(card, same, pre) {
   return new Promise(res => {
     // The cards start in the order they sit in your hand. Play order is simply their order here, left to right:
     // drag to rearrange, tap to switch a card off or on (it stays where it is).
     const handPos = new Map(sortedHand(G.players[ME].hand).map((c, i) => [c, i]));
     let list = [card, ...same].sort((a, b) => handPos.get(a) - handPos.get(b));
-    let sel = new Set(list), warn = '';
+    let sel = new Set([card, ...(pre || same)]), warn = '';
+    const numbers = /^\d$/.test(G.f(card).v) && G.f(card).c !== 'w' && G.rules.combos !== false;
     const order = () => list.filter(c => sel.has(c));
+    const comboLine = ord => {
+      if (!numbers || ord.length < 2) return '';
+      const cb = comboOf(ord.map(c => G.f(c)));
+      if (!cb) return `<div class="pickcombo bad">${t('noCombo')}</div>`;
+      const pay = [cb.d ? t('comboToss', cb.d) : '', cb.m ? t('comboHit', cb.m) : ''].filter(Boolean).join(' · ');
+      return `<div class="pickcombo"><b>${t('combo_' + cb.key)}</b><span class="chips">${cb.chips}</span><i>×</i><span class="mult">${cb.mult}</span>${pay ? `<em>${pay}</em>` : ''}</div>`;
+    };
     const draw = () => {
       const ord = order();
+      const valid = !numbers || ord.length < 2 || !!comboOf(ord.map(c => G.f(c)));
       const slot = (c, k) => { const at = ord.indexOf(c); return `<div class="slot" data-k="${k}">${at >= 0 ? `<span class="ord">${at + 1}</span>` : ''}${faceHTML(G.f(c), G.side, at >= 0 ? 'on' : 'off')}</div>`; };
-      openModal(`<h2>${t('togetherQ')}</h2><p>${t('togetherSub')}</p>
+      openModal(`<h2>${t(numbers ? 'comboQ' : 'togetherQ')}</h2><p>${t(numbers ? 'comboSub' : 'togetherSub')}</p>
         <div class="pick" id="pickRow">${list.map(slot).join('')}</div>
+        ${comboLine(ord)}
         ${warn ? `<p class="pickwarn">${esc(warn)}</p>` : ''}
-        <button class="btn primary wide" id="pxGo" ${ord.length ? '' : 'disabled'}>${t('playN', ord.length)}</button>
+        <button class="btn primary wide" id="pxGo" ${ord.length && valid ? '' : 'disabled'}>${t('playN', ord.length)}</button>
         <button class="btn wide" id="pxClear" style="margin-top:8px">${ord.length === list.length ? t('clearOrder') : t('selectAll')}</button>
         <button class="textlink" id="pxCancel">${t('cancel')}</button>`);
       const slots = [...$('pickRow').querySelectorAll('.slot[data-k]')];
@@ -2945,9 +3050,13 @@ function pickExtras(card, same) {
       });
       $('pxClear').onclick = () => { sel = ord.length === list.length ? new Set() : new Set(list); warn = ''; draw(); };
       $('pxGo').onclick = () => {
-        const o = order(); if (!o.length) return;
-        // the first card has to be one you could play on its own
-        if (!fits(o[0])) { warn = t('firstMustFit'); SFX.play('bad'); draw(); return; }
+        let o = order(); if (!o.length) return;
+        // the first card has to fit the pile: if it doesn't, the first one that does goes in front automatically
+        if (!fits(o[0])) {
+          const f = o.find(fits);
+          if (!f) { warn = t('firstMustFit'); SFX.play('bad'); draw(); return; }
+          o = [f, ...o.filter(c => c !== f)];
+        }
         closeModal(); res({ lead: o[0], extra: o.slice(1) });
       };
       $('pxCancel').onclick = () => { closeModal(); res(null); };
@@ -3018,6 +3127,23 @@ const TIP = (() => {
   addEventListener('scroll', hide, true);
   return { hide };
 })();
+
+
+// ---------- combo score panel, Balatro style: name, chips × mult, payout ----------
+let comboTimer = 0;
+function showCombo(e) {
+  let el = $('combo');
+  if (!el) { el = document.createElement('div'); el.id = 'combo'; $('game').appendChild(el); }
+  const pay = [e.d ? t('comboToss', e.d) : '', e.m ? t('comboHit', e.m) : ''].filter(Boolean).join(' · ');
+  el.innerHTML = `<span class="cwho">${esc(nm(e.pi))}</span><b class="cname">${t('combo_' + e.key)}</b><div class="cscore"><span class="chips">${e.chips}</span><i>×</i><span class="mult">${e.mult}</span></div>${pay ? `<span class="cpay">${esc(pay)}</span>` : ''}`;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  const big = e.m > 0 || e.mult >= 3;
+  SFX.play('mult', Math.min(4, e.mult)); setTimeout(() => SFX.play('lucky'), 180);
+  JUICE.shake(big ? 4 : 2); if (big) JUICE.glitch();
+  JUICE.comboFlame(el.querySelector('.mult'), Math.min(8, 1.5 + e.mult * 1.2), 1700);
+  const r = el.getBoundingClientRect(); JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 40 + e.mult * 10, ['#009dff', '#fe5f55', '#ffd23f', '#fff'], 1.2);
+  clearTimeout(comboTimer); comboTimer = setTimeout(() => el.classList.remove('show'), 1900);
+}
 
 </script>
 </body>

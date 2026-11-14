@@ -47,6 +47,7 @@ The simplest setup is to use the Render link for everything. If you'd rather kee
 
 ## Rules
 
+- **Poker combos (on by default):** number cards can go down together as poker hands, Balatro style: pair, two pair, three of a kind, straight (3+ in a row, one color), flush (5 of one color), full house, four and five of a kind, straight flush. A score panel shows chips × mult; bigger hands throw away extra cards, and the biggest hit everyone.
 - **Chaos (on by default):** every 8–12 plays a slot machine spins and lands on a random event: Inflation (draw cards count double for 6 plays), Leader tax (fewest cards picks up 2), Revolution (every hand moves one seat), Flip storm, Color lock (only the color or a wild for 4 plays), Bleed (everyone picks up 1), Jackpot (a lucky player discards 2 random cards) or Mirror world (direction reverses).
 - **Bots:** the host can add bots in the lobby to fill seats or to test on their own. The server plays them.
 - **Effects:** a swirling shader table, CRT scanlines and grain, pixel-art cards and type, card sway and tilt, particles, screen shake, glitches, and a Balatro-style flame on the stack counter and the armed multiplier that grows with the stack and flares on multipliers, 666 and big drops. Switch to "lite" from the log header or the Menu if a device struggles. It starts in lite mode when the system asks for reduced motion.

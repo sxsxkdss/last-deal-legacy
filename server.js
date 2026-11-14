@@ -17,7 +17,7 @@ const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
 const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb'];
-const RULE_KEYS = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
 const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
 
 const clean = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
@@ -90,7 +90,7 @@ function newCode() {
 function makeRoom(hostToken) {
   const room = {
     code: newCode(), host: hostToken, members: new Map(), order: [],
-    rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true, chaos: true },
+    rules: { flip: true, stacking: true, multi: true, combos: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true, chaos: true },
     cards: Object.fromEntries(EXTRA.map(k => [k, true])),
     G: null, seats: [], timer: null, emptySince: null
   };

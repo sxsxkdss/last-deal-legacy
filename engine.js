@@ -10,6 +10,31 @@ const VALUE_NAME = {
   mul2: 'Mult ×2', mul3: 'Mult ×3', lucky: 'Lucky', glass: 'Glass', devil: '666', spin: 'Spin', loan: 'Loan',
   gift: 'Gift', echo: 'Wild Echo', freeze: 'Freeze', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Bomb'
 };
+// ---------- Balatro combos: number cards played together in one drop ----------
+// d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
+const COMBOS = {
+  pair: { d: 0, m: 0 }, twopair: { d: 1, m: 0 }, three: { d: 1, m: 0 }, straight: { d: 1, m: 0 }, flush: { d: 2, m: 0 },
+  fullhouse: { d: 2, m: 0 }, four: { d: 0, m: 1 }, straightflush: { d: 1, m: 2 }, five: { d: 1, m: 2 }
+};
+// faces: [{c, v}] in play order. Returns { key, m, all, chips } for a valid combo, null otherwise.
+function comboOf(faces) {
+  if (!faces || faces.length < 2 || faces.some(f => !/^\d$/.test(f.v) || f.c === 'w')) return null;
+  const n = faces.length, nums = faces.map(f => +f.v), chips = nums.reduce((a, b) => a + b, 0);
+  const cnt = Object.values(nums.reduce((o, x) => (o[x] = (o[x] || 0) + 1, o), {})).sort((a, b) => b - a);
+  const oneColor = faces.every(f => f.c === faces[0].c);
+  const sorted = nums.slice().sort((a, b) => a - b);
+  const run = cnt[0] === 1 && sorted.every((x, i) => !i || x === sorted[i - 1] + 1);
+  let key = null;
+  if (cnt[0] === n) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
+  else if (oneColor && run && n >= 3) key = n >= 5 ? 'straightflush' : 'straight';
+  else if (n === 4 && cnt[0] === 2 && cnt[1] === 2) key = 'twopair';
+  else if (n === 5 && cnt[0] === 3 && cnt[1] === 2) key = 'fullhouse';
+  else if (oneColor && n >= 5) key = 'flush';
+  if (!key) return null;
+  const C = COMBOS[key];
+  const d = key === 'straight' ? n - 2 : C.d;
+  return { key, d, m: C.m, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
+}
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb'];
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
@@ -45,7 +70,7 @@ class Game {
     rules = Object.assign({}, rules);
     if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
     delete rules.sevenZero;
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -144,7 +169,12 @@ class Game {
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
     if (this.rules.multi && Array.isArray(opts.extra)) {
-      for (const id of opts.extra) {
+      if (this.rules.combos !== false && /^\d$/.test(face.v) && face.c !== 'w') {
+        const want = [card];
+        for (const id of opts.extra) { const c = p.hand.find(x => x.id === id); if (c && !want.includes(c)) want.push(c); }
+        if (want.length > 1 && comboOf(want.map(c => this.f(c)))) chain.push(...want.slice(1));
+      }
+      if (chain.length === 1) for (const id of opts.extra) {
         const c = p.hand.find(x => x.id === id);
         // same value; a wild only goes with wilds, a colored card only with colored cards
         if (c && !chain.includes(c) && this.f(c).v === face.v && (this.f(c).c === 'w') === (face.c === 'w')) chain.push(c);
@@ -177,6 +207,7 @@ class Game {
       { n: p.name, j: jump ? 1 : 0, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
     this.ev('play', { pi, code: cardCode(last), side: this.side, jump, k });
     if (k > 1) this.ev('multi', { pi, k });
+    const combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
     this.drewBy = -1;
@@ -191,6 +222,15 @@ class Game {
     }
     let steps = 1;
     const n = this.active().length;
+    if (combo) {
+      // Balatro scoring, UNO payout: throw away extra cards, and the big hands hit everyone
+      let tossed = 0;
+      for (let r = 0; r < combo.d && p.hand.length > 1; r++) { p.hand.splice(Math.floor(Math.random() * p.hand.length), 1); tossed++; }
+      const hit = combo.m ? this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out) : [];
+      for (const i of hit) this.players[i].oweN = (this.players[i].oweN || 0) + combo.m;
+      this.addLog(`${p.name} plays a ${combo.key}: ${combo.chips} × ${combo.mult}.${tossed ? ` ${tossed} more cards gone.` : ''}${hit.length ? ` Everyone else picks up ${combo.m}.` : ''}`, 'stack', 'combo', { n: p.name, h: combo.key, c: combo.chips, x: combo.mult, d: tossed, m: hit.length ? combo.m : 0 });
+      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0 });
+    }
     switch (face.v) {
       case '7':
         if (this.rules.seven && opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out) {
@@ -715,7 +755,14 @@ const Bot = {
     }
     const bf = g.f(best);
     // drop every matching card when the table allows it
-    const extra = g.rules.multi ? p.hand.filter(c => c !== best && g.f(c).v === bf.v && (g.f(c).c === 'w') === (bf.c === 'w')) : [];
+    let extra = g.rules.multi ? p.hand.filter(c => c !== best && g.f(c).v === bf.v && (g.f(c).c === 'w') === (bf.c === 'w')) : [];
+    if (g.rules.multi && g.rules.combos !== false && /^\d$/.test(bf.v) && bf.c !== 'w') {
+      // a same-color run through the chosen card beats a plain pair
+      const same = p.hand.filter(c => c !== best && g.f(c).c === bf.c && /^\d$/.test(g.f(c).v));
+      const byNum = {}; for (const c of same) byNum[+g.f(c).v] = byNum[+g.f(c).v] || c;
+      let lo = +bf.v, hi = +bf.v; while (byNum[lo - 1]) lo--; while (byNum[hi + 1]) hi++;
+      if (hi - lo + 1 >= 3 && hi - lo + 1 > extra.length + 1) { extra = []; for (let x = lo; x <= hi; x++) if (x !== +bf.v) extra.push(byNum[x]); }
+    }
     const rest = p.hand.filter(c => c !== best && !extra.includes(c));
     const swapGain = minOther ? rest.length - minOther.q.hand.length : 0;
     return {
@@ -773,4 +820,4 @@ function deserialize(st) {
   return g;
 }
 
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES };
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf };
