@@ -58,7 +58,7 @@ Which colors and sides each value exists on: just look at the file names in `tem
 
 - **Name:** `<event>.ogg` (or `.mp3`, `.wav`, `.m4a`). OGG or MP3 keeps the size down.
 - **Variants:** `play-2.ogg`, `play-3.ogg` … one is picked at random each time.
-- **Music:** `music.ogg` loops in the background after the first click (volume: `musicVolume`).
+- **Music:** `music.mp3` (or `.ogg`) loops in the background after the first click and replaces the default YouTube track.
 - `play`, `stack` and `draw` are pitched up on combos and bigger stacks; turn off with `"pitchCombos": false`.
 
 | event | when |
@@ -82,7 +82,10 @@ Which colors and sides each value exists on: just look at the file names in `tem
 | `lucky` | Lucky hits |
 | `glass` | Glass |
 | `devil` | 666 |
-| `coin` | taking a Loan |
+| `coin` | taking a Loan, Interest |
+| `spin` | the revolver cylinder spinning |
+| `click2` | revolver: empty chamber |
+| `bang` | revolver: it fires |
 
 ## Fonts
 

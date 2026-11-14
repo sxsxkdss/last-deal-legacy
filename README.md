@@ -81,4 +81,4 @@ Flip doesn't just turn the cards, it changes the table. **Day · the floor**: th
 
 ## Settings
 
-Language, sound on/off and volume, ambient (the built-in den hum, a YouTube link of your choice, or off) and its volume, effects level, screen shake, a still background and card tooltips. A `music` file in your asset pack replaces the built-in hum.
+Language, sound on/off and volume, music on/off and volume, effects level, screen shake, a still background and card tooltips. Music plays the YouTube track by default (a hidden player); put `assets/sounds/music.mp3` in your pack to use your own file instead.

@@ -659,6 +659,36 @@ body.dark #toast{color:#ff5a4d!important}
   .opp::before{width:44px;height:14px;top:-7px}
   #toast{border-width:3px}
 }
+
+/* ============ DARKER: the back room at 3 a.m. (grime, a dying bulb, blood-red ink) ============ */
+:root{--paper:#b9ae98;--paper-2:#a49882;--ink:#120e0b;--ink-soft:#3a3026;--stamp:#8e1a14;--chalk:rgba(232,226,210,.9);--tape:rgba(170,160,120,.7)}
+body.dark{--paper:#b2a08e;--paper-2:#9c8a78;--stamp:#9c1810}
+#bg{image-rendering:pixelated!important}
+#grain{opacity:.13!important}
+#crt{background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px),radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8) 100%)!important}
+body.lite #crt{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.75) 100%)!important}
+/* paper gets dirty at the edges */
+.page,.dialog,#cardtip,#combo,.opp{box-shadow:inset 0 0 28px rgba(40,25,10,.45),inset 0 0 2px rgba(0,0,0,.4),0 14px 30px rgba(0,0,0,.75)!important}
+.btn{box-shadow:inset 0 0 10px rgba(40,25,10,.35),0 3px 0 rgba(0,0,0,.75),0 8px 14px rgba(0,0,0,.5)!important}
+.btn.primary{color:#f2e6cf!important}
+/* cards: older stock, grime in the corners */
+.card{border-color:#cfc4ab!important;box-shadow:inset 0 0 calc(var(--cw)*.18) rgba(30,18,8,.45),0 0 0 1px rgba(0,0,0,.35),0 8px 14px rgba(0,0,0,.7)!important}
+.card::before{opacity:.75!important}
+.card .oval{filter:saturate(.85) brightness(.95)}
+.card.s-D{border-color:#100c0a!important}
+/* readable chalk: no faint text on the felt */
+.phaserules{color:rgba(232,226,210,.82)!important}
+.chaosline.dim{color:rgba(232,226,210,.72)!important}
+#meTags{color:rgba(232,226,210,.82)!important}
+.hud .row,.dirtxt{color:rgba(232,226,210,.9)!important}
+#banner,.chaosline,.phase,.hud{text-shadow:0 1px 2px rgba(0,0,0,.9)!important}
+.sidehead .label,#side .btn.quiet{color:rgba(232,226,210,.8)!important}
+#log{background:#cfc8b8!important}
+/* stamps in dried-blood red */
+#toast{color:#c21f16!important;mix-blend-mode:normal!important;text-shadow:0 0 1px rgba(0,0,0,.6)!important}
+#toast:empty{border-color:transparent!important}
+body.dark #toast{color:#e0281c!important}
+.opp.turn{box-shadow:0 0 0 3px #c21f16,inset 0 0 28px rgba(40,25,10,.45),0 14px 30px rgba(0,0,0,.75)!important}
 </style>
 </head>
 <body>
@@ -2540,6 +2570,8 @@ Object.assign(STR.en, { settings: 'Settings', setSound: 'Sound', setVolume: 'Eff
 Object.assign(STR.ru, { settings: 'Настройки', setSound: 'Звук', setVolume: 'Громкость эффектов', setAmbient: 'Эмбиент', setAmbVol: 'Громкость эмбиента', setYt: 'Ссылка YouTube', ambHouse: 'Притон', setShake: 'Тряска экрана', setBg: 'Фон', bgMoving: 'Движется', bgStill: 'Стоит', setTips: 'Подсказки к картам', fxFull: 'Все', fxLite: 'Лёгкие' });
 Object.assign(CARD_TXT.en, { mult3: 'triple' }); Object.assign(CARD_TXT.ru, { mult3: 'трипл' });
 
+Object.assign(STR.en, { setAmbient: 'Music' }); Object.assign(STR.ru, { setAmbient: 'Музыка' });
+
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
 const ASSETS = (() => {
@@ -2646,10 +2678,11 @@ const JUICE = (() => {
         float nap=fbm(fp*6.)*.5+fbm(fp*1.3)*.5;
         float scuff=smoothstep(.55,.85,fbm(fp*.8+3.))*.35;
         float wear=smoothstep(.9,.0,length(q*vec2(.9,1.2)))*.18;
-        vec3 feltC=vec3(.09,.27,.19)*(.78+.4*nap)-scuff*.05+wear*vec3(.10,.10,.06);
+        vec3 feltC=vec3(.07,.19,.14)*(.7+.45*nap)-scuff*.06+wear*vec3(.07,.07,.04);
+        feltC=mix(feltC,vec3(dot(feltC,vec3(.33))),.35); // drained colour
         // wooden rail with grain
         float grain=fbm(vec2(atan(q.y,q.x)*22.,sq*40.));
-        vec3 woodC=vec3(.20,.11,.06)*(.7+.6*grain);
+        vec3 woodC=vec3(.13,.075,.045)*(.6+.6*grain);
         // floor: almost black boards
         vec3 floorC=vec3(.035,.03,.027)*(.7+.5*fbm(vec2(px.x/r.x*3.,px.y/r.y*40.)));
         vec3 col=mix(floorC,woodC,rail+felt);
@@ -2658,15 +2691,20 @@ const JUICE = (() => {
         float sway=sin(t*.35)*.015;
         vec2 lp=vec2(.5+sway,.52)*r;
         float d=length((px-lp)/min(r.x,r.y));
-        float fl=1.-heat*.35*step(.82,n(vec2(t*9.,1.)))-.04*n(vec2(t*3.,7.));
-        float lamp=exp(-d*d*2.6)*1.25*fl+.06;
-        vec3 bulb=mix(vec3(1.,.82,.55),vec3(1.,.36,.3),side);
-        col*=lamp*bulb*mix(1.6,2.3,side);
+        float buzz=step(.93,n(vec2(floor(t*12.),3.)));            // a dying bulb: now and then it drops out
+        float fl=1.-heat*.45*step(.8,n(vec2(t*9.,1.)))-.05*n(vec2(t*3.,7.))-.55*buzz;
+        float lamp=exp(-d*d*3.6)*1.2*fl+.025;
+        vec3 bulb=mix(vec3(1.,.86,.62),vec3(1.,.18,.14),side);
+        col*=lamp*bulb*mix(1.5,2.4,side);
         // smoke drifting through the light
         float sm=fbm(px/min(r.x,r.y)*2.5+vec2(t*.03,-t*.05));
         col+=bulb*smoothstep(.45,.9,sm)*exp(-d*d*1.8)*.06;
         // heavy vignette into darkness
-        col*=smoothstep(1.35,.25,d);
+        col*=smoothstep(1.2,.2,d);
+        // PSX-style: few colour steps with ordered dithering
+        vec2 ip=floor(mod(gl_FragCoord.xy,4.));
+        float bay=mod(ip.x*2.+ip.y*3.,4.)/4.;
+        col=floor(col*48.+bay)/48.;
         gl_FragColor=vec4(col,1.);
       }`;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
@@ -2677,7 +2715,7 @@ const JUICE = (() => {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const U = { t: gl.getUniformLocation(pr, 't'), r: gl.getUniformLocation(pr, 'r'), side: gl.getUniformLocation(pr, 'side'), heat: gl.getUniformLocation(pr, 'heat'), tb: gl.getUniformLocation(pr, 'tb') };
-    const size = () => { const k = 2; cv.width = Math.ceil(innerWidth / k); cv.height = Math.ceil(innerHeight / k); gl.viewport(0, 0, cv.width, cv.height); };
+    const size = () => { const k = 3; cv.width = Math.ceil(innerWidth / k); cv.height = Math.ceil(innerHeight / k); gl.viewport(0, 0, cv.width, cv.height); };
     size(); addEventListener('resize', size);
     state.gl = gl;
     const t0 = performance.now(); let last = 0;
@@ -2690,7 +2728,7 @@ const JUICE = (() => {
       if (typeof S === 'undefined' || S.bgMotion !== false) state.tAcc = (state.tAcc || 0) + Math.min(0.05, (now - (state.tLast || now)) / 1000); state.tLast = now;
       gl.uniform1f(U.t, 20 + (state.tAcc || 0)); gl.uniform2f(U.r, cv.width, cv.height);
       gl.uniform1f(U.side, state.side);
-      { const k = 2, T = state.table || { x: innerWidth * 0.4, y: innerHeight * 0.5, w: innerWidth * 0.38, h: innerHeight * 0.42 }; gl.uniform4f(U.tb, T.x / k, (innerHeight - T.y) / k, T.w / k, T.h / k); } gl.uniform1f(U.heat, Math.min(1, state.heat));
+      { const k = 3, T = state.table || { x: innerWidth * 0.4, y: innerHeight * 0.5, w: innerWidth * 0.38, h: innerHeight * 0.42 }; gl.uniform4f(U.tb, T.x / k, (innerHeight - T.y) / k, T.w / k, T.h / k); } gl.uniform1f(U.heat, Math.min(1, state.heat));
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     })(t0);
   }
@@ -2887,13 +2925,13 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 
 function loadSettings() {
-  const d = { vol: 0.8, ambient: 'house', ambVol: 0.35, ytUrl: '', shake: true, bgMotion: true, tips: true, name: 'Player', sound: true, fx: (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'lite' : 'full', lang: LANG, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
+  const d = { vol: 0.8, ambient: 'on', ambVol: 0.35, ytUrl: '', shake: true, bgMotion: true, tips: true, name: 'Player', sound: true, fx: (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'lite' : 'full', lang: LANG, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
   try {
     const s = JSON.parse(localStorage.getItem('unoFlipNoMercy') || 'null');
     if (s) {
       const r = Object.assign({}, s.rules || {});
       if ('sevenZero' in r) { if (!('seven' in r)) r.seven = r.sevenZero; if (!('zero' in r)) r.zero = r.sevenZero; delete r.sevenZero; }
-      return Object.assign(d, { vol: typeof s.vol === 'number' ? s.vol : 0.8, ambient: ['off', 'house', 'youtube'].includes(s.ambient) ? s.ambient : 'house', ambVol: typeof s.ambVol === 'number' ? s.ambVol : 0.35, ytUrl: typeof s.ytUrl === 'string' ? s.ytUrl : '', shake: s.shake !== false, bgMotion: s.bgMotion !== false, tips: s.tips !== false }, { name: s.name || d.name, sound: s.sound !== false, fx: s.fx === 'lite' ? 'lite' : (s.fx === 'full' ? 'full' : d.fx), lang: LANGS[s.lang] ? s.lang : d.lang, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
+      return Object.assign(d, { vol: typeof s.vol === 'number' ? s.vol : 0.8, ambient: s.ambient === 'off' ? 'off' : 'on', ambVol: typeof s.ambVol === 'number' ? s.ambVol : 0.35, ytUrl: typeof s.ytUrl === 'string' ? s.ytUrl : '', shake: s.shake !== false, bgMotion: s.bgMotion !== false, tips: s.tips !== false }, { name: s.name || d.name, sound: s.sound !== false, fx: s.fx === 'lite' ? 'lite' : (s.fx === 'full' ? 'full' : d.fx), lang: LANGS[s.lang] ? s.lang : d.lang, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
     }
   } catch (e) {}
   return d;
@@ -2925,9 +2963,12 @@ const SFX = {
       const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
       const master = ctx.createGain(); master.gain.value = 0.9 * (S.vol ?? 0.8); this.master = master;
       const dry = ctx.createGain(), wet = ctx.createGain(); wet.gain.value = 0.18;
-      const dl = ctx.createDelay(); dl.delayTime.value = 0.045; const fb = ctx.createGain(); fb.gain.value = 0.28;
-      const damp = ctx.createBiquadFilter(); damp.type = 'lowpass'; damp.frequency.value = 3200;
-      dl.connect(damp); damp.connect(fb); fb.connect(dl); damp.connect(wet);
+      // a concrete back room: a long, dark reverb tail
+      const ir = ctx.createBuffer(2, ctx.sampleRate * 2.2, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d2 = ir.getChannelData(ch); for (let i = 0; i < d2.length; i++) d2[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d2.length, 3.2); }
+      const dl = ctx.createConvolver(); dl.buffer = ir;
+      const damp = ctx.createBiquadFilter(); damp.type = 'lowpass'; damp.frequency.value = 2200;
+      dl.connect(damp); damp.connect(wet); wet.gain.value = 0.32;
       dry.connect(comp); wet.connect(comp); comp.connect(master); master.connect(ctx.destination);
       this.out = { dry, send: dl };
       const len = ctx.sampleRate; const buf = ctx.createBuffer(1, len, ctx.sampleRate); const d = buf.getChannelData(0);
@@ -2958,7 +2999,8 @@ const SFX = {
   // a poker chip: short, bright, a little inharmonic
   chip(t, pitch = 1, vol = 0.2) { this.strike(t, 2300 * pitch, 0.07, vol, [1, 1.57, 2.31]); this.rustle(t, 0.02, 5200 * pitch, 3000, 3, vol * 0.8); },
   coin(t, pitch = 1) { this.strike(t, 1975 * pitch, 0.28, 0.12, [1, 2.7, 4.2]); },
-  bell(t, pitch = 1) { this.strike(t, 1318 * pitch, 1.1, 0.16, [1, 2.4, 5.95]); },
+  bell(t, pitch = 1) { this.strike(t, 330 * pitch, 1.6, 0.16, [1, 2.76, 5.4, 8.9]); this.rustle(t, 0.04, 5000, 2000, 2, 0.12); }, // a struck pipe, not a bell
+  clank(t, pitch = 1, vol = 0.3) { this.strike(t, 180 * pitch, 0.5, vol, [1, 2.31, 3.89, 5.2]); this.thump(t, 70 * pitch, 0.2, vol); this.rustle(t, 0.05, 3000, 900, 1.5, vol * 0.6); },
   // a gunshot: a crack of noise and a heavy low body
   gun(t, power = 1) { this.rustle(t, 0.09, 6000, 1200, 0.5, 0.9 * power, 'lowpass'); this.rustle(t + 0.02, 0.5, 900, 120, 0.6, 0.5 * power, 'lowpass'); this.thump(t, 46, 0.6, 0.9 * power); },
   thump(t, freq, dur, vol) {
@@ -2973,38 +3015,38 @@ const SFX = {
     const t = this.ctx.currentTime + 0.005;
     try {
       switch (name) {
-        case 'play': // a card slapped on felt; combos add a chip clack, higher each card
-          this.rustle(t, 0.07, 2600, 900, 0.8, 0.45); this.thump(t + 0.02, 85, 0.1, 0.45);
-          if (k > 1) this.chip(t + 0.05, 1 + Math.min(k, 10) * 0.06, 0.22);
+        case 'play': // a card slapped down hard on the felt
+          this.rustle(t, 0.06, 1800, 600, 0.8, 0.5); this.thump(t + 0.015, 62, 0.16, 0.6);
+          if (k > 1) this.chip(t + 0.05, 0.8 + Math.min(k, 10) * 0.05, 0.2);
           break;
-        case 'tick': this.rustle(t, 0.012, 6000, 4000, 3, 0.12); break;
-        case 'spin': for (let i = 0; i < 12; i++) this.rustle(t + i * 0.045, 0.02, 7000, 5000, 4, 0.16); break; // revolver cylinder
-        case 'click2': this.rustle(t, 0.02, 3800, 2600, 5, 0.4); this.thump(t, 220, 0.04, 0.2); break;    // hammer on an empty chamber
-        case 'bang': this.gun(t, 1); break;
-        case 'mult': for (let i = 0; i < 2 + Math.min(4, k || 2); i++) this.chip(t + i * 0.05, 0.9 + i * 0.08, 0.26); this.thump(t, 60, 0.4, 0.5); break;
-        case 'lucky': [0, 0.07, 0.14, 0.21].forEach((d, i) => this.coin(t + d, 1 + i * 0.12)); break;
-        case 'glass': this.strike(t, 2093, 0.5, 0.16, [1, 2.4, 3.9]); this.rustle(t + 0.02, 0.25, 4000, 9000, 0.6, 0.06); break; // a shot glass clink
-        case 'devil': this.gun(t, 1.2); break; // shotgun, dynamite, overload
-        case 'coin': this.coin(t, 1); this.coin(t + 0.09, 1.25); break;
-        case 'reel': this.thump(t, 140 + k * 30, 0.12, 0.45); this.strike(t, 660 + k * 220, 0.22, 0.14, [1, 2]); break;
-        case 'chaos': // slot handle pulled, reels spin up, a little fanfare
-          this.rustle(t, 0.18, 400, 1600, 1, 0.3); this.thump(t + 0.12, 70, 0.3, 0.5);
-          [0, 0.1, 0.2].forEach((d, i) => this.strike(t + 0.25 + d, [659, 784, 988][i], 0.5, 0.14, [1, 2.01])); break;
-        case 'draw': for (let i = 0; i < Math.min(k, 4); i++) this.rustle(t + i * 0.06, 0.13, 1200, 3600, 1.1, 0.26); break; // card slid off the deck
-        case 'flip': // day turns to night: a riffle and a low swell
-          for (let i = 0; i < 9; i++) this.rustle(t + i * 0.03 + Math.random() * 0.01, 0.04, 3000, 1800, 2, 0.2);
-          this.thump(t + 0.1, 48, 0.7, 0.4); this.rustle(t + 0.05, 0.5, 300, 1600, 0.7, 0.16); break;
-        case 'shuffle': for (let i = 0; i < 16; i++) this.rustle(t + i * 0.028 + Math.random() * 0.01, 0.035, 3400, 2000, 2.2, 0.2); break;
-        case 'stack': { const n = 2 + Math.min(6, Math.floor((k || 1) / 4)); for (let i = 0; i < n; i++) this.chip(t + i * 0.035, 0.85 + Math.random() * 0.3, 0.24); break; } // chips piling up
-        case 'took': for (let i = 0; i < 8; i++) this.chip(t + i * 0.03, 0.7 + Math.random() * 0.4, 0.18); this.thump(t, 70, 0.3, 0.4); break; // a pile of chips sliding over
-        case 'uno': this.bell(t, 1); this.bell(t + 0.12, 1.5); break;
-        case 'skip': this.rustle(t, 0.18, 800, 3800, 0.8, 0.2); this.chip(t + 0.03, 1.1, 0.14); break;
-        case 'swap': this.rustle(t, 0.22, 600, 3200, 0.8, 0.2); this.rustle(t + 0.18, 0.22, 3200, 600, 0.8, 0.2); break;
-        case 'turn': this.bell(t, 1); break; // the dealer's desk bell
-        case 'ko': this.thump(t, 55, 0.6, 0.6); this.strike(t, 196, 0.8, 0.12, [1, 2.4]); break;
-        case 'win': for (let i = 0; i < 14; i++) this.coin(t + i * 0.06, 0.9 + (i % 5) * 0.12); this.bell(t + 0.9, 1); break; // the machine pays out
-        case 'bad': { const c2 = this.ctx, o = c2.createOscillator(), g = c2.createGain(); o.type = 'square'; o.frequency.value = 110; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22); o.connect(g); this.route(g, 0); o.start(t); o.stop(t + 0.25); break; } // a dull buzzer
-        case 'click': this.rustle(t, 0.022, 4800, 3400, 2, 0.16); break;
+        case 'tick': this.rustle(t, 0.012, 4200, 2600, 3, 0.12); break;
+        case 'spin': for (let i = 0; i < 12; i++) this.rustle(t + i * 0.05, 0.022, 4500, 2800, 4, 0.18); break;
+        case 'click2': this.clank(t, 2.2, 0.22); break;
+        case 'bang': this.gun(t, 1.2); break;
+        case 'mult': for (let i = 0; i < 2 + Math.min(4, k || 2); i++) this.chip(t + i * 0.06, 0.75 + i * 0.06, 0.24); this.thump(t, 44, 0.6, 0.6); break;
+        case 'lucky': [0, 0.09, 0.18].forEach((d, i) => this.coin(t + d, 0.8 + i * 0.1)); break;
+        case 'glass': this.strike(t, 1568, 0.7, 0.14, [1, 2.4, 3.9]); this.rustle(t + 0.02, 0.3, 3000, 7000, 0.6, 0.07); break;
+        case 'devil': this.gun(t, 1.3); break;
+        case 'coin': this.coin(t, 0.85); this.coin(t + 0.1, 1.05); break;
+        case 'reel': this.clank(t, 0.8 + k * 0.15, 0.26); break;
+        case 'chaos': // an old slot machine: the lever grinds, the reels clank to life
+          this.rustle(t, 0.3, 200, 900, 1.2, 0.35); this.thump(t + 0.2, 45, 0.6, 0.6);
+          [0, 0.14, 0.28].forEach((d, i) => this.clank(t + 0.3 + d, 0.9 + i * 0.12, 0.2)); break;
+        case 'draw': for (let i = 0; i < Math.min(k, 4); i++) this.rustle(t + i * 0.06, 0.12, 900, 2600, 1.1, 0.26); break;
+        case 'flip': // the bulb is switched: a heavy relay clunk, the hum drops
+          this.clank(t, 0.6, 0.35); this.thump(t + 0.05, 36, 1.1, 0.7); this.rustle(t + 0.05, 0.8, 120, 900, 0.7, 0.18); break;
+        case 'shuffle': for (let i = 0; i < 16; i++) this.rustle(t + i * 0.03 + Math.random() * 0.01, 0.035, 2600, 1600, 2.2, 0.2); break;
+        case 'stack': { const n = 2 + Math.min(6, Math.floor((k || 1) / 4)); for (let i = 0; i < n; i++) this.chip(t + i * 0.04, 0.7 + Math.random() * 0.25, 0.24); this.thump(t, 50 - Math.min(20, k), 0.4, 0.4); break; }
+        case 'took': for (let i = 0; i < 8; i++) this.chip(t + i * 0.035, 0.6 + Math.random() * 0.3, 0.18); this.thump(t, 48, 0.5, 0.6); break;
+        case 'uno': this.clank(t, 1.4, 0.3); this.clank(t + 0.14, 1.9, 0.26); break;
+        case 'skip': this.rustle(t, 0.18, 600, 2600, 0.8, 0.2); this.clank(t + 0.03, 1.6, 0.12); break;
+        case 'swap': this.rustle(t, 0.25, 400, 2200, 0.8, 0.2); this.rustle(t + 0.2, 0.25, 2200, 400, 0.8, 0.2); break;
+        case 'turn': this.bell(t, 1); break;
+        case 'ko': this.gun(t, 0.8); this.strike(t + 0.2, 98, 1.6, 0.16, [1, 2.4]); break;
+        case 'win': // a slow, ugly chord and the machine coughing up coins
+          [110, 131, 165].forEach((f, i) => this.strike(t + i * 0.12, f, 2.2, 0.16, [1, 2, 3.01])); for (let i = 0; i < 10; i++) this.coin(t + 0.5 + i * 0.07, 0.8 + (i % 4) * 0.1); break;
+        case 'bad': { const c2 = this.ctx, o = c2.createOscillator(), g = c2.createGain(); o.type = 'sawtooth'; o.frequency.value = 55; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35); o.connect(g); this.route(g, 0.2); o.start(t); o.stop(t + 0.4); break; }
+        case 'click': this.rustle(t, 0.02, 3400, 2200, 2, 0.15); break;
       }
     } catch (e) {}
   }
@@ -3905,13 +3947,14 @@ function showCombo(e) {
 // 'house' = a synthesized back-room hum (or the asset pack's music file), 'youtube' = a YouTube video playing hidden.
 const AMB = {
   nodes: null, yt: null, side: 'L',
+  YT: 'hFBn_Ro9y7I',
   ytId(url) { const m = String(url || '').match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : (/^[\w-]{11}$/.test(url || '') ? url : 'hFBn_Ro9y7I'); },
+  // the room's music: a music file from the asset pack if there is one, otherwise the YouTube track
   apply() {
-    const want = S.sound ? S.ambient : 'off';
-    if (want !== 'house') this.stopHouse();
-    if (want !== 'youtube') this.stopYT();
-    if (want === 'house') { if (ASSETS.manifest && ASSETS.manifest.sounds && ASSETS.manifest.sounds.music) return; this.startHouse(); }
-    if (want === 'youtube') this.startYT();
+    this.stopHouse();
+    const pack = ASSETS.manifest && ASSETS.manifest.sounds && ASSETS.manifest.sounds.music;
+    if (!S.sound || S.ambient === 'off' || pack) { this.stopYT(); return; }
+    this.startYT();
   },
   // a low drone, a slow murmur and vinyl crackle; brighter by day, heavier at night
   startHouse() {
@@ -3933,7 +3976,7 @@ const AMB = {
   },
   startYT() {
     if (this.yt) { this.volume(); return; }
-    const id = this.ytId(S.ytUrl), f = document.createElement('iframe');
+    const id = this.YT, f = document.createElement('iframe');
     f.src = `https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1`;
     f.allow = 'autoplay; encrypted-media'; f.title = 'ambient'; f.tabIndex = -1;
     Object.assign(f.style, { position: 'fixed', width: '1px', height: '1px', left: '-10px', bottom: '-10px', opacity: '0', pointerEvents: 'none', border: '0' });
@@ -3966,9 +4009,8 @@ function showSettings() {
     <div class="set"><span>${t('menuLang')}</span>${seg('stLang', LANG, Object.entries(LANGS))}</div>
     <div class="set"><span>${t('setSound')}</span>${seg('stSound', S.sound ? 1 : 0, [[1, t('on')], [0, t('off')]])}</div>
     <div class="set"><span>${t('setVolume')}</span>${slider('stVol', S.vol)}</div>
-    <div class="set"><span>${t('setAmbient')}</span>${seg('stAmb', S.ambient, [['house', t('ambHouse')], ['youtube', 'YouTube'], ['off', t('off')]])}</div>
+    <div class="set"><span>${t('setAmbient')}</span>${seg('stAmb', S.ambient === 'off' ? 'off' : 'on', [['on', t('on')], ['off', t('off')]])}</div>
     <div class="set"><span>${t('setAmbVol')}</span>${slider('stAmbVol', S.ambVol)}</div>
-    <div class="set ytrow ${S.ambient === 'youtube' ? '' : 'hidden'}"><span>${t('setYt')}</span><input type="text" id="stYt" placeholder="https://www.youtube.com/watch?v=hFBn_Ro9y7I" value="${esc(S.ytUrl || '')}"></div>
     <div class="set"><span>${t('menuFx')}</span>${seg('stFx', S.fx, [['full', t('fxFull')], ['lite', t('fxLite')]])}</div>
     <div class="set"><span>${t('setShake')}</span>${seg('stShake', S.shake !== false ? 1 : 0, [[1, t('on')], [0, t('off')]])}</div>
     <div class="set"><span>${t('setBg')}</span>${seg('stBg', S.bgMotion !== false ? 1 : 0, [[1, t('bgMoving')], [0, t('bgStill')]])}</div>
@@ -3985,7 +4027,6 @@ function showSettings() {
   $('stVol').oninput = e => { S.vol = e.target.value / 100; saveSettings(); if (SFX.master) SFX.master.gain.value = 0.9 * S.vol; };
   $('stVol').onchange = () => SFX.play('stack', 6);
   $('stAmbVol').oninput = e => { S.ambVol = e.target.value / 100; saveSettings(); AMB.volume(); };
-  $('stYt').onchange = e => { S.ytUrl = e.target.value.trim(); saveSettings(); AMB.stopYT(); AMB.apply(); };
   $('stClose').onclick = closeModal;
 }
 document.querySelectorAll('[data-settings]').forEach(b => b.onclick = showSettings);
