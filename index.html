@@ -2512,7 +2512,7 @@ RULES_HTML.ru = RULES_HTML.ru.replace('<h3>', `<h3>Матч на долг</h3><u
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
 const ASSETS = (() => {
-  let man = null, cfg = {};
+  let man = null, cfg = {}, ready = false;
   const cards = new Set();
   const sounds = {};      // name -> [file]
   const buffers = {};     // file -> AudioBuffer | 'loading' | 'bad'
@@ -2522,8 +2522,10 @@ const ASSETS = (() => {
   function cardClass(f, side) { const k = keyOf(f, side); return cards.has(k) ? cls(k) : ''; }
   function css(text) { const s = document.createElement('style'); s.textContent = text; document.head.appendChild(s); }
 
+  // the room's music is only decided once we know whether the pack has a music file
+  const settle = () => { ready = true; if (typeof AMB !== 'undefined') AMB.apply(); };
   async function load() {
-    try { const r = await fetch('assets/manifest.json', { cache: 'no-cache' }); if (!r.ok) return; man = await r.json(); } catch (e) { return; }
+    try { const r = await fetch('assets/manifest.json', { cache: 'no-cache' }); if (!r.ok) return settle(); man = await r.json(); } catch (e) { return settle(); }
     cfg = man.config || {};
     const rules = [];
     // cards: assets/cards/<side>-<color>-<value>.png, e.g. L-r-7.png, D-w-bhole.png
@@ -2549,6 +2551,7 @@ const ASSETS = (() => {
     Object.assign(sounds, man.sounds || {});
     if (sounds.music) startMusicOnGesture();
     if (typeof G !== 'undefined' && G) render();
+    settle();
   }
 
   function decode(file) {
@@ -2579,7 +2582,7 @@ const ASSETS = (() => {
   // night in the back room: the tape runs slow (pitch drops with it) and the sound gets muffled behind the door
   const NIGHT_RATE = 0.84, NIGHT_LP = 2600, DAY_LP = 20000;
   let an = null, fbuf = null, bus = null, lp = null, decks = [], cur = 0, playing = false, rate = 1;
-  const musicVol = () => Math.min(1, S.ambVol ?? cfg.musicVolume ?? 0.35);
+  const musicVol = () => { const v = Math.max(0, Math.min(1, S.ambVol ?? cfg.musicVolume ?? 0.35)); return v * v; }; // perceived loudness: square the slider
   function makeDeck(url) {
     const el = new Audio(url); el.preload = 'auto'; el.crossOrigin = 'anonymous';
     el.preservesPitch = el.mozPreservesPitch = el.webkitPreservesPitch = false; el.playbackRate = rate;
@@ -2648,7 +2651,7 @@ const ASSETS = (() => {
     for (let i = 0; i < fbuf.length; i++) { all += fbuf[i]; if (i * hz > 30 && i * hz < 150) { b += fbuf[i]; nb++; } }
     return { bass: nb ? b / nb / 255 : 0, level: all / fbuf.length / 255 };
   }
-  return { load, cardClass, playSound, musicLevel, get manifest() { return man; } };
+  return { load, cardClass, playSound, musicLevel, get manifest() { return man; }, get ready() { return ready; } };
 })();
 
 // ===== JUICE: shader background, ash and embers, shake, lamp dropout, card tilt, chaos slot machine =====
@@ -4084,7 +4087,8 @@ const AMB = {
   apply() {
     this.stopHouse();
     const pack = ASSETS.manifest && ASSETS.manifest.sounds && ASSETS.manifest.sounds.music;
-    if (!S.sound || S.ambient === 'off' || pack) { this.stopYT(); return; }
+    // never start YouTube before we know there's no music file, or both play (and YouTube starts at full volume)
+    if (!S.sound || S.ambient === 'off' || pack || !ASSETS.ready) { this.stopYT(); return; }
     this.startYT();
   },
   // a low drone, a slow murmur and vinyl crackle; brighter by day, heavier at night
@@ -4108,17 +4112,21 @@ const AMB = {
   startYT() {
     if (this.yt) { this.volume(); return; }
     const id = this.YT, f = document.createElement('iframe');
-    f.src = `https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1`;
+    f.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}`;
     f.allow = 'autoplay; encrypted-media'; f.title = 'ambient'; f.tabIndex = -1;
     Object.assign(f.style, { position: 'fixed', width: '1px', height: '1px', left: '-10px', bottom: '-10px', opacity: '0', pointerEvents: 'none', border: '0' });
     document.body.appendChild(f); this.yt = f;
-    f.addEventListener('load', () => setTimeout(() => this.volume(), 800));
+    // the player only takes commands once it is ready, so keep telling it the volume for a few seconds, then unmute
+    f.addEventListener('load', () => { let k = 0; const iv = setInterval(() => { this.volume(); if (++k > 12 || !this.yt) clearInterval(iv); }, 500); });
   },
   stopYT() { if (this.yt) { this.yt.remove(); this.yt = null; } },
   volume() {
     const v = S.ambVol ?? 0.35;
     if (this.nodes) this.nodes.out.gain.setTargetAtTime(v * 1.4, SFX.ctx.currentTime, 0.4);
-    if (this.yt && this.yt.contentWindow) this.yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [Math.round(v * 100)] }), '*');
+    if (this.yt && this.yt.contentWindow) {
+      const cmd = (func, args = []) => this.yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+      cmd('setVolume', [Math.round(v * v * 100)]); cmd(v > 0 ? 'unMute' : 'mute');
+    }
   },
   setSide(side) {
     this.side = side;
