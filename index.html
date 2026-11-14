@@ -3693,6 +3693,29 @@ const SFX = {
           [110, 131, 165].forEach((f, i) => this.strike(t + i * 0.12, f, 2.2, 0.16, [1, 2, 3.01])); for (let i = 0; i < 10; i++) this.coin(t + 0.5 + i * 0.07, 0.8 + (i % 4) * 0.1); break;
         case 'bad': { const c2 = this.ctx, o = c2.createOscillator(), g = c2.createGain(); o.type = 'sawtooth'; o.frequency.value = 55; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35); o.connect(g); this.route(g, 0.2); o.start(t); o.stop(t + 0.4); break; }
         case 'click': this.rustle(t, 0.02, 3400, 2200, 2, 0.15); break;
+        case 'stamp': // a heavy rubber stamp on a wooden desk: the handle knocks, the pad thuds, paper crackles
+          this.rustle(t - 0.004, 0.03, 900, 300, 0.7, 0.35, 'lowpass');
+          this.thump(t, 58, 0.28, 0.95); this.thump(t + 0.004, 120, 0.09, 0.4);
+          this.strike(t, 205, 0.12, 0.2, [1, 2.63, 4.1]);
+          this.rustle(t + 0.012, 0.09, 2600, 1200, 0.9, 0.16); break;
+        case 'paper': // a sheet slid across the desk
+          this.rustle(t, 0.28, 1200, 3400, 0.7, 0.34); this.rustle(t + 0.22, 0.06, 2200, 900, 1.2, 0.22); break;
+        case 'printer': { // a dot-matrix slip: needle chatter in bursts, a carriage clunk at each line end
+          const lines = Math.max(2, Math.min(6, k || 4));
+          for (let l = 0; l < lines; l++) {
+            const t0 = t + l * 0.26;
+            for (let i = 0; i < 14; i++) this.rustle(t0 + i * 0.011, 0.008, 4800, 3000, 5, 0.09);
+            this.clank(t0 + 0.17, 1.9, 0.07); this.rustle(t0 + 0.18, 0.05, 700, 300, 1, 0.12);
+          }
+          break; }
+        case 'buzz': { // the booth buzzer: a harsh, short mains hum
+          const c2 = this.ctx, o = c2.createOscillator(), o2 = c2.createOscillator(), f = c2.createBiquadFilter(), g = c2.createGain();
+          o.type = 'square'; o.frequency.value = 100; o2.type = 'sawtooth'; o2.frequency.value = 150.7;
+          f.type = 'lowpass'; f.frequency.value = 1400; f.Q.value = 2;
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.13, t + 0.012);
+          g.gain.setValueAtTime(0.13, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.36);
+          o.connect(f); o2.connect(f); f.connect(g); this.route(g, 0.25);
+          o.start(t); o2.start(t); o.stop(t + 0.4); o2.stop(t + 0.4); break; }
       }
     } catch (e) {}
   }
@@ -4363,7 +4386,7 @@ function render() {
   document.body.classList.toggle('dark', G.side === 'D');
   const ob = otherSide();
   const tk = `${G.turn}:${G.roulette}:${G.seq}:${G.gid}`;
-  if (tk !== turnKey) { turnKey = tk; turnStartedAt = Date.now(); if (myTurnNow()) SFX.play('turn'); }
+  if (tk !== turnKey) { turnKey = tk; turnStartedAt = Date.now(); if (myTurnNow()) SFX.play('buzz'); }
   const elapsed = (Date.now() - turnStartedAt) / 1000;
   const cc = G.roulette !== null ? 'var(--muted)' : CVAR[G.color];
   document.documentElement.style.setProperty('--cc-now', cc);
@@ -4805,20 +4828,20 @@ function dealOffer() {
     <p>${dark ? t('demonSub') : t('angelSub')}</p>${fallWarn}
     <div class="clauses">${o.opts.map(clause).join('')}</div>
     ${dark ? `<button class="btn wide tear" id="dealNo">${t('tearUp')}</button>` : `<p class="mono small">${t('angelMust')}</p>`}</div>`);
-  SFX.play(dark ? 'devil' : 'chaos');
+  SFX.play('paper'); if (dark) SFX.play('devil');
   let done = false;
   $('modalBody').querySelectorAll('[data-deal]').forEach(b => b.onclick = async () => {
     if (done) return; done = true;
     const id = b.dataset.deal; let target = null;
     // the chosen clause gets signed (dark) or blessed (light) before the paper goes away
     b.classList.add('signed'); b.insertAdjacentHTML('beforeend', `<em class="sig">${dark ? t('signed') : t('blessed')}</em>`);
-    SFX.play(dark ? 'bad' : 'win'); await new Promise(r => setTimeout(r, 650));
+    SFX.play('stamp'); if (dark) SFX.play('bad'); await new Promise(r => setTimeout(r, 650));
     if (id === 'mark') { closeModal(); target = await pickTarget(t('markQ'), t('markSub')); }
     closeModal(); offerKey = ''; act('deal', { id, target });
   });
   if ($('dealNo')) $('dealNo').onclick = async () => {
     if (done) return; done = true;
-    $('modalBody').querySelector('.contract').classList.add('burning'); SFX.play('flip');
+    $('modalBody').querySelector('.contract').classList.add('burning'); SFX.play('flip'); SFX.play('paper');
     await new Promise(r => setTimeout(r, 900));
     closeModal(); offerKey = ''; act('deal', { id: null });
   };
@@ -4847,10 +4870,18 @@ function matchOverlay() {
   // re-render only when something the dialog shows has changed
   const key = JSON.stringify([M.phase, M.round, M.passed, M.chips, M.debt, M.done, M.setup, M.hope, G.players[ME].hand.length, [...draftSel]]);
   if (key === overlayKey) return; overlayKey = key;
+  const pk = M.phase + ':' + M.round;
+  if (pk !== phaseSoundKey) {
+    phaseSoundKey = pk;
+    if (M.phase === 'shop') { SFX.play('printer', ((M.last && M.last.rows) || []).length + 1); setTimeout(() => SFX.play('stamp'), 1500); }
+    else if (M.phase === 'over') { SFX.play('paper'); setTimeout(() => SFX.play('stamp'), 400); }
+    else SFX.play('paper');
+  }
   if (M.phase === 'draft') return drawDraft(M);
   if (M.phase === 'shop') return drawShop(M);
   if (M.phase === 'over') return drawOver(M);
 }
+let phaseSoundKey = '';
 function drawDraft(M) {
   if (M.col[ME]) return openModal(`<h2>${t('draftTitle')}</h2><p>${t('draftCol')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
   if (M.passed) return openModal(`<h2>${t('draftTitle')}</h2><p>${t('draftWait')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
