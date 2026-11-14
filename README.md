@@ -74,3 +74,11 @@ UNO, UNO Flip and UNO Show 'Em No Mercy are trademarks of Mattel. This is an uno
 Drop files into `assets/` and they replace the built-in cards, fonts, sounds and background, one file at a time. No code, no restart: push, `git pull` on the server, refresh. Everything you leave out keeps the built-in version.
 
 `template/` has starting points and the full naming guide: every card exported as a PNG, every sound as a WAV, a pixel font you can draw in text, and an example `pack.json`. Read `template/README.md`.
+
+## Day and night
+
+Flip doesn't just turn the cards, it changes the table. **Day · the floor**: the slot machine runs, poker hands pay you, the revolver needs +8. **Night · the back room**: no slots, poker hands hit the next player, the revolver works from +4, the dynamite burns.
+
+## Settings
+
+Language, sound on/off and volume, ambient (the built-in den hum, a YouTube link of your choice, or off) and its volume, effects level, screen shake, a still background and card tooltips. A `music` file in your asset pack replaces the built-in hum.

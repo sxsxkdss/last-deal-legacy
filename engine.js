@@ -6,10 +6,10 @@ const VALUE_NAME = {
   discall: 'Discard All', skipall: 'Skip Everyone', wild: 'Wild', wd2: 'Wild Draw 2', wd4: 'Wild Draw 4',
   wrd4: 'Wild Reverse Draw 4', wd6: 'Wild Draw 6', wd10: 'Wild Draw 10', wrd8: 'Wild Reverse Draw 8',
   wdc: 'Wild Draw Color', roul: 'Wild Color Roulette',
-  mirror: 'Mirror', shield: 'Shield', dflip: 'Double Flip', duel: 'Wild Duel', wd15: 'Wild Draw 15', bhole: 'Black Hole',
-  mul2: 'Mult ×2', mul3: 'Mult ×3', lucky: 'Lucky', glass: 'Glass', devil: '666', spin: 'Spin', loan: 'Loan',
-  gift: 'Gift', echo: 'Wild Echo', freeze: 'Freeze', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Bomb',
-  d6: 'Wild D6', pill: 'Pill', tower: 'The Tower', glitch: 'Wild Glitch', brim: 'Wild Brimstone', foot: "Mom's Foot", maze: 'Curse of the Maze', deal: 'Wild Devil Deal', monstro: 'Wild Monstro'
+  mirror: 'Mirror', shield: 'Vest', dflip: 'Eclipse', duel: 'Wild Duel', wd15: 'Wild Draw 15', bhole: 'Wild Pot',
+  mul2: 'Wild Double Down', mul3: 'Wild Triple Down', lucky: 'Horseshoe', glass: 'Shot Glass', devil: '666', spin: 'Wild Jackpot', loan: 'Loan',
+  gift: 'Tip', echo: 'Wild Encore', freeze: 'Handcuffs', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Shotgun',
+  d6: 'Wild Redeal', pill: 'Scratch Card', tower: 'The Tower', glitch: 'Wild Glitch', brim: 'Wild Brimstone', foot: 'Collector', maze: 'Spinner', deal: 'Wild Contract', monstro: 'Wild All-In'
 };
 // ---------- Balatro combos: number cards played together in one drop ----------
 // d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
@@ -36,14 +36,15 @@ function comboOf(faces) {
   const d = key === 'straight' ? n - 2 : C.d;
   return { key, d, m: C.m, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
 }
-const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb', 'd6', 'pill', 'tower', 'glitch', 'brim', 'foot', 'maze', 'deal', 'monstro'];
+// The House's own cards. Each has one job; overlapping ones were cut.
+const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'bomb', 'd6', 'pill', 'foot', 'maze', 'deal', 'monstro'];
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
-  L: { colored: { '0': 2, '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2, tower: 1 },
-       wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, wheel: 2, d6: 1, glitch: 2 } },
+  L: { colored: { '0': 2, '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2 },
+       wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, d6: 1 } },
   D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, interest: 1, foot: 1, maze: 1 },
-       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1, mul3: 1, devil: 1, sacrifice: 1, brim: 1, deal: 1, monstro: 1 } }
+       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1, mul3: 1, deal: 1, monstro: 1 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
@@ -237,12 +238,13 @@ class Game {
     const n = this.active().length;
     if (combo) {
       // Balatro scoring, UNO payout: throw away extra cards, and the big hands hit everyone
-      let tossed = 0;
-      for (let r = 0; r < combo.d && p.hand.length > 1; r++) { p.hand.splice(Math.floor(Math.random() * p.hand.length), 1); tossed++; }
+      let tossed = 0, slap = -1;
+      if (this.side === 'D' && combo.d) { slap = this.nextIdx(pi, 1); this.players[slap].oweN = (this.players[slap].oweN || 0) + combo.d; } // by night a hand hurts the next player
+      else for (let r = 0; r < combo.d && p.hand.length > 1; r++) { p.hand.splice(Math.floor(Math.random() * p.hand.length), 1); tossed++; }
       const hit = combo.m ? this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out) : [];
       for (const i of hit) this.players[i].oweN = (this.players[i].oweN || 0) + combo.m;
-      this.addLog(`${p.name} plays a ${combo.key}: ${combo.chips} × ${combo.mult}.${tossed ? ` ${tossed} more cards gone.` : ''}${hit.length ? ` Everyone else picks up ${combo.m}.` : ''}`, 'stack', 'combo', { n: p.name, h: combo.key, c: combo.chips, x: combo.mult, d: tossed, m: hit.length ? combo.m : 0 });
-      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0 });
+      this.addLog(`${p.name} plays a ${combo.key}: ${combo.chips} × ${combo.mult}.${tossed ? ` ${tossed} more cards gone.` : ''}${hit.length ? ` Everyone else picks up ${combo.m}.` : ''}`, 'stack', 'combo', { n: p.name, h: combo.key, c: combo.chips, x: combo.mult, d: tossed, m: hit.length ? combo.m : 0, s: slap >= 0 ? this.players[slap].name : null, sd: slap >= 0 ? combo.d : 0 });
+      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0 });
     }
     switch (face.v) {
       case '7':
@@ -559,7 +561,7 @@ class Game {
     this.checkFlipBack();
     if (this.inflate > 0) this.inflate--;
     if (this.lock > 0) this.lock--;
-    if (this.rules.potato !== false && this.winner === null && this.potato) {
+    if (this.rules.potato !== false && this.winner === null && this.potato && this.side === 'D') { // the dynamite only burns at night
       const pt = this.potato;
       if (pt.fuse > 0 && --pt.fuse === 0) {
         const v = this.turn; this.players[v].oweN = (this.players[v].oweN || 0) + 3;
@@ -575,7 +577,7 @@ class Game {
       this.maze--;
       if (Math.random() < 0.5 && steps >= 0 && face.v !== 'roul') { this.dir *= -1; this.turn = steps === 0 ? pi : this.nextIdx(pi, steps); this.ev('reverse', { dir: this.dir }); this.addLog('The maze twists: direction flips.', 'flip', 'mazeTwist', {}); }
     }
-    if (this.rules.chaos && this.winner === null && --this.chaosIn <= 0) this.rollChaos();
+    if (this.rules.chaos && this.winner === null && this.side === 'L' && --this.chaosIn <= 0) this.rollChaos(); // the slot machine only runs by day
     if (this.pending > 0 && DRAW_VAL[face.v]) {
       this.addLog(`Stack is now +${this.pending}. ${this.players[this.turn].name} must stack or take it.`, 'stack', 'stack', { k: this.pending, n: this.players[this.turn].name });
       this.ev('stack', { k: this.pending, pi: this.turn });
@@ -801,7 +803,7 @@ class Game {
   }
   // Russian roulette: facing a stack of +8 or more, pull the trigger instead of answering it.
   // Click: the stack is gone and the turn passes. Bang: you take it doubled.
-  canGamble(pi) { return this.rules.gamble !== false && pi === this.turn && this.pending >= 8 && !this.debt && this.roulette === null && !this.owes(pi) && this.winner === null; }
+  canGamble(pi) { return this.rules.gamble !== false && pi === this.turn && this.pending >= (this.side === 'D' ? 4 : 8) && !this.debt && this.roulette === null && !this.owes(pi) && this.winner === null; }
   gamble(pi) {
     if (!this.canGamble(pi)) return null;
     const p = this.players[pi], k = this.pending;

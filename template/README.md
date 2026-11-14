@@ -36,20 +36,19 @@ assets/
 | `rev` | Reverse | `wrd4` `wrd8` | Wild Reverse Draw 4 / 8 |
 | `skipall` | Skip Everyone | `wdc` | Wild Draw Color |
 | `d1` `d2` `d4` `d5` | Draw 1 / 2 / 4 / 5 | `roul` | Color Roulette |
-| `flip` | Flip | `bhole` | Black Hole (dark) |
-| `dflip` | Double Flip | `mul2` `mul3` | Mult ×2 / ×3 (wild) |
-| `discall` | Discard All | `devil` | 666 (dark wild) |
-| `mirror` | Mirror | `spin` | Jackpot (wild) |
-| `shield` | Shield | `lucky` | Lucky |
-| `glass` | Glass | `loan` | Loan |
-| `gift` | Gift | `echo` | Echo (wild) |
-| `freeze` | Freeze (dark) | `interest` | Interest (dark) |
-| `sacrifice` | Sacrifice (dark wild) | `wheel` | Wheel (wild) |
-| `bomb` | Bomb (dark) | `d6` | D6 (wild) |
-| `pill` | Pill | `tower` | The Tower |
-| `glitch` | Glitch (wild) | `brim` | Brimstone (dark wild) |
-| `foot` | Mom's Foot (dark) | `maze` | Curse of the Maze (dark) |
-| `deal` | Devil Deal (dark wild) | `monstro` | Monstro (dark wild) |
+| `flip` | Flip | `dflip` | Eclipse (Затмение) |
+| `discall` | Discard All | `bhole` | The Pot (Общак) |
+| `mirror` | Mirror | `shield` | Vest (Бронежилет) |
+| `mul2` `mul3` | Double / Triple Down (Дабл / Трипл) | `lucky` | Horseshoe (Подкова) |
+| `glass` | Shot Glass (Рюмка) | `spin` | Jackpot (Джекпот) |
+| `loan` | Loan (Займ) | `gift` | Tip (Чаевые) |
+| `echo` | Encore (Бис) | `freeze` | Handcuffs (Наручники) |
+| `interest` | Interest (Проценты) | `bomb` | Shotgun (Дробовик) |
+| `d6` | Redeal (Пересдача) | `pill` | Scratch Card (Лотерейка) |
+| `foot` | Collector (Коллектор) | `maze` | Spinner (Вертушка) |
+| `deal` | Contract (Контракт) | `monstro` | All-In (Ва-банк) |
+
+File names keep the internal value (`L-r-gift.png` is the Tip), so packs you already made keep working.
 
 Which colors and sides each value exists on: just look at the file names in `template/cards/`.
 
