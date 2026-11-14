@@ -689,9 +689,58 @@ body.lite #crt{background:radial-gradient(ellipse at center,transparent 45%,rgba
 #toast:empty{border-color:transparent!important}
 body.dark #toast{color:#e0281c!important}
 .opp.turn{box-shadow:0 0 0 3px #c21f16,inset 0 0 28px rgba(40,25,10,.45),0 14px 30px rgba(0,0,0,.75)!important}
+
+/* ===================== CARDS, KLUBNIKA STYLE =====================
+   Old cards from a drawer in a basement: drained colour, grime, scratches, a stain,
+   crude stencilled bone-white marks. Night cards are black stock with dim coloured ink. */
+.card:not(.spr){background:var(--cc)!important;border:calc(var(--cw)*.05) solid #6f6655!important;border-radius:calc(var(--cw)*.045)!important;
+  filter:saturate(.68) brightness(.9) contrast(1.12);
+  box-shadow:inset 0 0 calc(var(--cw)*.28) rgba(0,0,0,.7),inset 0 0 0 1px rgba(0,0,0,.5),0 0 0 1px #000,0 9px 14px rgba(0,0,0,.85)!important}
+.card:not(.spr)::before{content:'';position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;mix-blend-mode:multiply;opacity:1!important;
+  background:radial-gradient(circle at var(--sx,30%) var(--sy,70%),transparent 16%,rgba(70,38,12,.22) 17.5% 19%,transparent 20.5%),
+    radial-gradient(ellipse at 50% 120%,rgba(30,15,5,.55),transparent 60%),url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")!important}
+.card:not(.spr)::after{content:'';position:absolute;inset:calc(var(--cw)*.045);border:1px solid rgba(216,206,180,.28)!important;border-radius:calc(var(--cw)*.03);z-index:4;pointer-events:none;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-opacity='.35' stroke-width='.6' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100'/></svg>") center/cover;mix-blend-mode:screen}
+.card.st0{--sx:24%;--sy:72%}.card.st1{--sx:78%;--sy:24%}.card.st2{--sx:68%;--sy:80%}.card.st3{--sx:30%;--sy:28%}.card.st4{--sx:84%;--sy:58%}.card.st5{--sx:12%;--sy:46%}
+/* the face: no chip any more, just stencil marks straight on the colour */
+.card .oval{background:none!important;box-shadow:none!important;width:86%!important;aspect-ratio:auto!important;height:70%!important;filter:none!important}
+.card .mid{color:#dcd2b8!important;font-family:'Oswald',sans-serif!important;font-weight:700!important;font-size:calc(var(--cw)*.5)!important;line-height:.9!important;letter-spacing:-.01em;
+  text-shadow:0 2px 0 rgba(0,0,0,.65),0 0 6px rgba(0,0,0,.4)!important;filter:url(#rough)}
+.card .mid.sm{font-size:calc(var(--cw)*.3)!important}
+.card .mid .ico{width:calc(var(--cw)*.5);height:calc(var(--cw)*.5);display:block;filter:drop-shadow(0 2px 0 rgba(0,0,0,.65))}
+.card .mid em{font-family:'IBM Plex Mono',monospace!important;font-weight:600!important;font-size:calc(var(--cw)*.072)!important;color:#dcd2b8!important;opacity:.7;margin-top:calc(var(--cw)*.04);text-transform:uppercase;letter-spacing:.08em}
+.card .cor{color:#dcd2b8!important;font-family:'Oswald',sans-serif!important;font-size:calc(var(--cw)*.19)!important;text-shadow:0 1px 0 rgba(0,0,0,.7)!important;filter:url(#rough)}
+.card .cor .ico{width:calc(var(--cw)*.17);height:calc(var(--cw)*.17);display:block}
+.card.c-y .cor,.card.c-t .cor,.card.c-o .cor,.card.c-y .mid,.card.c-t .mid,.card.c-o .mid{color:#1b1510!important;text-shadow:0 1px 0 rgba(255,255,255,.18)!important}
+.card.c-y .mid .ico,.card.c-t .mid .ico,.card.c-o .mid .ico{filter:none}
+/* wild: black stock with four worn colour tiles */
+.card.c-w:not(.spr){background:#100d0b!important}
+.card.c-w .oval{width:50%!important;height:auto!important;aspect-ratio:1!important;border-radius:0!important;box-shadow:none!important;
+  background:linear-gradient(var(--r),var(--r)) 0 0/45% 45% no-repeat,linear-gradient(var(--b),var(--b)) 100% 0/45% 45% no-repeat,linear-gradient(var(--y),var(--y)) 0 100%/45% 45% no-repeat,linear-gradient(var(--g),var(--g)) 100% 100%/45% 45% no-repeat!important;opacity:.85}
+.card.s-D.c-w .oval{background:linear-gradient(var(--p),var(--p)) 0 0/45% 45% no-repeat,linear-gradient(var(--t),var(--t)) 100% 0/45% 45% no-repeat,linear-gradient(var(--o),var(--o)) 0 100%/45% 45% no-repeat,linear-gradient(var(--v),var(--v)) 100% 100%/45% 45% no-repeat!important}
+.card.c-w .mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#efe6cf!important;background:none!important;box-shadow:none!important;text-shadow:0 0 4px #000,0 2px 0 #000!important}
+.card.c-w:has(.mid:empty) .oval{width:58%!important}
+/* night: black stock, dim coloured ink */
+.card.s-D:not(.spr):not(.c-w){background:#0f0c0a!important;border-color:#0b0907!important}
+.card.s-D:not(.c-w) .mid,.card.s-D:not(.c-w) .cor{color:color-mix(in srgb,var(--cc) 85%,#fff)!important;text-shadow:0 0 10px color-mix(in srgb,var(--cc) 60%,transparent),0 2px 0 #000!important}
+.card.s-D:not(.c-w)::after{border-color:color-mix(in srgb,var(--cc) 55%,transparent)!important}
+.card.s-D:not(.spr){filter:saturate(.9) brightness(1) contrast(1.1)}
+/* lit cards in your hand stay readable */
+#hand .card.ok{filter:saturate(.8) brightness(1.02) contrast(1.12)}
+#hand .card:not(.ok):not(.jump){filter:saturate(.5) brightness(.68) contrast(1.1)}
+.card.spr{filter:none}
+/* the flame behind the HUD never covers its text */
+#hud>:not(.flame){position:relative;z-index:2}
+
+.rulestext,.rulestext li,.rulestext p,.rulestext i,.dialog li,.dialog ul,.page li,.list button span,.list .li span,#lbRules,#lbRules *:not(.card):not(.card *),#lbCards,#lbCards *:not(.card):not(.card *),.opt .t,.opt .d{color:var(--ink)!important}
+.rulestext b,.dialog b:not(.cname){color:#000!important}
+.opt .d,.rulestext .mono{color:var(--ink-soft)!important}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.3" xChannelSelector="R" yChannelSelector="G"/></filter>
+</defs></svg>
 <canvas id="bg" aria-hidden="true"></canvas>
 
 <div id="start" class="screen">
@@ -2865,8 +2914,8 @@ const JUICE = (() => {
     const host = el.offsetParent || document.body;
     if (F.cv.parentElement !== host) host.appendChild(F.cv);
     const r = el.getBoundingClientRect(), h = host.getBoundingClientRect();
-    const W = Math.max(70, r.width * 1.5), H = Math.max(90, r.height * 3);
-    Object.assign(F.cv.style, { left: (r.left - h.left + host.scrollLeft + r.width / 2 - W / 2) + 'px', top: (r.top - h.top + host.scrollTop + r.height * 1.15 - H) + 'px', width: W + 'px', height: H + 'px', opacity: 1 });
+    const arm = F.key === 'arm', W = arm ? r.width * 1.25 : Math.max(70, r.width * 1.5), H = arm ? r.height * 1.7 : Math.max(90, r.height * 3); // the multiplier's flame stays on its own line
+    Object.assign(F.cv.style, { left: (r.left - h.left + host.scrollLeft + r.width / 2 - W / 2) + 'px', top: (r.top - h.top + host.scrollTop + r.height * (arm ? 1.25 : 1.15) - H) + 'px', width: W + 'px', height: H + 'px', opacity: 1 });
     const w = Math.max(16, Math.round(W / 2)), hh = Math.max(16, Math.round(H / 2));
     if (F.cv.width !== w || F.cv.height !== hh) { F.cv.width = w; F.cv.height = hh; }
     const gl = F.gl; gl.viewport(0, 0, w, hh);
@@ -3441,22 +3490,48 @@ document.addEventListener('keydown', e => {
 });
 
 // ================= RENDER =================
-// card symbols: plain text glyphs for now (custom art can replace whole cards via the asset pack)
-// card symbols: plain text glyphs for now (custom art can replace whole cards via the asset pack)
+// card symbols: crude stencilled icons, drawn as thick strokes and roughened by an SVG filter
 const ICON = (() => {
-  const s = ch => `<span class="sym">${ch}</span>`;
+  const s = (inner, fill) => `<svg class="ico" viewBox="0 0 24 24" fill="${fill ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.7" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">${inner}</svg>`;
+  const dot = (x, y, r = 1.7) => `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor" stroke="none"/>`;
   return {
-    skip: s('⊘'), skipall: s('⊘'), rev: s('⇄'), flip: s('↻'), dflip: s('◐'), mirror: s('⇆'), shield: s('◘'),
-    bhole: s('◎'), duel: s('⚔'), lucky: s('Ω'), glass: s('▽'), devil: s('666'), spin: s('777'), loan: s('$'),
-    gift: s('¢'), echo: s('»'), freeze: s('∞'), interest: s('%'), sacrifice: s('†'), wheel: s('☸'), bomb: s('⁂'),
-    d6: s('⇵'), pill: s('✪'), tower: s('♜'), glitch: s('▚'), brim: s('☄'), foot: s('¤'), maze: s('✣'), deal: s('§'), monstro: s('♠')
+    skip: s('<circle cx="12" cy="12" r="8.3"/><path d="M6.3 17.7 17.7 6.3"/>'),
+    skipall: s('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.2"/><path d="M5.6 18.4 18.4 5.6"/>'),
+    rev: s('<path d="M3.5 8.5h14M14 5l3.5 3.5L14 12M20.5 15.5h-14M10 12l-3.5 3.5L10 19"/>'),
+    flip: s('<path d="M18.5 13A6.8 6.8 0 1 1 16.5 7.2"/><path d="M18.5 3.5v5h-5"/>'),
+    dflip: s('<circle cx="12" cy="12" r="8.2"/><path d="M12 3.8a8.2 8.2 0 0 0 0 16.4z" fill="currentColor"/>'),
+    mirror: s('<path d="M10.5 5 3.5 12l7 7zM13.5 5l7 7-7 7z"/>'),
+    shield: s('<path d="M8 3 4.5 6.5V21h15V6.5L16 3l-4 4.5z"/><path d="M12 7.5V21M8.5 13h1M14.5 13h1"/>'),
+    bhole: s('<path d="M8.5 4h7l-2 3.5c4 1.8 5.5 5.2 5.5 8.3 0 2.6-2.6 4.2-7 4.2s-7-1.6-7-4.2c0-3.1 1.5-6.5 5.5-8.3z"/><path d="M9.5 13.5h5"/>'),
+    duel: s('<path d="M4 4l16 16M20 4 4 20"/>'),
+    lucky: s('<path d="M6 20.5V11a6 6 0 0 1 12 0v9.5"/><path d="M3.5 20.5h5M15.5 20.5h5"/>' + dot(6, 13.5, 1) + dot(18, 13.5, 1) + dot(8, 8, 1) + dot(16, 8, 1)),
+    glass: s('<path d="M5.5 3.5h13l-2.3 17H7.8z"/><path d="M6.8 10h10.4"/>'),
+    devil: s('<path d="M5 4l3 5M19 4l-3 5"/><circle cx="12" cy="14" r="6"/>'),
+    spin: s('<path d="M4 4h16v16H4zM9.3 4v16M14.7 4v16"/>'),
+    loan: s('<path d="M16.5 7.5C15.5 5 8.5 5 8 8.3S16.5 11.5 16.5 15.5 9 19.5 7.5 16.5M12 2.5v19"/>'),
+    gift: s('<ellipse cx="12" cy="6.5" rx="7" ry="2.6"/><path d="M5 6.5v11c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7v-11M5 12c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7"/>'),
+    echo: s('<path d="M4 5.5l6.5 6.5L4 18.5M12.5 5.5 19 12l-6.5 6.5"/>'),
+    freeze: s('<circle cx="7" cy="15" r="4.5"/><circle cx="17" cy="15" r="4.5"/><path d="M9 9.5l3-3 3 3"/>'),
+    interest: s('<path d="M5 19 19 5"/><circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="17" r="2.6"/>'),
+    sacrifice: s('<path d="M12 3v18M7 8h10"/>'),
+    wheel: s('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/>'),
+    bomb: s('<path d="M4.5 21V10l2.5-5 2.5 5v11zM14.5 21V10l2.5-5 2.5 5v11z"/><path d="M4.5 16.5h5M14.5 16.5h5"/>'),
+    d6: s('<path d="M4 4h16v16H4z"/>' + dot(8.3, 8.3) + dot(15.7, 15.7) + dot(15.7, 8.3) + dot(8.3, 15.7) + dot(12, 12)),
+    pill: s('<path d="M3 6.5h18v11H3z"/><path d="M7 10.5h3M12.5 10.5h4.5M7 14h10" stroke-width="1.8"/>'),
+    tower: s('<path d="M6 21V8h12v13M5 8V4h3v2h2.5V4h3v2H16V4h3v4"/>'),
+    glitch: s('<path d="M3 6h9v4H8v4h8v4H5M14 6h7"/>'),
+    brim: s('<path d="M3 12h18M7 7l-4 5 4 5M17 7l4 5-4 5"/>'),
+    foot: s('<path d="M6 15.5C3.8 9.5 6.8 3.8 12 3.8s8.2 5.7 6 11.7V19h-3v2H9v-2H6z"/>' + dot(9.3, 11.5, 2) + dot(14.7, 11.5, 2) + '<path d="M11 15.5h2" stroke-width="2"/>'),
+    maze: s('<path d="M12 12.2a1.8 1.8 0 1 1 1.8 1.8 4 4 0 1 1-4-4 6.2 6.2 0 1 1 6.2 6.2 8.2 8.2 0 0 1-8.2-8.2"/>'),
+    deal: s('<path d="M5.5 3h9.5l3.5 3.5V21h-13z"/><path d="M8.5 9h7M8.5 12.5h7"/>' + dot(14.5, 17, 2.2)),
+    monstro: s('<path d="M12 3c3.2 4 7 6.3 7 10.2a4.1 4.1 0 0 1-6.6 3.1L14 21h-4l1.6-4.7A4.1 4.1 0 0 1 5 13.2C5 9.3 8.8 7 12 3z"/>', true)
   };
 })();
 // [center, label key, small] ; text faces stay typographic, action faces use the vector icons
 const SYM = {
   skip: [ICON.skip], rev: [ICON.rev], d1: ['+1'], d2: ['+2'], d4: ['+4'], d5: ['+5'], flip: [ICON.flip, 'flip'], dflip: [ICON.dflip, 'dflip', 'sm'],
   discall: ['ALL', 'discall', 'sm'], skipall: [ICON.skipall, 'skipall'], mirror: [ICON.mirror, 'mirror'], shield: [ICON.shield, 'shield'],
-  wild: ['W', 'wild'], wd2: ['+2'], wd4: ['+4'], wrd4: ['+4', 'reverse'], wd6: ['+6'], wd10: ['+10'], wd15: ['+15'],
+  wild: ['', 'wild'], wd2: ['+2'], wd4: ['+4'], wrd4: ['+4', 'reverse'], wd6: ['+6'], wd10: ['+10'], wd15: ['+15'],
   wrd8: ['+8', 'reverse'], wdc: ['+?', 'wdc'], roul: ['?', 'roul'], duel: [ICON.duel, 'duel', 'sm'], bhole: [ICON.bhole, 'bhole'],
   mul2: ['×2', 'mult'], mul3: ['×3', 'mult3'], lucky: [ICON.lucky, 'lucky'], glass: [ICON.glass, 'glass'], devil: ['666', 'devil', 'sm'], spin: ['777', 'spin', 'sm'], loan: [ICON.loan, 'loan'],
   gift: [ICON.gift, 'gift'], echo: [ICON.echo, 'echo'], freeze: [ICON.freeze, 'freeze'], interest: [ICON.interest, 'interest'], sacrifice: [ICON.sacrifice, 'sacrifice'], wheel: [ICON.wheel, 'wheel'], bomb: [ICON.bomb, 'bomb'],
@@ -3467,11 +3542,12 @@ function faceHTML(f, side, cls = '', id = '') {
   // a drawn sprite from the asset pack wins; otherwise the built-in card
   const spr = ASSETS.cardClass(f, side);
   const tip = `data-f="${side}|${esc(f.c)}|${esc(f.v)}"`;
+  const stain = ' st' + (([...String(id !== '' ? id : f.c + f.v)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7)) % 6);
   if (spr) return `<div class="card s-${side} c-${esc(f.c)} spr ${spr} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}></div>`;
   const [m, subKey, sz] = SYM[f.v] || [esc(f.v)];
   const sub = subKey ? CARD_TXT[LANG][subKey] : '';
   const cor = CORNER[f.v] || esc(f.v);
-  return `<div class="card s-${side} c-${esc(f.c)} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span></div>`;
+  return `<div class="card s-${side} c-${esc(f.c)}${stain} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span></div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
 function sortedHand(h) {
