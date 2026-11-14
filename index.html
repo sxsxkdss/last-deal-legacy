@@ -21,6 +21,7 @@
 
 /* ---------- tokens ---------- */
 :root {
+  --ui-r: 1px; /* every paper tag, button, slip and badge shares this corner */
   /* card colours. Day: drained primaries. Night: four inks spread apart in
      lightness too (teal and orange light, rose mid, violet dark). */
   --r: #e2343d; --y: #f4c21b; --g: #23a352; --b: #2069d8;
@@ -95,7 +96,7 @@ body.lite #grain { display: none; }
 
 /* ---------- buttons: printed labels, a red rubber stamp ---------- */
 .btn {
-  height: 40px; padding: 0 16px; white-space: nowrap; border-radius: 2px;
+  height: 40px; padding: 0 16px; white-space: nowrap; border-radius: var(--ui-r);
   font: 600 14px var(--f-stamp); text-transform: uppercase; letter-spacing: .06em; color: var(--ink);
   background: var(--paper-2) var(--noise); background-blend-mode: multiply;
   box-shadow: inset 0 0 10px rgba(40, 25, 10, .35), 0 3px 0 rgba(0, 0, 0, .75), 0 8px 14px rgba(0, 0, 0, .5);
@@ -115,14 +116,14 @@ body.lite #grain { display: none; }
 @keyframes throb { 50% { transform: scale(1.06) } }
 .actions .btn:nth-child(odd) { rotate: -.6deg; }
 .actions .btn:nth-child(even) { rotate: .5deg; }
-.seg { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: var(--ui-r); overflow: hidden; }
 .seg button { height: 32px; padding: 0 12px; font: 500 13px/32px var(--f-type); color: var(--ink); }
 .seg button + button { border-left: 2px solid var(--ink); }
 .seg button.on { background: var(--ink); color: var(--paper); }
 
 /* ---------- start + lobby pages ---------- */
 .screen { position: fixed; inset: 0; overflow: auto; z-index: 95; } /* menus sit above the room's darkness */
-.page { max-width: 560px; margin: 24px auto; padding: 48px 24px; border-radius: 3px; }
+.page { max-width: 560px; margin: 24px auto; padding: 48px 24px; border-radius: var(--ui-r); }
 .title { font: 700 56px/.92 var(--f-stamp); letter-spacing: .02em; text-transform: uppercase; color: var(--ink); }
 .title span { display: inline-block; margin-top: 8px; padding: 2px 10px; color: var(--stamp); border: 4px solid var(--stamp); rotate: -4deg; opacity: .9; mix-blend-mode: multiply; }
 .lede { margin: 16px 0 32px; max-width: 440px; }
@@ -138,13 +139,13 @@ body.lite #grain { display: none; }
 .seatrow .who { display: flex; gap: 8px; align-items: center; font: 600 14px var(--f-type); }
 .seatrow.me .who { text-decoration: underline; text-underline-offset: 4px; }
 .seatrow .bot { color: var(--stamp); }
-.ini { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 2px; font: 500 11px var(--f-type); background: var(--ink); color: var(--paper); }
+.ini { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: var(--ui-r); font: 500 11px var(--f-type); background: var(--ink); color: var(--paper); }
 .rv { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-top: 1px dashed rgba(29, 23, 18, .3); font-family: var(--f-type); }
 .rv .mono { color: var(--ink-soft); }
 .rv.off { opacity: .55; }
 /* presets: three index cards; the fine-tune list stays folded */
 .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.preset { display: flex; flex-direction: column; gap: 4px; padding: 12px 12px 14px; text-align: left; border-radius: 2px;
+.preset { display: flex; flex-direction: column; gap: 4px; padding: 12px 12px 14px; text-align: left; border-radius: var(--ui-r);
   background: var(--paper-2) var(--noise); background-blend-mode: multiply; color: var(--ink);
   box-shadow: inset 0 0 10px rgba(40, 25, 10, .35), 0 3px 0 rgba(0, 0, 0, .55); transition: transform 80ms ease-out; }
 .preset b { font: 700 16px/18px var(--f-stamp); text-transform: uppercase; letter-spacing: .05em; }
@@ -176,7 +177,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 .mob, #ticker { display: none; }
 
 /* ---------- name tags around the table ---------- */
-.opp { min-width: 136px; max-width: 220px; padding: 10px 12px 8px; border-radius: 2px; transition: transform .2s, box-shadow .2s, opacity .2s; }
+.opp { min-width: 136px; max-width: 220px; padding: 10px 12px 8px; border-radius: var(--ui-r); transition: transform .2s, box-shadow .2s, opacity .2s; }
 .opp:nth-child(odd) { rotate: -1.5deg; } .opp:nth-child(even) { rotate: 1.2deg; }
 .opp.turn { transform: translateY(4px) scale(1.04); box-shadow: 0 0 0 3px var(--stamp-hi), var(--grime-in), 0 14px 30px rgba(0, 0, 0, .75); }
 .opp.out { opacity: .4; }
@@ -204,7 +205,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 #banner { min-height: 20px; text-align: center; font: 600 26px/1.1 var(--f-chalk); color: var(--chalk); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
 .center { position: relative; display: flex; align-items: center; gap: 48px; }
 .piles { position: relative; display: flex; align-items: center; gap: 48px; padding: 20px 28px; }
-.piles::after { content: ''; position: absolute; inset: -14px; border: 2px dashed rgba(240, 234, 218, .18); border-radius: 24px; pointer-events: none; }
+.piles::after { content: ''; position: absolute; inset: -14px; border: 2px dashed rgba(240, 234, 218, .18); border-radius: 4px; pointer-events: none; }
 .pile { position: relative; width: calc(var(--cw) * 1.3); height: calc(var(--ch) * 1.3); }
 .pile .card { position: absolute; inset: 0; width: 100%; height: 100%; }
 #drawpile { cursor: pointer; }
@@ -226,7 +227,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 .hud .row { display: flex; align-items: center; gap: 8px; }
 .hud .label { color: var(--chalk-2); }
 .dirtxt { font: 500 13px/20px var(--f-type); }
-.chip { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 2px; background: var(--cc-now, var(--chalk-2)); color: rgba(0, 0, 0, .55); }
+.chip { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: var(--ui-r); background: var(--cc-now, var(--chalk-2)); color: rgba(0, 0, 0, .55); }
 .chip .suit { width: 10px; height: 10px; }
 .phase { display: inline-flex; align-items: center; gap: 8px; font: 600 14px/18px var(--f-stamp); text-transform: uppercase; letter-spacing: .12em; color: var(--chalk); }
 .phase b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 14px; background: #ffd27a; color: #1a1208; box-shadow: 0 0 18px rgba(255, 210, 122, .7); }
@@ -246,7 +247,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 .stack.ember, .multchip.ember { animation: heat .32s infinite, smoulder 1.6s ease-in-out infinite; }
 #combo .mult.ember { animation: smoulder .8s ease-in-out infinite; }
 @keyframes smoulder { 50% { filter: brightness(calc(1 + var(--emb) * .25)) } }
-.float { position: absolute; left: 50%; top: 8px; z-index: 5; padding: 2px 8px; white-space: nowrap; pointer-events: none; border-radius: 2px;
+.float { position: absolute; left: 50%; top: 8px; z-index: 5; padding: 2px 8px; white-space: nowrap; pointer-events: none; border-radius: var(--ui-r);
   font: 600 13px/16px var(--f-stamp); background: var(--paper); color: var(--ink); box-shadow: 0 3px 0 #000;
   opacity: 0; transform: translate(-50%, 4px); transition: opacity 150ms ease-out, transform 150ms ease-out; }
 .float.in { opacity: 1; transform: translate(-50%, 0); }
@@ -280,6 +281,10 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
   transform-origin: 50% 100%; transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg));
   transition: transform 150ms ease-out, opacity 150ms ease-out, rotate 120ms ease-out, filter 150ms; }
 @keyframes sway { 50% { translate: 0 -4px } }
+/* the sway is back, done cheaply: only the compositor-friendly translate moves, each card on its own layer,
+   off in Lite and for very big hands; its length follows the music's tempo when one is heard (4 beats) */
+body:not(.lite) #hand:not(.big) .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.lifted):not(.picked) {
+  animation: sway var(--sway, 3.6s) ease-in-out infinite; animation-delay: calc(var(--i, 0) * var(--sway, 3.6s) / -8.7); will-change: translate; }
 #hand .card.ok { transform: translateY(calc(var(--dy, 0px) - 6px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg)); }
 #hand .card.ok:hover { transform: translateY(calc(var(--dy, 0px) - 22px)) rotate(0deg) scale(1.06) var(--tilt, rotate(0deg)); }
 #hand .card:not(.ok):hover { transform: translateY(calc(var(--dy, 0px) - 8px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg)); }
@@ -403,17 +408,17 @@ body.dark #bottom::before { background: radial-gradient(ellipse at 50% 100%, rgb
   mask: linear-gradient(#000, #000) top / 100% calc(100% - 10px) no-repeat, radial-gradient(circle at 5px 100%, transparent 5px, #000 5.5px) bottom left / 10px 10px repeat-x; }
 #log div { padding: 8px 0; border-top: 1px solid rgba(42, 36, 29, .15); }
 #log div.n, #log div.win { color: #000; font-weight: 500; }
-#netBanner { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 120; padding: 4px 12px; border-radius: 2px; font: 500 13px/20px var(--f-type); background: var(--paper); color: var(--ink); }
+#netBanner { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 120; padding: 4px 12px; border-radius: var(--ui-r); font: 500 13px/20px var(--f-type); background: var(--paper); color: var(--ink); }
 
 /* ---------- dialogs ---------- */
 .modal { position: fixed; inset: 0; z-index: 100; padding: 28px 16px 16px; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; overscroll-behavior: contain; background: rgba(0, 0, 0, .68); animation: fade 150ms ease-out; }
 /* the dialog itself never scrolls (the backdrop does), so the tape on top is never clipped */
-.dialog { width: 100%; max-width: 400px; margin: auto; padding: 24px; border-radius: 3px; }
+.dialog { width: 100%; max-width: 400px; margin: auto; padding: 24px; border-radius: var(--ui-r); }
 .dialog:has(.pick.many), .dialog:has(.pick.lots) { max-width: 560px; }
 .dialog .btn.wide { margin-top: 16px; }
 .dialog b { color: #000; }
 .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.colors button { height: 64px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 2px; font: 700 15px var(--f-stamp); text-transform: uppercase; letter-spacing: .06em;
+.colors button { height: 64px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--ui-r); font: 700 15px var(--f-stamp); text-transform: uppercase; letter-spacing: .06em;
   box-shadow: inset 0 0 18px rgba(0, 0, 0, .45), 0 3px 0 rgba(0, 0, 0, .6); filter: saturate(.75); transition: transform 80ms ease-out, filter 150ms ease-out; }
 .colors button:hover { filter: saturate(.9) brightness(1.08); }
 .colors button:active { transform: translateY(1px); }
@@ -439,7 +444,7 @@ body.dark #bottom::before { background: radial-gradient(ellipse at 50% 100%, rgb
 .pick .card { cursor: pointer; transition: opacity 150ms ease-out; }
 .pick .card.lead { cursor: default; outline: 2px solid var(--ink); outline-offset: 2px; }
 .pick .card.off { opacity: .3; }
-.pick .ord { position: absolute; top: -8px; left: -8px; z-index: 6; min-width: 20px; height: 20px; border-radius: 50%; text-align: center; font: 600 12px/20px var(--f-stamp); background: var(--stamp); color: #f6ead2; }
+.pick .ord { position: absolute; top: -8px; left: -8px; z-index: 6; min-width: 20px; height: 20px; border-radius: var(--ui-r); text-align: center; font: 600 12px/20px var(--f-stamp); background: var(--stamp); color: #f6ead2; }
 .pickwarn { margin: 10px 0 0; font-weight: 600; color: var(--stamp); }
 .pickcombo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; font-family: var(--f-type); }
 .pickcombo b { margin-right: 4px; font: 700 18px var(--f-stamp); text-transform: uppercase; color: var(--ink); }
@@ -460,7 +465,7 @@ body.dark #bottom::before { background: radial-gradient(ellipse at 50% 100%, rgb
 .settings input[type=text] { width: 100%; }
 
 /* ---------- the combo slip: a dark, grimy tally card ---------- */
-#combo { position: fixed; left: 50%; top: 38%; z-index: 150; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 22px 16px; border-radius: 3px; pointer-events: none;
+#combo { position: fixed; left: 50%; top: 38%; z-index: 150; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 22px 16px; border-radius: var(--ui-r); pointer-events: none;
   background: #14100d var(--noise); background-blend-mode: overlay; color: #d8cdb2; border: 1px solid #3a2f24;
   box-shadow: inset 0 0 30px rgba(0, 0, 0, .8), 0 0 0 1px #000, 0 18px 36px rgba(0, 0, 0, .85);
   opacity: 0; transform: translate(-50%, -50%) scale(.6); transition: opacity .15s, transform .2s cubic-bezier(.2, 1.6, .4, 1); }
@@ -473,7 +478,7 @@ body.dark #bottom::before { background: radial-gradient(ellipse at 50% 100%, rgb
 #combo .cpay { font: 600 14px/18px var(--f-type); color: #d2463a; }
 
 /* ---------- card tooltip ---------- */
-#cardtip { position: fixed; left: 0; top: 0; z-index: 300; max-width: 260px; padding: 8px 10px 9px; border-radius: 2px; pointer-events: none; font: 500 12px/17px var(--f-type);
+#cardtip { position: fixed; left: 0; top: 0; z-index: 300; max-width: 260px; padding: 8px 10px 9px; border-radius: var(--ui-r); pointer-events: none; font: 500 12px/17px var(--f-type);
   opacity: 0; transform: translateY(4px); transition: opacity 120ms ease-out, transform 120ms ease-out; }
 #cardtip.show { opacity: 1; transform: none; }
 #cardtip b { display: block; font: 700 15px/18px var(--f-stamp); text-transform: uppercase; }
@@ -484,13 +489,13 @@ body.lite #cardtip, body.lite #combo { transition: none; }
 /* ---------- the slot machine: a typed paper slip with a stamp ---------- */
 #slot { position: fixed; inset: 0; z-index: 180; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity .2s; }
 #slot.show { opacity: 1; }
-.slotbox { position: relative; padding: 20px 22px 18px; text-align: center; border-radius: 2px; color: var(--ink);
+.slotbox { position: relative; padding: 20px 22px 18px; text-align: center; border-radius: var(--ui-r); color: var(--ink);
   background: var(--paper) var(--noise); background-blend-mode: multiply; box-shadow: var(--grime-in), 0 20px 40px rgba(0, 0, 0, .8);
   transform: scale(.85) rotate(-3deg); transition: transform .28s cubic-bezier(.2, 1.8, .4, 1); }
 #slot.show .slotbox { transform: scale(1) rotate(-1.5deg); }
 .slottitle { margin-bottom: 12px; font: 600 12px var(--f-type); letter-spacing: .3em; text-transform: uppercase; color: var(--ink-soft); }
 .reels { display: flex; gap: 8px; justify-content: center; }
-.reels b { width: 84px; height: 70px; display: grid; place-items: center; font: 700 28px var(--f-stamp); color: var(--ink); background: rgba(255, 250, 235, .25); border: 2px solid var(--ink); border-radius: 2px; box-shadow: inset 0 6px 0 rgba(0, 0, 0, .12), inset 0 -6px 0 rgba(0, 0, 0, .12); }
+.reels b { width: 84px; height: 70px; display: grid; place-items: center; font: 700 28px var(--f-stamp); color: var(--ink); background: rgba(255, 250, 235, .25); border: 2px solid var(--ink); border-radius: var(--ui-r); box-shadow: inset 0 6px 0 rgba(0, 0, 0, .12), inset 0 -6px 0 rgba(0, 0, 0, .12); }
 .reels b.spin { filter: blur(1.4px); transform: translateY(2px); }
 .reels b.stop { color: var(--stamp); animation: reelstop .26s cubic-bezier(.2, 1.8, .4, 1); }
 @keyframes reelstop { from { transform: translateY(-16px) } }
@@ -576,7 +581,7 @@ body.kick .opp.turn { animation: kick .22s ease-out; }
 .stampmini { display: inline-block; margin-left: 6px; padding: 0 4px; font: 700 11px/16px var(--f-stamp); letter-spacing: .08em; color: var(--stamp); border: 2px solid var(--stamp); rotate: -4deg; }
 .wallet { display: flex; justify-content: space-between; gap: 12px; margin: 14px 0 4px; padding: 8px 10px; font: 600 14px var(--f-type); background: rgba(0, 0, 0, .08); border: 1px dashed rgba(29, 23, 18, .4); }
 .toks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 6px 0; }
-.tok { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; text-align: left; border-radius: 2px; color: var(--ink);
+.tok { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; text-align: left; border-radius: var(--ui-r); color: var(--ink);
   background: var(--paper-2) var(--noise); background-blend-mode: multiply; box-shadow: inset 0 0 10px rgba(40, 25, 10, .35), 0 3px 0 rgba(0, 0, 0, .55); }
 .tok b { font: 700 15px/18px var(--f-stamp); text-transform: uppercase; letter-spacing: .04em; }
 .tok span { font: 500 11px/15px var(--f-type); }
@@ -609,7 +614,7 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 .card.uniq .mid { color: #f2d98a; }
 /* chained cards */
 .card.locked { filter: saturate(.3) brightness(.62) contrast(1.05); cursor: not-allowed; }
-.card .chainov { position: absolute; inset: -4%; z-index: 7; pointer-events: none;
+.card .chainov.old { position: absolute; inset: -4%; z-index: 7; pointer-events: none;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><g fill='none' stroke='%23c9c1ae' stroke-width='3.2'><rect x='-3' y='14' width='18' height='11' rx='5.5' transform='rotate(-35 6 20)'/><rect x='13' y='3' width='18' height='11' rx='5.5' transform='rotate(-35 22 8)'/><rect x='24' y='26' width='18' height='11' rx='5.5' transform='rotate(-35 33 31)'/></g><g fill='none' stroke='%23000' stroke-opacity='.6' stroke-width='1'><rect x='-3' y='14' width='18' height='11' rx='5.5' transform='rotate(-35 6 20)'/><rect x='13' y='3' width='18' height='11' rx='5.5' transform='rotate(-35 22 8)'/><rect x='24' y='26' width='18' height='11' rx='5.5' transform='rotate(-35 33 31)'/></g></svg>") 0 0 / 50% auto;
   filter: drop-shadow(0 2px 1px rgba(0, 0, 0, .8)); }
 .card .chainn { position: absolute; z-index: 8; right: 6%; top: 34%; min-width: 1.6em; padding: 0 .3em; border-radius: 50%; text-align: center;
@@ -621,7 +626,7 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 /* ---------- deals on the name tags ---------- */
 .deals { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .deals.mine { display: inline-flex; margin: 0 0 0 8px; vertical-align: middle; }
-.dealb, .chance { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px 1px 3px; border-radius: 2px; font: 600 10px/16px var(--f-type); text-transform: uppercase; letter-spacing: .04em; }
+.dealb, .chance { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px 1px 3px; border-radius: var(--ui-r); font: 600 10px/16px var(--f-type); text-transform: uppercase; letter-spacing: .04em; }
 .dealb.light { background: #efe6cc; color: #3d2f12; box-shadow: 0 0 0 1px #8c7a46; }
 .dealb.dark { background: #2a0d0a; color: #ff8a73; box-shadow: 0 0 0 1px #6e1a14; }
 .chance.light { color: #5a4a1e; } .chance.dark { color: #8e1a14; }
@@ -641,7 +646,7 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 .contract.dark h2 { color: #ff5a4d; }
 .contract.dark p { color: rgba(233, 217, 194, .8); }
 .clauses { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 6px; }
-.clause { position: relative; display: flex; flex-direction: column; gap: 5px; padding: 14px 12px; text-align: left; border-radius: 2px; transition: transform .1s; }
+.clause { position: relative; display: flex; flex-direction: column; gap: 5px; padding: 14px 12px; text-align: left; border-radius: var(--ui-r); transition: transform .1s; }
 .clause .dico { width: 26px; height: 26px; }
 .clause b { font: 700 16px/18px var(--f-stamp); text-transform: uppercase; letter-spacing: .04em; }
 .clause span { font: 500 12px/16px var(--f-type); }
@@ -730,7 +735,8 @@ body.lite .card { filter: none; }
 body.lite #hand .card:not(.ok):not(.jump) { filter: brightness(.8); }
 
 /* ---------- your own strip under the table: bigger, and the visitors' odds stand out ---------- */
-#bottom .me { padding: 6px 10px; margin-bottom: 10px; background: rgba(0, 0, 0, .35); border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(232, 226, 210, .08); }
+#bottom .me { padding: 2px 4px; margin-bottom: 10px; }
+#bottom .me #meName, #bottom .me .cnt, #meTags { text-shadow: 0 1px 2px #000, 0 0 8px rgba(0, 0, 0, .8); }
 #bottom .me .who { gap: 12px; flex-wrap: wrap; }
 #bottom .me .ini { width: 34px; height: 34px; font-size: 14px; }
 #meName { font-size: 18px; font-weight: 600; }
@@ -740,17 +746,49 @@ body.lite #hand .card:not(.ok):not(.jump) { filter: brightness(.8); }
 .deals.mine .dealb, .deals.mine .chance { font-size: 13px; line-height: 22px; padding: 2px 10px 2px 6px; }
 .deals.mine .dico { width: 20px; height: 20px; }
 /* odds as pills, everywhere */
-.chance { font-weight: 700; border-radius: 999px; }
+.chance { font-weight: 700; border-radius: var(--ui-r); }
 .chance.light { background: rgba(255, 226, 150, .9); color: #3d2f12; --cut: rgba(255, 226, 150, .9); }
 .chance.dark { background: #3a0d09; color: #ff9a85; --cut: #3a0d09; box-shadow: 0 0 0 1px #8e1a14; }
 #bottom .chance.light { color: #3d2f12; } #bottom .chance.dark { color: #ff9a85; }
 .chance.hot { animation: oddsPulse 1.6s ease-in-out infinite; }
 @keyframes oddsPulse { 50% { box-shadow: 0 0 0 2px currentColor, 0 0 14px currentColor; } }
 @media (max-width: 820px) {
-  #bottom .me { padding: 4px 6px; }
+  #bottom .me { padding: 2px; }
   #meName { font-size: 15px; } #bottom .me .cnt { font-size: 32px; line-height: 24px; } #meTags { font-size: 11px; }
   .deals.mine .dealb, .deals.mine .chance { font-size: 11px; line-height: 18px; }
   .deals.mine .dico { width: 16px; height: 16px; }
+}
+
+/* ---------- chained cards: an iron chain across the face, a padlock with the turns left ---------- */
+.card.locked { filter: saturate(.35) brightness(.55) contrast(1.1) sepia(.25); }
+.card .chainov { position: absolute; inset: 0; z-index: 7; pointer-events: none; background: none; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .85)); }
+.card .chainov svg { width: 100%; height: 100%; display: block; }
+.card .lock { position: absolute; z-index: 8; left: 50%; top: 52%; width: 34%; transform: translate(-50%, -50%) rotate(-8deg); pointer-events: none; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .9)); }
+.card .lock svg { width: 100%; display: block; }
+.card .lock b { position: absolute; left: 0; right: 0; top: 58%; text-align: center; font: 700 calc(var(--cw) * .16)/1 var(--f-stamp); color: #f2e6cf; text-shadow: 0 1px 0 #000; }
+.card .chainn { display: none; }
+/* the other side in the tooltip */
+.tipback { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(29, 23, 18, .4); }
+.tipmini { --cw: 34px; --ch: 50px; flex: none; }
+.tipmini .card { width: 34px; height: 50px; }
+.tipmini .card .mid em, .tipmini .ash { display: none; }
+.tipback b { display: block; font: 700 13px/16px var(--f-stamp); text-transform: uppercase; }
+.tipback p { margin: 3px 0 0; font-size: 11px; line-height: 15px; }
+#cardtip { max-width: 290px; }
+
+/* ---------- a steady table: nothing jumps when text, stamps or badges come and go ---------- */
+body:not(.lite) #game { animation: none; }               /* no more VHS jitter of the whole screen */
+#toast { position: absolute; left: 50%; top: 10%; z-index: 20; margin: 0; translate: -50% 0; }   /* the stamp lands on top, out of the layout */
+#banner { height: 30px; min-height: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 92%; }
+.hud { width: 260px; min-height: 236px; justify-content: flex-start; align-self: center; }
+.hud .stack { min-height: 44px; }
+#opps { min-height: 178px; align-items: flex-start; }
+#bottom .me { min-height: 92px; align-content: flex-start; }
+@media (max-width: 820px) {
+  .hud { width: auto; min-height: 58px; align-self: auto; justify-content: center; }
+  #opps { min-height: 128px; }
+  #bottom .me { min-height: 104px; }
+  #banner { height: 24px; }
 }
 
 </style>
@@ -3064,6 +3102,7 @@ RULES_HTML.ru = RULES_HTML.ru.replace('<h3>Матч на долг</h3>', `<h3>Д
 Object.assign(STR.en, { shopVisitors: 'Call on a visitor', buyCandle: p => `Light a candle: angel +5% (${p}¢)`, buyBlood: p => `Spill some blood: demon +10% (${p}¢)`, signed: 'SIGNED', blessed: 'BLESSED', tOverLimit: 'OVER THE LIMIT' });
 Object.assign(STR.ru, { shopVisitors: 'Позвать гостя', buyCandle: p => `Зажечь свечу: ангел +5% (${p}¢)`, buyBlood: p => `Пролить кровь: демон +10% (${p}¢)`, signed: 'ПОДПИСАНО', blessed: 'БЛАГОСЛОВЛЕНО', tOverLimit: 'ЗА ЛИМИТОМ' });
 Object.assign(STR.en, { oddsAngel: 'angel', oddsDemon: 'demon tonight' }); Object.assign(STR.ru, { oddsAngel: 'ангел', oddsDemon: 'демон ночью' });
+Object.assign(STR.en, { tipBack: 'Other side' }); Object.assign(STR.ru, { tipBack: 'Обратная сторона' });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -3214,7 +3253,8 @@ const ASSETS = (() => {
     an.getByteFrequencyData(fbuf);
     const hz = SFX.ctx.sampleRate / an.fftSize; let b = 0, nb = 0, all = 0;
     for (let i = 0; i < fbuf.length; i++) { all += fbuf[i]; if (i * hz > 30 && i * hz < 150) { b += fbuf[i]; nb++; } }
-    return { bass: nb ? b / nb / 255 : 0, level: all / fbuf.length / 255 };
+    const lat = (SFX.ctx.outputLatency || 0) + (SFX.ctx.baseLatency || 0);
+    return { bass: nb ? b / nb / 255 : 0, level: all / fbuf.length / 255, spec: fbuf, hz, lat };
   }
   return { load, cardClass, playSound, musicLevel, get manifest() { return man; }, get ready() { return ready; } };
 })();
@@ -3398,24 +3438,76 @@ const JUICE = (() => {
     requestAnimationFrame(tickR);
   }
 
-  // ---- the room listens to the music: the bulb, the smoke and the chalk pulse on the kick ----
+  // ---- the room listens to the music: the bulb, the smoke and the chalk pulse on the beat ----
+  // Onsets come from spectral flux (how much the low and mid spectrum jumped since last frame) against an
+  // adaptive threshold. The gaps between onsets vote for a tempo; a phase-locked clock then predicts each
+  // beat, so the room hits on the beat instead of a few frames after it, shifted by the audio output latency.
   // Works when the music is a file the page can hear (assets/sounds/music.*). A YouTube embed can't be listened to.
+  const TEMPO = { bpm: 0, period: 0, next: 0, conf: 0 };
   (function listen() {
-    let env = 0, avg = 0, last = 0;
-    let lastT = 0;
+    let env = 0, prev = null, flux = [], lastOn = 0, lastKick = 0, idle = true, curBin = 0, lastTempo = 0;
+    const env10 = new Float32Array(600);
+    const root = document.documentElement;
+    function kick() {
+      env = 1; lastKick = performance.now();
+      document.body.classList.remove('kick'); void document.body.offsetWidth; document.body.classList.add('kick');
+    }
     (function tick(now) {
       requestAnimationFrame(tick);
-      if (now - lastT < 33) return; lastT = now;
       const lv = typeof ASSETS !== 'undefined' && ASSETS.musicLevel ? ASSETS.musicLevel() : null;
-      if (!lv || !full() || S.musicFx === false) { if (env) { env = 0; state.beat = 0; document.documentElement.style.setProperty('--beat', '0'); } return; }
-      avg = avg * 0.97 + lv.bass * 0.03;
-      if (lv.bass > avg * 1.3 && lv.bass > 0.25 && now - last > 240) { env = 1; last = now; document.body.classList.remove('kick'); void document.body.offsetWidth; document.body.classList.add('kick'); }
-      env *= 0.9;
-      state.beat = Math.max(env, lv.bass * 0.2);
-      document.documentElement.style.setProperty('--beat', state.beat.toFixed(3));
-      document.documentElement.style.setProperty('--level', lv.level.toFixed(3));
+      if (!lv || !full() || S.musicFx === false) { if (!idle) { idle = true; env = 0; state.beat = 0; root.style.setProperty('--beat', '0'); } return; }
+      idle = false;
+      const sp = lv.spec, n = sp.length, lo = Math.max(1, Math.round(35 / lv.hz)), hi = Math.min(n - 1, Math.round(2500 / lv.hz));
+      // spectral flux, low end counted double
+      let f = 0;
+      if (prev) for (let i = lo; i <= hi; i++) { const d = sp[i] - prev[i]; if (d > 0) f += d * (i * lv.hz < 200 ? 2 : 1); }
+      prev = prev || new Uint8Array(n); prev.set(sp);
+      flux.push(f); if (flux.length > 50) flux.shift();
+      const mean = flux.reduce((a, b) => a + b, 0) / flux.length, sd = Math.sqrt(flux.reduce((a, b) => a + (b - mean) * (b - mean), 0) / flux.length);
+      // onset-strength envelope in 10 ms bins over the last 6 s; its autocorrelation gives the tempo
+      const bin = Math.floor(now / 10);
+      if (bin !== curBin) { for (let k = curBin + 1; k <= bin && k - curBin < 600; k++) env10[k % 600] = 0; curBin = bin; }
+      env10[bin % 600] = Math.max(env10[bin % 600], Math.max(0, f - mean));
+      if (now - lastTempo > 500) {
+        lastTempo = now;
+        const seq = new Float32Array(600); for (let k = 0; k < 600; k++) seq[k] = env10[(bin - 599 + k + 6000) % 600];
+        let best = 0, bestL = 0, sum = 0, cnt = 0;
+        for (let L = 33; L <= 100; L++) {
+          let ac = 0; for (let k = L; k < 600; k++) ac += seq[k] * seq[k - L];
+          ac /= (600 - L);
+          const bpm = 6000 / L, w = Math.exp(-Math.pow(Math.log2(bpm / 115), 2) * 1.5); // gently prefer 80–160
+          const sc = ac * w; sum += sc; cnt++;
+          if (sc > best) { best = sc; bestL = L; }
+        }
+        const conf = cnt && sum ? best / (sum / cnt) : 0;
+        if (bestL && conf > 1.6) {
+          const bpm = 6000 / bestL;
+          TEMPO.bpm = TEMPO.bpm && Math.abs(TEMPO.bpm - bpm) < 4 ? TEMPO.bpm * 0.7 + bpm * 0.3 : bpm;
+          TEMPO.period = 60000 / TEMPO.bpm; TEMPO.conf = Math.min(1, (conf - 1.6) / 1.5 + 0.6);
+        } else TEMPO.conf *= 0.8;
+      }
+      if (f > mean + 1.4 * sd && f > 40 && now - lastOn > 140) {
+        lastOn = now;
+        // phase lock: pull the predicted beat toward this onset when they're close
+        if (TEMPO.period && TEMPO.conf > 0.6) {
+          if (!TEMPO.next) TEMPO.next = now + TEMPO.period;
+          let err = now - (TEMPO.next - TEMPO.period);
+          if (err > TEMPO.period / 2) err -= TEMPO.period;
+          if (Math.abs(err) < TEMPO.period * 0.2) TEMPO.next += err * 0.4;
+        } else kick(); // no tempo yet: react to the onset itself
+      }
+      // fire on the predicted beat, late by the output latency so it lands with what you hear
+      const lat = (lv.lat || 0.03) * 1000;
+      if (TEMPO.period && TEMPO.conf > 0.6) {
+        while (TEMPO.next + lat < now - TEMPO.period) TEMPO.next += TEMPO.period;
+        if (now >= TEMPO.next + lat) { if (now - lastKick > TEMPO.period * 0.5) kick(); TEMPO.next += TEMPO.period; }
+      }
+      env *= 0.88;
+      const b = Math.max(env, lv.bass * 0.18);
+      if (Math.abs(b - state.beat) > 0.01) { state.beat = b; root.style.setProperty('--beat', b.toFixed(2)); }
     })(0);
   })();
+  const tempo = () => (TEMPO.conf > 0.6 ? TEMPO.bpm : 0);
   function setSide(d) { state.sideT = d ? 1 : 0; }
   // where the table sits on screen (centre and half-size in CSS px)
   function setTable(rc) { if (rc) state.table = rc; }
@@ -3455,7 +3547,7 @@ const JUICE = (() => {
     if (kind === 'dark') { shake(5); glitch(); }
     if (full()) burst(innerWidth / 2, innerHeight * 0.35, kind === 'dark' ? 40 : 24, null, kind === 'dark' ? 2 : 0.6);
   }
-  return { visit, startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame, setTable };
+  return { tempo, visit, startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame, setTable };
 })();
 
 // ===== CLIENT: talks to the game server; the server runs every match =====
@@ -3694,6 +3786,12 @@ function onLobby(l) {
   show('lobby');
 }
 let MATCH = null, lastHandHTML = '';
+// the hand sways in 4-beat breaths when the room can hear the music's tempo
+let swayDur = 0;
+setInterval(() => {
+  const bpm = JUICE.tempo && JUICE.tempo(), d = bpm ? (4 * 60 / bpm) : 3.6;
+  if (Math.abs(d - swayDur) / (swayDur || 1) > 0.03) { swayDur = d; const h = document.getElementById('hand'); if (h) h.style.setProperty('--sway', d.toFixed(2) + 's'); }
+}, 1500);
 // write HTML only when it changed: keeps the DOM, hover state and running animations, and saves layout work
 const setHTML = (el, html) => { if (el && el.__html !== html) { el.__html = html; el.innerHTML = html; return true; } return false; };
 function onState(m) {
@@ -4117,6 +4215,18 @@ const DEAL_ICON = (() => {
   };
 })();
 const isLightDeal = d => LIGHT_DEALS.includes(d);
+// iron chain across a locked card: links alternate face-on and edge-on, shaded like old metal
+const CHAIN_SVG = (() => {
+  const links = [];
+  for (let k = -1; k < 9; k++) {
+    const x = k * 15, y = 160 - k * 21;
+    links.push(k % 2 === 0
+      ? `<g transform="translate(${x} ${y}) rotate(-54)"><rect x="-13" y="-7.5" width="26" height="15" rx="7.5" fill="none" stroke="url(#cg)" stroke-width="5"/><rect x="-13" y="-7.5" width="26" height="15" rx="7.5" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="1"/></g>`
+      : `<g transform="translate(${x} ${y}) rotate(-54)"><rect x="-14" y="-2.6" width="28" height="5.2" rx="2.6" fill="url(#cg2)" stroke="#000" stroke-opacity=".6" stroke-width="1"/></g>`);
+  }
+  return `<svg viewBox="0 0 100 147" preserveAspectRatio="none"><defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8d2c4"/><stop offset=".45" stop-color="#7d776c"/><stop offset=".55" stop-color="#5b4a3a"/><stop offset="1" stop-color="#2a221b"/></linearGradient><linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bdb6a6"/><stop offset=".5" stop-color="#6e5a44"/><stop offset="1" stop-color="#231b14"/></linearGradient></defs>${links.join('')}</svg>`;
+})();
+const LOCK_SVG = `<svg viewBox="0 0 24 28"><path d="M6 12V8a6 6 0 0 1 12 0v4" fill="none" stroke="#8d8578" stroke-width="3"/><path d="M6 12V8a6 6 0 0 1 12 0v4" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1"/><rect x="2" y="11" width="20" height="15" rx="2.5" fill="#6b4b2c" stroke="#1a120a" stroke-width="1.2"/><rect x="3.5" y="12.5" width="17" height="4" rx="1" fill="#a07a4c" opacity=".6"/><circle cx="12" cy="19" r="2.2" fill="#1a120a"/><path d="M11 20h2v3.5h-2z" fill="#1a120a"/></svg>`;
 // [center, label key, small] ; text faces stay typographic, action faces use the vector icons
 const SYM = {
   skip: [ICON.skip], rev: [ICON.rev], d1: ['+1'], d2: ['+2'], d4: ['+4'], d5: ['+5'], flip: [ICON.flip, 'flip'], dflip: [ICON.dflip, 'dflip', 'sm'],
@@ -4216,7 +4326,7 @@ function faceHTML(f, side, cls = '', id = '') {
   const cor = CORNER[f.v] || esc(f.v);
   const uniq = f.v === 'swind' || f.v === 'sacr' || /\buniq\b/.test(cls) ? ' uniq' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];
-  const chains = /\blocked\b/.test(cls) ? `<i class="chainov"></i>${chainN ? `<b class="chainn">${chainN}</b>` : ''}` : '';
+  const chains = /\blocked\b/.test(cls) ? `<i class="chainov">${CHAIN_SVG}</i><i class="lock">${LOCK_SVG}${chainN ? `<b>${chainN}</b>` : ''}</i>` : '';
   return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${W.burn ? '<i class="ash"></i>' : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
@@ -4426,6 +4536,7 @@ function render() {
       wrap.querySelectorAll('.card').forEach(el => attachCard(el, byId[el.dataset.id]));
     }
     lastHandIds = new Set(me.hand.map(c => c.id));
+    wrap.classList.toggle('big', hand.length > 24);
   }
   // log
   const logKey = LANG + ':' + G.gid + ':' + (G.log.length ? G.log[G.log.length - 1].msg : '') + ':' + G.log.length;
@@ -4826,7 +4937,14 @@ const TIP = (() => {
     const d = faceOf(card); if (!d || dragging || S.tips === false) return;
     cur = card;
     const side = d.side === 'D' ? t('tDark') : t('tLight');
-    el.innerHTML = `<b>${esc(cardName(d.f))}</b><span class="tipside">${esc(side)}</span>${cardDesc(d.f) ? `<p>${esc(cardDesc(d.f))}</p>` : ''}`;
+    // your own cards also show what's printed on their other side
+    let backHTML = '';
+    const mine = G && G.players[ME] && card.dataset.id && card.closest('#hand') ? G.players[ME].hand.find(c => String(c.id) === card.dataset.id) : null;
+    if (mine) {
+      const os = d.side === 'L' ? 'D' : 'L', bf = mine[os];
+      if (bf) backHTML = `<div class="tipback"><div class="tipmini">${faceHTML(bf, os, 'mini')}</div><div><span class="tipside">${esc(t('tipBack'))} · ${esc(os === 'D' ? t('tDark') : t('tLight'))}</span><b>${esc(cardName(bf))}</b>${cardDesc(bf) ? `<p>${esc(cardDesc(bf))}</p>` : ''}</div></div>`;
+    }
+    el.innerHTML = `<b>${esc(cardName(d.f))}</b><span class="tipside">${esc(side)}</span>${cardDesc(d.f) ? `<p>${esc(cardDesc(d.f))}</p>` : ''}${backHTML}`;
     el.className = 'show s-' + d.side;
     const r = card.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
     let x = r.left + r.width / 2 - w / 2, y = r.top - h - 10;
