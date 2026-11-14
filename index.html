@@ -332,8 +332,8 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
     linear-gradient(var(--ga, 180deg), rgba(30, 15, 5, var(--go, .5)), transparent 55%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 .card::after { content: ''; position: absolute; inset: calc(var(--cw) * .045); z-index: 4; pointer-events: none; border: 1px solid rgba(216, 206, 180, .28); border-radius: calc(var(--cw) * .03); mix-blend-mode: screen;
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-width='.6' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100M15 150l30-8M100 30l8 40M55 90l20-6'/></svg>") var(--sx2, 50%) var(--sy2, 50%) / var(--ss, 120%) auto;
-  opacity: calc(.4 + var(--so, .3)); }
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-opacity='.3' stroke-width='.5' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100M15 150l30-8M100 30l8 40M55 90l20-6'/></svg>") var(--sx2, 50%) var(--sy2, 50%) / var(--ss, 120%) auto;
+  opacity: calc(.3 + var(--so, .1)); }
 /* the face: stencil marks straight on the colour */
 .card .oval { position: absolute; left: 50%; top: 50%; width: 86%; height: 70%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
 .card .mid { display: flex; flex-direction: column; align-items: center; font: 700 calc(var(--cw) * .5)/.9 var(--f-card); letter-spacing: -.01em; color: inherit;
@@ -4106,11 +4106,11 @@ const WEAR = (() => {
     const r = rng(h), on = p => (r() < p ? 1 : 0);
     const v = {
       '--rx': pc(0.15 + r() * 0.7), '--ry': pc(0.15 + r() * 0.7), '--rs': (14 + r() * 14).toFixed(0) + '%', '--ro': (on(0.45) * (0.18 + r() * 0.2)).toFixed(2),
-      '--bx': pc(r()), '--by': pc(r() < 0.5 ? r() * 0.25 : 0.75 + r() * 0.25), '--bs': (10 + r() * 16).toFixed(0) + '%', '--bo': (on(0.32) * (0.5 + r() * 0.4)).toFixed(2),
+      '--bx': pc(r()), '--by': pc(r() < 0.5 ? r() * 0.25 : 0.75 + r() * 0.25), '--bs': (10 + r() * 16).toFixed(0) + '%', '--bo': (on(0.25) * (0.2 + r() * 0.18)).toFixed(2),
       '--kx': pc(0.1 + r() * 0.8), '--ky': pc(0.1 + r() * 0.8), '--ks': (16 + r() * 22).toFixed(0) + '%', '--ko': (on(0.4) * (0.15 + r() * 0.25)).toFixed(2),
       '--ca': (r() * 180).toFixed(0) + 'deg', '--cp': pc(0.25 + r() * 0.5), '--co': (on(0.38) * (0.25 + r() * 0.3)).toFixed(2),
       '--ga': (r() * 360).toFixed(0) + 'deg', '--go': (0.35 + r() * 0.4).toFixed(2),
-      '--sx2': pc(r()), '--sy2': pc(r()), '--ss': (90 + r() * 120).toFixed(0) + '%', '--so': (0.15 + r() * 0.4).toFixed(2),
+      '--sx2': pc(r()), '--sy2': pc(r()), '--ss': (90 + r() * 120).toFixed(0) + '%', '--so': (r() * 0.25).toFixed(2),
       '--mx': (r() * 90).toFixed(0) + 'px', '--my': (r() * 90).toFixed(0) + 'px', '--ms': (60 + r() * 80).toFixed(0) + 'px'
     };
     return { cls: 'tear' + Math.floor(r() * N), style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
