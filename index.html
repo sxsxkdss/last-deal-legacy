@@ -4491,20 +4491,18 @@ function render() {
     const rootCw = parseFloat(getComputedStyle($('discard')).width) / 1.3 || 76;
     const n = Math.max(hand.length, 1), mobile = innerWidth <= 820;
     const minStrip = 0.3, MAX_TILT = 8; // degrees at the outer edge of the fan
-    const base = Math.min(rootCw * (mobile ? 1.12 : 1.15), (innerHeight * (mobile ? 0.16 : 0.18)) / 1.47);
+    const base = Math.round(Math.min(rootCw * (mobile ? 1.12 : 1.15), (innerHeight * (mobile ? 0.16 : 0.18)) / 1.47));
     const pad = 16, tiltRoom = c => c * 1.47 * Math.sin(MAX_TILT * Math.PI / 180) + 4;
-    const fit = per => { // largest card width that keeps ~30% of each card visible in a row of `per` cards
-      let c = base;
-      for (let k = 0; k < 3; k++) c = Math.min(base, (wrap.clientWidth - 2 * pad - 2 * tiltRoom(c)) / (1 + (per - 1) * minStrip));
-      return c;
-    };
-    // full-size cards first: if a row can't show at least half of every card at (nearly) full size,
-    // wrap into another row (up to 3) instead of shrinking or overlapping them further
-    const fitAt = (per, strip) => { let w = base; for (let k = 0; k < 3; k++) w = Math.min(base, (wrap.clientWidth - 2 * pad - 2 * tiltRoom(w)) / (1 + (per - 1) * strip)); return w; };
+    // fixed card size: the hand never resizes as cards come and go; extra cards overlap tighter,
+    // a second/third row only when even a thin sliver (~20%) of each card no longer fits
+    const room = c => wrap.clientWidth - 2 * pad - 2 * tiltRoom(c);
+    const minFrac = 0.2;
+    const fitsRow = (per, c) => c + (per - 1) * c * minFrac <= room(c);
     let rows = 1, per = n;
-    while (rows < 3 && n > rows && fitAt(per, 0.5) < base * 0.9) { rows++; per = Math.ceil(n / rows); }
-    let cw = fit(per);
-    cw = Math.max(cw, mobile ? 34 : 44);
+    while (rows < 3 && !fitsRow(per, base)) { rows++; per = Math.ceil(n / rows); }
+    let cw = base;
+    if (!fitsRow(per, cw)) { for (let k = 0; k < 3; k++) cw = Math.min(base, room(cw) / (1 + (per - 1) * minFrac)); }
+    cw = Math.max(Math.round(cw), mobile ? 34 : 44);
     const availRow = wrap.clientWidth - 2 * pad - 2 * tiltRoom(cw);
     const strip = per > 1 ? Math.min(cw + 8, Math.max((availRow - cw) / (per - 1), cw * 0.18)) : 0;
     const ch = cw * 1.47, rowLift = ch * 0.42;
