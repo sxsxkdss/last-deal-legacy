@@ -678,11 +678,11 @@ class Game {
   }
   mercyCheck() {
     if (!this.rules.mercy && this.rules.overload !== false) for (const p of this.players) {
-      if (!p.out && p.hand.length >= 25) {
+      if (!p.out && p.hand.length >= 100) {
         const pi = this.players.indexOf(p), others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
         if (!others.length) break;
         for (let i = p.hand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p.hand[i], p.hand[j]] = [p.hand[j], p.hand[i]]; }
-        const burnt = p.hand.splice(12).length;
+        const burnt = p.hand.splice(50).length;
         for (const i of others) this.players[i].oweN = (this.players[i].oweN || 0) + 2;
         this.addLog(`OVERLOAD: ${p.name}'s hand explodes. ${burnt} cards burn, everyone else catches 2.`, 'bad', 'overload', { n: p.name, k: burnt });
         this.ev('overload', { pi, k: burnt });
@@ -1661,7 +1661,7 @@ const RULES_I18N = {
     ['uno', 'UNO penalty', 'Get caught at one card without calling UNO: draw 2.'],
     ['chaos', 'Chaos', 'Every few plays a slot machine spins and hits the table with a random event.'],
     ['gamble', 'Russian roulette', 'Facing a stack of +8 or more, pull the trigger instead: 50% the stack is gone, 50% you take it doubled.'],
-    ['overload', 'Overload', 'Without the Mercy Rule, a hand that hits 25 cards explodes: it burns down to 12, everyone else catches 2.'],
+    ['overload', 'Overload', 'Without the Mercy Rule, a hand that hits 100 cards explodes: it burns down to 50, everyone else catches 2.'],
     ['potato', 'Hot potato', 'A hidden fuse ticks with every play. When it runs out, whoever is up picks up 3.'],
     ['revenge', 'Revenge', 'Take a stack of 10+ and your next draw card counts double.'],
     ['snitch', 'Snitch', 'Catch someone without UNO and you also dump one of your cards on them.'],
@@ -1679,7 +1679,7 @@ const RULES_I18N = {
     ['uno', 'Штраф за УНО', 'Поймали с одной картой без «УНО»: возьмите 2.'],
     ['chaos', 'Хаос', 'Каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.'],
     ['gamble', 'Русская рулетка', 'Перед стопкой +8 и больше можно нажать на спуск: 50% — стопка исчезает, 50% — берёте её вдвойне.'],
-    ['overload', 'Перегруз', 'Без правила милосердия рука, дошедшая до 25 карт, взрывается: сгорает до 12, остальные ловят по 2.'],
+    ['overload', 'Перегруз', 'Без правила милосердия рука, дошедшая до 100 карт, взрывается: сгорает до 50, остальные ловят по 2.'],
     ['potato', 'Горячая картошка', 'Скрытый фитиль тикает с каждым ходом. Когда догорит, тот, чей ход, берёт 3.'],
     ['revenge', 'Месть', 'Взяли стопку 10+ — ваша следующая карта «Возьми» считается вдвойне.'],
     ['snitch', 'Стукач', 'Поймали кого-то без УНО — заодно скиньте ему одну свою карту.'],
@@ -1934,7 +1934,7 @@ const RULES_HTML = {
     <li><b>Black Hole</b> (dark): every hand is pooled, shuffled and dealt back out evenly.</li></ul>
     <h3>Brutal rules</h3><ul>
     <li><b>Russian roulette</b>: facing a stack of +8 or more, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
-    <li><b>Overload</b>: without the Mercy Rule, a hand of 25 explodes: it burns down to 12 and everyone else catches 2.</li>
+    <li><b>Overload</b>: without the Mercy Rule, a hand of 100 explodes: it burns down to 50 and everyone else catches 2.</li>
     <li><b>Hot potato</b>: a hidden fuse ticks with every play; when it runs out, whoever is up picks up 3.</li>
     <li><b>Revenge</b>: take a stack of 10+ and your next draw card counts double. <b>Snitch</b>: catching someone without UNO also dumps one of your cards on them. <b>Finisher</b>: a stack reaching someone with 2 cards or fewer grows by +4.</li></ul>
     <h3>Poker combos</h3><ul><li>Number cards can go down together as poker hands. The first card must fit the pile; the last sets the color.</li>
@@ -1985,7 +1985,7 @@ const RULES_HTML = {
     <li><b>Чёрная дыра</b> (тёмная): все руки собираются, перемешиваются и раздаются поровну.</li></ul>
     <h3>Жёсткие правила</h3><ul>
     <li><b>Русская рулетка</b>: перед стопкой +8 и больше нажмите «Рулетка»: 50% — стопка исчезает и ход переходит дальше, 50% — берёте её вдвойне.</li>
-    <li><b>Перегруз</b>: без правила милосердия рука из 25 карт взрывается: сгорает до 12, остальные ловят по 2.</li>
+    <li><b>Перегруз</b>: без правила милосердия рука из 100 карт взрывается: сгорает до 50, остальные ловят по 2.</li>
     <li><b>Горячая картошка</b>: скрытый фитиль тикает с каждым ходом; когда догорит, тот, чей ход, берёт 3.</li>
     <li><b>Месть</b>: взяли стопку 10+ — следующая ваша «Возьми» вдвойне. <b>Стукач</b>: поймали без УНО — заодно скиньте одну свою карту. <b>Добивание</b>: стопка, пришедшая к игроку с 2 картами или меньше, растёт на +4.</li></ul>
     <h3>Покерные комбинации</h3><ul><li>Числовые карты можно класть вместе покерными комбинациями. Первая карта должна подходить к сбросу, последняя задаёт цвет.</li>

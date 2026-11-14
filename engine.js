@@ -144,11 +144,11 @@ class Game {
   }
   mercyCheck() {
     if (!this.rules.mercy && this.rules.overload !== false) for (const p of this.players) {
-      if (!p.out && p.hand.length >= 25) {
+      if (!p.out && p.hand.length >= 100) {
         const pi = this.players.indexOf(p), others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
         if (!others.length) break;
         for (let i = p.hand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p.hand[i], p.hand[j]] = [p.hand[j], p.hand[i]]; }
-        const burnt = p.hand.splice(12).length;
+        const burnt = p.hand.splice(50).length;
         for (const i of others) this.players[i].oweN = (this.players[i].oweN || 0) + 2;
         this.addLog(`OVERLOAD: ${p.name}'s hand explodes. ${burnt} cards burn, everyone else catches 2.`, 'bad', 'overload', { n: p.name, k: burnt });
         this.ev('overload', { pi, k: burnt });
