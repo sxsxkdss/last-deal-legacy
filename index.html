@@ -433,6 +433,10 @@ body.lite .flame{display:none}
 #combo .chips,#combo .mult{font-size:30px;line-height:38px;min-width:64px}
 #combo .cpay{font:600 14px/18px var(--f-px);color:var(--gold)}
 body.lite #combo{transition:none}
+
+/* the hand never clips its cards: lifted, hovered and swaying cards may rise above it */
+#hand{overflow:visible!important;padding-top:36px}
+@media (max-width:720px){#hand{padding-top:30px}}
 </style>
 </head>
 <body>
