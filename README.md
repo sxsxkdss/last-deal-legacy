@@ -54,7 +54,7 @@ The simplest setup is to use the Render link for everything. If you'd rather kee
 - **Russian roulette:** facing a big stack, pull the trigger: 50% it is gone, 50% you take it doubled.
 - **Poker hands:** number cards can go down together as poker hands (pair up to straight flush). Bigger hands throw away extra cards; the biggest hit everyone.
 - **Last call:** after 250 turns the house closes the table and whoever holds the fewest cards wins. The table counts down the last 30, so no game runs forever.
-- **House cards:** luck (Horseshoe, Scratch Card, Jackpot, Redeal), money (Loan, Interest, Tip, Contract, All-In), violence (Shot Glass, Shotgun, Collector, Handcuffs, Spinner) and the Pot.
+- **House cards:** luck (Horseshoe, Scratch Card, Jackpot, Redeal), money (Loan, Tip, Contract) and violence (Shot Glass, Shotgun, Handcuffs, Spinner).
 - **Drawing:** stacks and penalties come in by themselves, one card at a time. Drawing until a colour shows up is by hand.
 - **Accessibility:** every colour also has its own shape in the card corners, so no card depends on colour alone.
 - **Bots:** the host can add bots in the lobby.

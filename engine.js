@@ -37,16 +37,16 @@ function comboOf(faces) {
   return { key, d, m: C.m, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
-const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'bomb', 'd6', 'pill', 'foot', 'maze', 'deal', 'monstro'];
+const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const LAST_CALL = 250;
 // Lobby presets. Every rule key the server knows, every house card.
-const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'revenge', 'snitch', 'finisher', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
 const PRESETS = (() => {
   const on = (keys, all) => Object.fromEntries(all.map(k => [k, keys.includes(k)]));
-  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'lastCall'];
+  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'uno', 'lastCall'];
   return {
     classic: { rules: on(base, RULE_ALL), cards: on([], EXTRA_CARDS) },
-    den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'revenge', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['monstro', 'deal', 'interest', 'wd15'].includes(k)), EXTRA_CARDS) },
+    den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['deal', 'wd15'].includes(k)), EXTRA_CARDS) },
     mayhem: { rules: on(RULE_ALL, RULE_ALL), cards: on(EXTRA_CARDS, EXTRA_CARDS) }
   };
 })();
@@ -55,8 +55,8 @@ const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, 
 const SIDE_WEIGHTS = {
   L: { colored: { '0': 2, '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2 },
        wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, d6: 1 } },
-  D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, interest: 1, foot: 1, maze: 1 },
-       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1, mul3: 1, deal: 1, monstro: 1 } }
+  D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
+       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, mul3: 1, deal: 1 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
@@ -85,6 +85,8 @@ class Game {
     if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
     delete rules.sevenZero;
     this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
+    // cut from the game: 7 swap, 0 rotate, jump-in, revenge, snitch, finisher
+    Object.assign(this.rules, { seven: false, zero: false, jumpIn: false, revenge: false, snitch: false, finisher: false });
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -717,7 +719,7 @@ class Game {
   rollChaos() {
     this.chaosIn = 8 + Math.floor(Math.random() * 5);
     const act = this.players.map((p, i) => i).filter(i => !this.players[i].out);
-    const pool = ['inflation', 'tax', 'revolution', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
+    const pool = ['inflation', 'revolution', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
     if (!this.rules.flip) pool.splice(pool.indexOf('storm'), 1);
     if (this.debt || this.roulette !== null) { const s = pool.indexOf('revolution'); if (s >= 0) pool.splice(s, 1); }
     const e = pool[Math.floor(Math.random() * pool.length)];

@@ -655,16 +655,16 @@ function comboOf(faces) {
   return { key, d, m: C.m, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
-const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'bomb', 'd6', 'pill', 'foot', 'maze', 'deal', 'monstro'];
+const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const LAST_CALL = 250;
 // Lobby presets. Every rule key the server knows, every house card.
-const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'revenge', 'snitch', 'finisher', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
 const PRESETS = (() => {
   const on = (keys, all) => Object.fromEntries(all.map(k => [k, keys.includes(k)]));
-  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'lastCall'];
+  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'uno', 'lastCall'];
   return {
     classic: { rules: on(base, RULE_ALL), cards: on([], EXTRA_CARDS) },
-    den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'revenge', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['monstro', 'deal', 'interest', 'wd15'].includes(k)), EXTRA_CARDS) },
+    den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['deal', 'wd15'].includes(k)), EXTRA_CARDS) },
     mayhem: { rules: on(RULE_ALL, RULE_ALL), cards: on(EXTRA_CARDS, EXTRA_CARDS) }
   };
 })();
@@ -673,8 +673,8 @@ const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, 
 const SIDE_WEIGHTS = {
   L: { colored: { '0': 2, '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2 },
        wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, d6: 1 } },
-  D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, interest: 1, foot: 1, maze: 1 },
-       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1, mul3: 1, deal: 1, monstro: 1 } }
+  D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
+       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, mul3: 1, deal: 1 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
@@ -703,6 +703,8 @@ class Game {
     if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
     delete rules.sevenZero;
     this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
+    // cut from the game: 7 swap, 0 rotate, jump-in, revenge, snitch, finisher
+    Object.assign(this.rules, { seven: false, zero: false, jumpIn: false, revenge: false, snitch: false, finisher: false });
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -1335,7 +1337,7 @@ class Game {
   rollChaos() {
     this.chaosIn = 8 + Math.floor(Math.random() * 5);
     const act = this.players.map((p, i) => i).filter(i => !this.players[i].out);
-    const pool = ['inflation', 'tax', 'revolution', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
+    const pool = ['inflation', 'revolution', 'storm', 'lock', 'bleed', 'jackpot', 'mirrorworld'];
     if (!this.rules.flip) pool.splice(pool.indexOf('storm'), 1);
     if (this.debt || this.roulette !== null) { const s = pool.indexOf('revolution'); if (s >= 0) pool.splice(s, 1); }
     const e = pool[Math.floor(Math.random() * pool.length)];
@@ -2110,8 +2112,6 @@ const RULES_HTML = {
 const CARD_DESC = {
   en: {
     num: 'Play on the same color or the same number.',
-    0: 'If the 0 rule is on: everyone passes their hand to the next player.',
-    7: 'If the 7 rule is on: swap hands with a player you pick, or keep yours.',
     skip: 'The next player loses their turn.',
     rev: 'Play changes direction. With two players it works like Skip.',
     skipall: 'Everyone else is skipped. You play again.',
@@ -2162,8 +2162,6 @@ const CARD_DESC = {
   },
   ru: {
     num: 'Кладётся на тот же цвет или то же число.',
-    0: 'Если включено правило 0: все передают руки следующему игроку.',
-    7: 'Если включено правило 7: поменяйтесь руками с выбранным игроком или оставьте свою.',
     skip: 'Следующий игрок пропускает ход.',
     rev: 'Направление игры меняется. Вдвоём работает как пропуск.',
     skipall: 'Все остальные пропускают ход. Вы ходите снова.',
@@ -2369,23 +2367,22 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
     <li>Answer a draw card with one of equal or higher value: +1, +2, +4, +5, +6, +8, +10, +15. If you can't, take the whole stack.</li>
     <li><b>Double Down</b> / <b>Triple Down</b> multiply a stack (up to +60). <b>Mirror</b> sends it back. <b>Vest</b> stops the next one that reaches you. <b>Encore</b> repeats a draw card on top of itself.</li>
     <li><b>Russian roulette</b>: facing a big enough stack, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
-    <li><b>Revenge</b>: take a stack of 10+ and your next draw card counts double. <b>Finisher</b>: a stack reaching someone with 2 cards or fewer grows by +4.</li></ul>
+</ul>
     <h3>Poker hands</h3><ul>
     <li>Number cards can go down together as poker hands. They land left to right in the chooser; the first must fit the pile, the last sets the color.</li>
     <li><b>Pair</b>: just the drop. <b>Two Pair</b>, <b>Three of a Kind</b>: 1 extra card. <b>Straight</b> (3+ in a row, one color): 1 extra per card beyond 2. <b>Flush</b> (5 of one color), <b>Full House</b>: 2 extra. By day extra cards leave your hand; at night the next player picks them up.</li>
     <li><b>Four of a Kind</b>: everyone else picks up 1. <b>Five of a Kind</b>, <b>Straight Flush</b>: 1 extra and everyone else picks up 2.</li></ul>
     <h3>Table rules</h3><ul>
-    <li><b>7</b> swaps hands with one player (or keep yours). <b>0</b> passes every hand along.</li>
-    <li><b>Same-symbol drops</b>: play every card with the same symbol together. <b>Jump-in</b>: play an exact copy of the top card out of turn.</li>
-    <li><b>Last card</b>: call it at two cards or right after dropping to one. Caught: you draw 2, and the <b>Snitch</b> dumps one of their cards on you.</li>
+    <li><b>Same-symbol drops</b>: play every card with the same symbol together.</li>
+    <li><b>Last card</b>: call it at two cards or right after dropping to one. Caught: you draw 2.</li>
     <li><b>Last call</b>: after 250 turns the house closes the table and whoever holds the fewest cards wins. The table counts down the last 30.</li></ul>
     <h3>The House's cards</h3><ul>
     <li><b>Luck</b>: Horseshoe (1 in 3: two cards leave your hand), Scratch Card (a random prize or loss), Jackpot (pull the slot lever now), Redeal (a fresh hand).</li>
-    <li><b>Money</b>: Loan (two cards gone now, four back in 3 plays), Interest (everyone with 8+ pays 2), Tip (give 2 cards away), Contract (lose half your hand, your next stack is doubled), All-In (the next player picks up as many as you hold, up to 6).</li>
-    <li><b>Violence</b>: Shot Glass (next player +2, or it breaks in your hand), Shotgun (next player +3, both neighbours +1), Collector (the leader +4), Handcuffs (the next two are skipped), Spinner (6 plays of random direction flips).</li>
-    <li><b>The Pot</b> pools every hand and deals it back out evenly.</li></ul>
+    <li><b>Money</b>: Loan (two cards gone now, four back in 3 plays), Tip (give 2 cards away), Contract (lose half your hand, your next stack is doubled).</li>
+    <li><b>Violence</b>: Shot Glass (next player +2, or it breaks in your hand), Shotgun (next player +3, both neighbours +1), Handcuffs (the next two are skipped), Spinner (6 plays of random direction flips).</li>
+</ul>
     <h3>Slots and dynamite</h3><ul>
-    <li>By day, every 8–12 plays the slot machine spins: Inflation, Leader tax, Revolution, Shift change, Color lock, Bleed, Payout or Mirror world.</li>
+    <li>By day, every 8–12 plays the slot machine spins: Inflation, Revolution, Shift change, Color lock, Bleed, Payout or Mirror world.</li>
     <li>At night a hidden fuse burns with every play. When it runs out, whoever is up picks up 3. The table shows when it is about to blow.</li></ul>
     <h3>Rooms</h3><ul>
     <li>Up to 6 players, no accounts. The host can add bots. The server runs the match, so everyone sees the same table.</li>
@@ -2407,23 +2404,22 @@ RULES_HTML.ru = `<p class="rulestag">Подпольный карточный п�
     <li>На карту «Возьми» отвечайте такой же или старше: +1, +2, +4, +5, +6, +8, +10, +15. Нечем — забирайте всю стопку.</li>
     <li><b>Дабл</b> / <b>Трипл</b> умножают стопку (до +60). <b>Зеркало</b> отправляет её обратно. <b>Бронежилет</b> держит следующую, дошедшую до вас. <b>Бис</b> повторяет «Возьми» поверх самой себя.</li>
     <li><b>Русская рулетка</b>: перед достаточно большой стопкой нажмите «Рулетка»: 50% — стопка исчезает и ход уходит дальше, 50% — берёте её вдвойне.</li>
-    <li><b>Месть</b>: взяли стопку 10+ — следующая ваша «Возьми» вдвойне. <b>Добивание</b>: стопка, дошедшая до игрока с 2 картами или меньше, растёт на +4.</li></ul>
+</ul>
     <h3>Покерные комбинации</h3><ul>
     <li>Числовые карты можно класть вместе покерными комбинациями. Они ложатся слева направо; первая должна подходить к сбросу, последняя задаёт цвет.</li>
     <li><b>Пара</b>: просто сброс. <b>Две пары</b>, <b>Сет</b>: 1 лишняя карта. <b>Стрит</b> (3+ подряд одного цвета): по 1 лишней за каждую сверх двух. <b>Флеш</b> (5 одного цвета), <b>Фулл-хаус</b>: 2 лишние. Днём лишние карты уходят из вашей руки, ночью их берёт следующий.</li>
     <li><b>Каре</b>: все остальные берут 1. <b>Покер</b>, <b>Стрит-флеш</b>: 1 лишняя и все остальные берут 2.</li></ul>
     <h3>Правила стола</h3><ul>
-    <li><b>7</b> — обмен рукой с одним игроком (или оставьте свою). <b>0</b> — все передают руки по кругу.</li>
-    <li><b>Сброс одинаковых</b>: все карты с одним символом вместе. <b>Вмешательство</b>: точную копию верхней карты можно кинуть вне очереди.</li>
-    <li><b>«Одна»</b>: крикните на двух картах или сразу после того, как осталась одна. Поймали — берёте 2, а <b>стукач</b> ещё и скидывает вам одну свою.</li>
+    <li><b>Сброс одинаковых</b>: все карты с одним символом вместе.</li>
+    <li><b>«Одна»</b>: крикните на двух картах или сразу после того, как осталась одна. Поймали — берёте 2.</li>
     <li><b>Последний звонок</b>: через 250 ходов дом закрывает стол, и побеждает тот, у кого меньше всего карт. Последние 30 ходов стол отсчитывает вслух.</li></ul>
     <h3>Карты Дома</h3><ul>
     <li><b>Удача</b>: Подкова (1 к 3: две карты уходят), Лотерейка (случайный выигрыш или проигрыш), Джекпот (рычаг слотов сразу), Пересдача (новая рука).</li>
-    <li><b>Деньги</b>: Займ (две карты уходят сейчас, четыре — через 3 хода), Проценты (у кого 8+, платит 2), Чаевые (отдать 2 карты), Контракт (половина руки уходит, следующая стопка вдвойне), Ва-банк (следующий берёт столько, сколько у вас, до 6).</li>
-    <li><b>Насилие</b>: Рюмка (следующему +2 или бьётся у вас в руке), Дробовик (следующему +3, соседям по 1), Коллектор (лидеру +4), Наручники (двое следующих пропускают), Вертушка (6 ходов случайных разворотов).</li>
-    <li><b>Общак</b> собирает все руки и раздаёт поровну.</li></ul>
+    <li><b>Деньги</b>: Займ (две карты уходят сейчас, четыре — через 3 хода), Чаевые (отдать 2 карты), Контракт (половина руки уходит, следующая стопка вдвойне).</li>
+    <li><b>Насилие</b>: Рюмка (следующему +2 или бьётся у вас в руке), Дробовик (следующему +3, соседям по 1), Наручники (двое следующих пропускают), Вертушка (6 ходов случайных разворотов).</li>
+</ul>
     <h3>Слоты и динамит</h3><ul>
-    <li>Днём каждые 8–12 ходов крутится слот-машина: инфляция, налог на лидера, революция, пересменка, цветовой замок, кровопускание, выплата или зеркальный мир.</li>
+    <li>Днём каждые 8–12 ходов крутится слот-машина: инфляция, революция, пересменка, цветовой замок, кровопускание, выплата или зеркальный мир.</li>
     <li>Ночью с каждым ходом горит скрытый фитиль. Когда догорит, тот, чей ход, берёт 3. На столе видно, когда он вот-вот рванёт.</li></ul>
     <h3>Комнаты</h3><ul>
     <li>До 6 игроков, без аккаунтов. Хозяин может добавить ботов. Матч ведёт сервер, поэтому у всех один и тот же стол.</li>
@@ -2764,7 +2760,7 @@ const JUICE = (() => {
 // put the server address here, e.g. 'wss://your-app.onrender.com/ws'. Leave empty when the server serves this page.
 const SERVER_URL = '';
 let ME = 0;
-const RULES_L = () => RULES_I18N[LANG], EXTRA_L = () => EXTRA_I18N[LANG];
+const RULES_L = () => RULES_I18N[LANG].filter(r => RULE_ALL.includes(r[0])), EXTRA_L = () => EXTRA_I18N[LANG].filter(r => EXTRA_CARDS.includes(r[0]));
 const IDLE_MS = 60000, AWAY_MS = 15000;
 const CVAR = { r: 'var(--r)', y: 'var(--y)', g: 'var(--g)', b: 'var(--b)', p: 'var(--p)', t: 'var(--t)', o: 'var(--o)', v: 'var(--v)' };
 const S = loadSettings();
