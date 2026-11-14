@@ -310,7 +310,14 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
   transition: --sheen .2s;
   filter: saturate(.72) brightness(.98) contrast(1.1);
   box-shadow: inset 0 0 calc(var(--cw) * .28) rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(0, 0, 0, .5);
+  -webkit-mask-image: var(--tear, none); mask-image: var(--tear, none);
   -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
+/* burnt through at the edge: the burn's two blots are cut out of the card's outline */
+.card.burnt {
+  -webkit-mask-image: var(--tear, linear-gradient(#000, #000)), radial-gradient(circle at var(--bx) var(--by), transparent calc(var(--cw) * var(--bs) * .44), #000 calc(var(--cw) * var(--bs) * .44 + 1px)), radial-gradient(circle at calc(var(--bx) + var(--bj)) calc(var(--by) + var(--bk)), transparent calc(var(--cw) * var(--bs) * .3), #000 calc(var(--cw) * var(--bs) * .3 + 1px));
+  mask-image: var(--tear, linear-gradient(#000, #000)), radial-gradient(circle at var(--bx) var(--by), transparent calc(var(--cw) * var(--bs) * .44), #000 calc(var(--cw) * var(--bs) * .44 + 1px)), radial-gradient(circle at calc(var(--bx) + var(--bj)) calc(var(--by) + var(--bk)), transparent calc(var(--cw) * var(--bs) * .3), #000 calc(var(--cw) * var(--bs) * .3 + 1px));
+  -webkit-mask-composite: source-in; mask-composite: intersect;
 }
 /* the shadows of torn cards are cast by whatever they lie on */
 #hand, .piles, #fx, .pick, .colors, .draftpick { filter: drop-shadow(0 7px 7px rgba(0, 0, 0, .75)) drop-shadow(0 0 1px rgba(0, 0, 0, .9)); }
@@ -320,9 +327,9 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 /* grime, a ring stain, scratches */
 .card::before { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; mix-blend-mode: multiply;
   background:
-    /* a rare cigarette burn: a hard charred hole, a crisp scorched rim, lumpy because two blots overlap */
-    radial-gradient(circle at var(--bx, 80%) var(--by, 85%), rgba(5, 2, 0, var(--bo, 0)) calc(var(--bs, 12%) * .42), rgba(48, 16, 3, var(--bo, 0)) calc(var(--bs, 12%) * .46), rgba(48, 16, 3, calc(var(--bo, 0) * .95)) calc(var(--bs, 12%) * .6), rgba(150, 70, 20, calc(var(--bo, 0) * .55)) calc(var(--bs, 12%) * .66), rgba(150, 70, 20, calc(var(--bo, 0) * .25)) calc(var(--bs, 12%) * .82), transparent calc(var(--bs, 12%) * .86)),
-    radial-gradient(circle at calc(var(--bx, 80%) + var(--bj, 2%)) calc(var(--by, 85%) + var(--bk, 2%)), rgba(5, 2, 0, var(--bo, 0)) calc(var(--bs, 12%) * .3), rgba(48, 16, 3, calc(var(--bo, 0) * .95)) calc(var(--bs, 12%) * .34), rgba(150, 70, 20, calc(var(--bo, 0) * .4)) calc(var(--bs, 12%) * .5), transparent calc(var(--bs, 12%) * .58)),
+    /* a burn: lightly scorched inside, a hard charred rim, a brown halo; two blots overlap so the shape is lumpy */
+    radial-gradient(circle at var(--bx, 50%) var(--by, 50%), rgba(140, 70, 25, calc(var(--bo, 0) * .28)) 0, rgba(140, 70, 25, calc(var(--bo, 0) * .28)) calc(var(--cw) * var(--bs, .15) * .44), rgba(18, 7, 2, var(--bo, 0)) calc(var(--cw) * var(--bs, .15) * .5), rgba(30, 11, 3, calc(var(--bo, 0) * .9)) calc(var(--cw) * var(--bs, .15) * .56), rgba(120, 55, 15, calc(var(--bo, 0) * .55)) calc(var(--cw) * var(--bs, .15) * .64), rgba(120, 55, 15, calc(var(--bo, 0) * .2)) calc(var(--cw) * var(--bs, .15) * .82), transparent calc(var(--cw) * var(--bs, .15) * .9)),
+    radial-gradient(circle at calc(var(--bx, 50%) + var(--bj, 0%)) calc(var(--by, 50%) + var(--bk, 0%)), rgba(140, 70, 25, calc(var(--bo, 0) * .2)) 0, rgba(140, 70, 25, calc(var(--bo, 0) * .2)) calc(var(--cw) * var(--bs, .15) * .3), rgba(18, 7, 2, calc(var(--bo, 0) * .95)) calc(var(--cw) * var(--bs, .15) * .36), rgba(120, 55, 15, calc(var(--bo, 0) * .45)) calc(var(--cw) * var(--bs, .15) * .46), transparent calc(var(--cw) * var(--bs, .15) * .62)),
     /* tide lines of dried water */
     radial-gradient(ellipse var(--ws, 20%) calc(var(--ws, 20%) * var(--wh, 1)) at var(--wx, 40%) var(--wy, 40%), transparent 82%, rgba(70, 50, 25, calc(var(--wo, 0) * .32)) 90%, rgba(70, 50, 25, calc(var(--wo, 0) * .12)) 96%, transparent 100%),
     radial-gradient(ellipse var(--vs, 12%) calc(var(--vs, 12%) * .8) at var(--vx, 60%) var(--vy, 60%), transparent 78%, rgba(70, 50, 25, calc(var(--vo, 0) * .3)) 90%, transparent 100%),
@@ -706,7 +713,7 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 .card.uniq { border-color: #a8913f; }
 
 /* ash sitting in a burn: its own layer, above the grime, so it stays grey */
-.card .ash { position: absolute; z-index: 6; pointer-events: none; width: calc(var(--bs, 12%) * 1.1); aspect-ratio: 1; left: var(--bx, 80%); top: var(--by, 85%); transform: translate(-50%, -50%);
+.card .ash { position: absolute; z-index: 6; pointer-events: none; width: calc(var(--cw) * var(--bs, .15) * .8); aspect-ratio: 1; left: var(--ax, 50%); top: var(--ay, 50%); transform: translate(-50%, -50%);
   background:
     radial-gradient(circle at 38% 42%, rgba(178, 172, 162, .95) 0 11%, transparent 15%),
     radial-gradient(circle at 62% 55%, rgba(132, 128, 120, .9) 0 8%, transparent 12%),
@@ -4115,7 +4122,7 @@ const WEAR = (() => {
   for (let i = 0; i < N; i++) {
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 147' preserveAspectRatio='none'><path d='${outline(rng(i * 7919 + 13))}' fill='black'/></svg>`;
     const url = `url("data:image/svg+xml;utf8,${svg.replace(/#/g, '%23')}")`;
-    css.push(`.card.tear${i}{-webkit-mask-image:${url};mask-image:${url}}`);
+    css.push(`.card.tear${i}{--tear:${url}}`);
   }
   const st = document.createElement('style'); st.textContent = css.join('\n'); document.head.appendChild(st);
   const pc = x => (x * 100).toFixed(0) + '%';
@@ -4124,7 +4131,7 @@ const WEAR = (() => {
     const r = rng(h), on = p => (r() < p ? 1 : 0);
     const v = {
       '--rx': pc(0.15 + r() * 0.7), '--ry': pc(0.15 + r() * 0.7), '--rs': (14 + r() * 14).toFixed(0) + '%', '--ro': (on(0.45) * (0.18 + r() * 0.2)).toFixed(2),
-      '--bx': pc(r()), '--by': pc(r() < 0.5 ? r() * 0.25 : 0.75 + r() * 0.25), '--bs': (9 + r() * 9).toFixed(0) + '%', '--bo': on(0.08).toFixed(0), '--bj': ((r() - 0.5) * 6).toFixed(1) + '%', '--bk': ((r() - 0.5) * 6).toFixed(1) + '%',
+      
       '--kx': pc(0.1 + r() * 0.8), '--ky': pc(0.1 + r() * 0.8), '--ks': (16 + r() * 22).toFixed(0) + '%', '--ko': (on(0.4) * (0.15 + r() * 0.25)).toFixed(2),
       // dried water: a pale patch where the dye lifted, with a darker tide line at its edge
       '--wx': pc(0.1 + r() * 0.8), '--wy': pc(0.1 + r() * 0.8), '--ws': (14 + r() * 24).toFixed(0) + '%', '--wh': (0.6 + r() * 0.8).toFixed(2), '--wo': (on(0.55) * (0.5 + r() * 0.5)).toFixed(2),
@@ -4134,7 +4141,16 @@ const WEAR = (() => {
       '--sx2': pc(r()), '--sy2': pc(r()), '--ss': (90 + r() * 120).toFixed(0) + '%', '--so': (r() * 0.25).toFixed(2),
       '--mx': (r() * 90).toFixed(0) + 'px', '--my': (r() * 90).toFixed(0) + 'px', '--ms': (60 + r() * 80).toFixed(0) + 'px'
     };
-    return { cls: 'tear' + Math.floor(r() * N), burn: v['--bo'] === '1', style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
+    // a burn is very rare; when it sits on the edge the card is burnt right through there
+    const burn = r() < 0.03, edge = burn && r() < 0.55, bs = 0.24 + r() * 0.14;
+    let bx = 0.2 + r() * 0.6, by = 0.2 + r() * 0.6, ax = 0, ay = 0;
+    if (edge) {
+      const sd = Math.floor(r() * 4), at = 0.15 + r() * 0.7, k = bs * 0.62;
+      if (sd === 0) { bx = at; by = (r() - 0.5) * 0.03; ay = k / 1.47; } else if (sd === 2) { bx = at; by = 1 + (r() - 0.5) * 0.03; ay = -k / 1.47; }
+      else if (sd === 1) { by = at; bx = 1 + (r() - 0.5) * 0.04; ax = -k; } else { by = at; bx = (r() - 0.5) * 0.04; ax = k; }
+    }
+    if (burn) Object.assign(v, { '--bx': pc(bx), '--by': pc(by), '--bs': bs.toFixed(3), '--bo': '1', '--bj': ((r() - 0.5) * 7).toFixed(1) + '%', '--bk': ((r() - 0.5) * 7).toFixed(1) + '%', '--ax': pc(bx + ax), '--ay': pc(by + ay) });
+    return { cls: 'tear' + Math.floor(r() * N) + (edge ? ' burnt' : ''), burn, style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
   };
 })();
 function faceHTML(f, side, cls = '', id = '') {
