@@ -404,6 +404,7 @@ body.lite #cardtip{transition:none}
 .pick .slot{touch-action:none;cursor:grab;transition:translate 140ms cubic-bezier(.2,.8,.2,1)}
 .pick .slot.held{transition:none;z-index:5;cursor:grabbing;filter:drop-shadow(0 10px 0 rgba(0,0,0,.45))}
 #hand .card{touch-action:none}
+.pickwarn{color:var(--hot);margin:10px 0 0;font-weight:600}
 </style>
 </head>
 <body>
@@ -1261,8 +1262,8 @@ const STR = {
     flipWild: 'The flip lands on a wild', flipWildSub: n => `The back of this card is ${n}. Choose its color.`,
     swapQ: 'Swap hands?', swapSub: k => `You keep ${k} ${cardsAcc(k)} after this play. Trade with someone, or keep your hand.`, keepHand: 'Keep my hand',
     duel: 'Duel', duelSub: 'You and this player turn over cards until each hits a number. The lower number picks up every card turned over.',
-    togetherQ: 'Play them together?', togetherSub: 'Tap cards to add them in play order, tap again to take one out. Drag cards to rearrange. The last card sets the color.',
-    playN: k => `Play ${k} ${cardsAcc(k)}`, clearOrder: 'Clear order', selectAll: 'Select all', cancel: 'Cancel', close: 'Close',
+    togetherQ: 'Play them together?', togetherSub: 'They go down left to right. Drag to change the order, tap a card to switch it off or on. The last card sets the color.', firstMustFit: 'The first card has to match the pile on its own.',
+    playN: k => `Play ${k} ${cardsAcc(k)}`, clearOrder: 'Deselect all', selectAll: 'Select all', cancel: 'Cancel', close: 'Close',
     leaveQ: 'Leave the match?', leaveSub: "You'll be out of this match and everyone else keeps playing. If your connection just drops, you have a minute to come back to your seat.", stay: 'Stay',
     handEmptied: 'Hand emptied.', finalCounts: 'Final card counts:', winner: 'winner', cardsN: k => `${k} ${cardsW(k)}`, playAgain: 'Play again', backLobby: 'Back to lobby', waitNext: 'Waiting for the host to deal the next round.',
     menuSort: 'Sort hand', menuLog: 'Game log', menuRules: 'How to play', menuSound: 'Sound', menuLeave: 'Leave match', menuLang: 'Language', gameLog: 'Game log',
@@ -1304,8 +1305,8 @@ const STR = {
     flipWild: 'Флип выпал на джокера', flipWildSub: n => `На обороте этой карты — ${n}. Выберите цвет.`,
     swapQ: 'Поменяться руками?', swapSub: k => `После хода у вас останется ${k} ${cardsW(k)}. Поменяйтесь с кем-нибудь или оставьте свою руку.`, keepHand: 'Оставить свою руку',
     duel: 'Дуэль', duelSub: 'Вы и этот игрок открываете карты, пока у каждого не выпадет число. У кого меньше — забирает все открытые карты.',
-    togetherQ: 'Сыграть вместе?', togetherSub: 'Нажимайте карты, чтобы добавить их по порядку, повторно — чтобы убрать. Перетаскивайте, чтобы поменять порядок. Последняя карта задаёт цвет.',
-    playN: k => `Сыграть ${k} ${cardsAcc(k)}`, clearOrder: 'Сбросить порядок', selectAll: 'Выбрать все', cancel: 'Отмена', close: 'Закрыть',
+    togetherQ: 'Сыграть вместе?', togetherSub: 'Карты ложатся слева направо. Перетаскивайте, чтобы поменять порядок; нажмите на карту, чтобы выключить или включить её. Последняя карта задаёт цвет.', firstMustFit: 'Первая карта должна сама подходить к сбросу.',
+    playN: k => `Сыграть ${k} ${cardsAcc(k)}`, clearOrder: 'Снять все', selectAll: 'Выбрать все', cancel: 'Отмена', close: 'Закрыть',
     leaveQ: 'Выйти из партии?', leaveSub: 'Вы выбываете из этой партии, остальные продолжают. Если просто пропала связь, у вас есть минута, чтобы вернуться на своё место.', stay: 'Остаться',
     handEmptied: 'Рука пуста.', finalCounts: 'Карт на руках в конце:', winner: 'победитель', cardsN: k => `${k} ${cardsW(k)}`, playAgain: 'Ещё раз', backLobby: 'В лобби', waitNext: 'Ждём, пока хозяин раздаст следующий раунд.',
     menuSort: 'Сортировка руки', menuLog: 'Журнал игры', menuRules: 'Как играть', menuSound: 'Звук', menuLeave: 'Выйти из партии', menuLang: 'Язык', gameLog: 'Журнал игры',
@@ -2231,14 +2232,17 @@ function myTurnNow() { return !!(G && G.turn === ME && G.roulette === null && G.
 function usable(card) { if (!G || busy || G.winner !== null || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
 async function useCard(card, el, fromRect) {
   if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
-  const me = G.players[ME], face = G.f(card), back = G.back(card);
+  const me = G.players[ME], face = G.f(card);
+  let back = G.back(card);
   busy = true;
   let color = null, flipColor = null, target = null, extra = [];
   if (G.rules.multi) {
     const same = me.hand.filter(c => c !== card && G.f(c).v === face.v && (G.f(c).c === 'w') === (face.c === 'w'));
     if (same.length) {
-      extra = await pickExtras(card, same);
-      if (extra === null) { busy = false; tick(); return; }
+      const pick = await pickExtras(card, same);
+      if (pick === null) { busy = false; tick(); return; }
+      // play order = left-to-right order of the picked cards in the chooser
+      card = pick.lead; extra = pick.extra; back = G.back(card);
     }
   }
   if (face.c === 'w' && face.v !== 'roul') color = await pickColor(t('pickColor'), cardName(face), G.side);
@@ -2690,16 +2694,20 @@ function pickTarget(title, sub, skipLabel) {
 // choose which matching cards go down together, and in what order; resolves to the cards, or null to cancel
 function pickExtras(card, same) {
   return new Promise(res => {
-    // list = display order; picked cards sit first, in play order. Tap to pick or unpick, drag to move.
-    let list = same.slice(), sel = new Set(same);
+    // The cards start in the order they sit in your hand. Play order is simply their order here, left to right:
+    // drag to rearrange, tap to switch a card off or on (it stays where it is).
+    const handPos = new Map(sortedHand(G.players[ME].hand).map((c, i) => [c, i]));
+    let list = [card, ...same].sort((a, b) => handPos.get(a) - handPos.get(b));
+    let sel = new Set(list), warn = '';
     const order = () => list.filter(c => sel.has(c));
     const draw = () => {
       const ord = order();
-      const slot = (c, cls, num, k) => `<div class="slot"${k != null ? ` data-k="${k}"` : ''}>${num ? `<span class="ord">${num}</span>` : ''}${faceHTML(G.f(c), G.side, cls)}</div>`;
+      const slot = (c, k) => { const at = ord.indexOf(c); return `<div class="slot" data-k="${k}">${at >= 0 ? `<span class="ord">${at + 1}</span>` : ''}${faceHTML(G.f(c), G.side, at >= 0 ? 'on' : 'off')}</div>`; };
       openModal(`<h2>${t('togetherQ')}</h2><p>${t('togetherSub')}</p>
-        <div class="pick" id="pickRow">${slot(card, 'lead', 1, null)}${list.map((c, k) => { const at = ord.indexOf(c); return slot(c, at >= 0 ? 'on' : 'off', at >= 0 ? at + 2 : 0, k); }).join('')}</div>
-        <button class="btn primary wide" id="pxGo">${t('playN', ord.length + 1)}</button>
-        <button class="btn wide" id="pxClear" style="margin-top:8px">${ord.length ? t('clearOrder') : t('selectAll')}</button>
+        <div class="pick" id="pickRow">${list.map(slot).join('')}</div>
+        ${warn ? `<p class="pickwarn">${esc(warn)}</p>` : ''}
+        <button class="btn primary wide" id="pxGo" ${ord.length ? '' : 'disabled'}>${t('playN', ord.length)}</button>
+        <button class="btn wide" id="pxClear" style="margin-top:8px">${ord.length === list.length ? t('clearOrder') : t('selectAll')}</button>
         <button class="textlink" id="pxCancel">${t('cancel')}</button>`);
       const slots = [...$('pickRow').querySelectorAll('.slot[data-k]')];
       slots.forEach(el => el.onpointerdown = e => {
@@ -2713,30 +2721,25 @@ function pickExtras(card, same) {
           if (!moving) return;
           const r = rects[k];
           const t2 = nearestSlot(rects, r.x + dx, r.y + dy);
-          if (t2 !== target) { target = t2; ord2 = previewOrder(slots, rects, k, target); el.style.translate = ''; SFX.play('click'); }
+          if (t2 !== target) { target = t2; ord2 = previewOrder(slots, rects, k, target); SFX.play('click'); }
           el.style.translate = `${dx}px ${dy}px`;
         };
-        const up = ev => {
+        const up = () => {
           el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
-          if (!moving) {
-            // tap: pick it (it joins the end of the picked group) or take it out
-            const c = list[k];
-            if (sel.has(c)) { sel.delete(c); list.splice(k, 1); list.splice(order().length, 0, c); }
-            else { list.splice(k, 1); list.splice(order().length, 0, c); sel.add(c); }
-            SFX.play('click'); draw(); return;
-          }
-          if (ord2 && target !== k) {
-            const c = list[k]; list = ord2.map(i => list[i]);
-            // dropped among the picked cards = picked; dropped past them = left out
-            const pickedBefore = list.slice(0, target).filter(x => sel.has(x)).length;
-            if (pickedBefore === target) sel.add(c);
-          }
+          warn = '';
+          if (!moving) { const c = list[k]; if (sel.has(c)) sel.delete(c); else sel.add(c); SFX.play('click'); }
+          else if (ord2 && target !== k) list = ord2.map(i => list[i]);
           draw();
         };
         el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
       });
-      $('pxClear').onclick = () => { if (order().length) sel.clear(); else sel = new Set(list); draw(); };
-      $('pxGo').onclick = () => { closeModal(); res(order()); };
+      $('pxClear').onclick = () => { sel = ord.length === list.length ? new Set() : new Set(list); warn = ''; draw(); };
+      $('pxGo').onclick = () => {
+        const o = order(); if (!o.length) return;
+        // the first card has to be one you could play on its own
+        if (!usable(o[0])) { warn = t('firstMustFit'); SFX.play('bad'); draw(); return; }
+        closeModal(); res({ lead: o[0], extra: o.slice(1) });
+      };
       $('pxCancel').onclick = () => { closeModal(); res(null); };
     };
     draw();
