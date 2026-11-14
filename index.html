@@ -301,7 +301,7 @@ body.lite #crt{background:radial-gradient(ellipse at center,transparent 60%,rgba
 #banner{font-family:var(--f-px);font-size:16px;letter-spacing:.03em;color:#d7d5ce;text-shadow:2px 2px 0 #000}
 #banner.you{color:var(--gold);animation:flicker 2.6s infinite}
 @keyframes flicker{0%,18%,22%,61%,65%,100%{opacity:1;text-shadow:2px 2px 0 #000,0 0 14px rgba(255,210,63,.75)}20%,63%{opacity:.45;text-shadow:2px 2px 0 #000}}
-.opp .cnt,.me .cnt,.code{font-family:var(--f-px)}
+.code{font-family:var(--f-px)}
 /* surfaces: chunky panels with a hard drop */
 .page{background:rgba(8,8,12,.78);border:2px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 8px 0 rgba(0,0,0,.6);margin-top:24px;margin-bottom:24px}
 .opp,.piles,.dialog{background:rgba(8,8,12,.74);border:2px solid rgba(255,255,255,.13);border-radius:12px;box-shadow:0 6px 0 rgba(0,0,0,.6)}
@@ -319,7 +319,7 @@ body.lite #crt{background:radial-gradient(ellipse at center,transparent 60%,rgba
 @keyframes throb{50%{transform:scale(1.07)}}
 .seg button.on{background:var(--hot);color:#fff}
 /* stack counter heats up */
-.stack{font-family:var(--f-px);color:var(--hot);text-shadow:3px 3px 0 #000,0 0 20px rgba(255,45,85,.85);animation:heat .32s infinite}
+.stack{color:var(--hot);text-shadow:3px 3px 0 #000,0 0 20px rgba(255,45,85,.85);animation:heat .32s infinite}
 @keyframes heat{25%{translate:calc(var(--heat,0) * -3px) calc(var(--heat,0) * 2px) ;rotate:calc(var(--heat,0) * -2deg)}75%{translate:calc(var(--heat,0) * 3px) calc(var(--heat,0) * -2px);rotate:calc(var(--heat,0) * 2deg)}}
 .chaosline{font:600 13px/18px var(--f-px);color:var(--gold);text-shadow:2px 2px 0 #000}
 .chaosline.warn{color:var(--hot);animation:flicker 1.2s infinite}
@@ -352,7 +352,7 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 #slot.show .slotbox{transform:scale(1) rotate(-1deg)}
 .slottitle{font:700 14px var(--f-px);color:var(--gold);letter-spacing:.3em;margin-bottom:10px}
 .reels{display:flex;gap:8px;justify-content:center}
-.reels b{width:88px;height:74px;display:grid;place-items:center;background:#fbfaf6;color:#141412;border-radius:8px;font:700 26px var(--f-px);box-shadow:inset 0 7px 0 rgba(0,0,0,.18),inset 0 -7px 0 rgba(0,0,0,.18)}
+.reels b{width:88px;height:74px;display:grid;place-items:center;background:#fbfaf6;color:#141412;border-radius:8px;font:900 30px var(--f-ui);font-variation-settings:"wdth" 75;box-shadow:inset 0 7px 0 rgba(0,0,0,.18),inset 0 -7px 0 rgba(0,0,0,.18)}
 .reels b.spin{filter:blur(1.4px);transform:translateY(2px)}
 .reels b.stop{background:var(--gold);animation:reelstop .26s cubic-bezier(.2,1.8,.4,1)}
 @keyframes reelstop{from{transform:translateY(-16px)}}
@@ -372,10 +372,9 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
 /* ===================== PIXEL ART LAYER ===================== */
 .card{border-radius:0;box-shadow:0 5px 0 rgba(0,0,0,.55),inset 0 0 0 calc(var(--cw)*.025) rgba(0,0,0,.28)}
 .card .oval{border-radius:0;clip-path:polygon(50.0% 0.0%,61.1% 0.0%,61.1% 1.3%,71.7% 1.3%,71.7% 5.0%,81.2% 5.0%,81.2% 10.9%,89.1% 10.9%,89.1% 18.8%,95.0% 18.8%,95.0% 28.3%,98.7% 28.3%,98.7% 38.9%,100.0% 38.9%,100.0% 50.0%,100.0% 50.0%,100.0% 61.1%,98.7% 61.1%,98.7% 71.7%,95.0% 71.7%,95.0% 81.2%,89.1% 81.2%,89.1% 89.1%,81.2% 89.1%,81.2% 95.0%,71.7% 95.0%,71.7% 98.7%,61.1% 98.7%,61.1% 100.0%,50.0% 100.0%,50.0% 100.0%,38.9% 100.0%,38.9% 98.7%,28.299999999999997% 98.7%,28.299999999999997% 95.0%,18.799999999999997% 95.0%,18.799999999999997% 89.1%,10.900000000000006% 89.1%,10.900000000000006% 81.2%,5.0% 81.2%,5.0% 71.7%,1.2999999999999972% 71.7%,1.2999999999999972% 61.1%,0.0% 61.1%,0.0% 50.0%,0.0% 50.0%,0.0% 38.9%,1.2999999999999972% 38.9%,1.2999999999999972% 28.3%,5.0% 28.3%,5.0% 18.8%,10.900000000000006% 18.8%,10.900000000000006% 10.9%,18.799999999999997% 10.9%,18.799999999999997% 5.0%,28.299999999999997% 5.0%,28.299999999999997% 1.3%,38.9% 1.3%,38.9% 0.0%,50.0% 0.0%)}
-.card .mid,.card .cor{font-family:var(--f-px);font-weight:700;font-variation-settings:normal;letter-spacing:0}
 .card .mid{text-shadow:calc(var(--cw)*.03) calc(var(--cw)*.03) 0 rgba(0,0,0,.3)}
 .card.c-w .mid{border-radius:0;box-shadow:0 0 0 2px #161614,3px 3px 0 2px rgba(0,0,0,.5)}
-.card .mid em{font-family:var(--f-px);font-weight:600;letter-spacing:.02em;text-shadow:none}
+.card .mid em{text-shadow:none}
 .card svg{shape-rendering:crispEdges}
 .card .mid.sm{font-size:calc(var(--cw)*.27)}
 #hand .card::after{border-radius:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.35) 30% 40%,transparent 40% 52%,rgba(255,255,255,.2) 52% 56%,transparent 56%)}
@@ -398,6 +397,13 @@ body.lite #fire{display:none}
 #cardtip p{margin:6px 0 0}
 body.lite #cardtip{transition:none}
 #hand .card{-webkit-touch-callout:none;user-select:none}
+
+/* drag to reorder */
+#hand.reorder .card,.pick.reorder .slot{animation:none!important;transition:translate 140ms cubic-bezier(.2,.8,.2,1)}
+#hand.reorder .card.lifted{opacity:.15}
+.pick .slot{touch-action:none;cursor:grab;transition:translate 140ms cubic-bezier(.2,.8,.2,1)}
+.pick .slot.held{transition:none;z-index:5;cursor:grabbing;filter:drop-shadow(0 10px 0 rgba(0,0,0,.45))}
+#hand .card{touch-action:none}
 </style>
 </head>
 <body>
@@ -1236,7 +1242,7 @@ const STR = {
     connecting: 'Connecting…', connServer: 'Connecting to the game server…', enterCode: 'Enter the 4-character room code.', enterName: 'Enter your name, then Join.',
     rejoining: c => `Rejoining room ${c}…`, cantReach: 'Could not reach the game server.', reconnecting: 'Reconnecting…', connLost: 'Connection lost. Reconnecting…', otherTab: 'This room was opened in another tab.',
     room: c => `Room ${c}`, log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off',
-    draw: 'Draw', pass: 'Pass', uno: 'UNO', unoCalled: 'UNO called', sort: m => `Sort: ${({ color: 'color', value: 'number', none: 'off' })[m]}`, leave: 'Leave', menu: 'Menu',
+    draw: 'Draw', pass: 'Pass', uno: 'UNO', unoCalled: 'UNO called', sort: m => `Sort: ${({ color: 'color', value: 'number', none: 'off', manual: 'by hand' })[m]}`, leave: 'Leave', menu: 'Menu',
     take: k => `Take +${k}`, pickUpLeft: k => `Pick up (${k} left)`, drawUntil: (c, k) => `Draw until ${c} (${k})`, penalty: k => `Pick up penalty (${k})`, drawAgain: k => `Draw again (${k})`,
     lightSide: 'Light side', darkSide: 'Dark side', colorPending: 'Color pending', cw: '↻ Clockwise ›', ccw: '↺ Counter-clockwise ‹', stack: 'Stack',
     youWin: 'You win', wins: n => `${n} wins`, youLeft: 'You left this match. Watching the rest of it.',
@@ -1255,7 +1261,7 @@ const STR = {
     flipWild: 'The flip lands on a wild', flipWildSub: n => `The back of this card is ${n}. Choose its color.`,
     swapQ: 'Swap hands?', swapSub: k => `You keep ${k} ${cardsAcc(k)} after this play. Trade with someone, or keep your hand.`, keepHand: 'Keep my hand',
     duel: 'Duel', duelSub: 'You and this player turn over cards until each hits a number. The lower number picks up every card turned over.',
-    togetherQ: 'Play them together?', togetherSub: 'Tap cards in the order you want them played. Tap a numbered card to take it out. The last card sets the color.',
+    togetherQ: 'Play them together?', togetherSub: 'Tap cards to add them in play order, tap again to take one out. Drag cards to rearrange. The last card sets the color.',
     playN: k => `Play ${k} ${cardsAcc(k)}`, clearOrder: 'Clear order', selectAll: 'Select all', cancel: 'Cancel', close: 'Close',
     leaveQ: 'Leave the match?', leaveSub: "You'll be out of this match and everyone else keeps playing. If your connection just drops, you have a minute to come back to your seat.", stay: 'Stay',
     handEmptied: 'Hand emptied.', finalCounts: 'Final card counts:', winner: 'winner', cardsN: k => `${k} ${cardsW(k)}`, playAgain: 'Play again', backLobby: 'Back to lobby', waitNext: 'Waiting for the host to deal the next round.',
@@ -1279,7 +1285,7 @@ const STR = {
     connecting: 'Подключение…', connServer: 'Подключаемся к игровому серверу…', enterCode: 'Введите код комнаты из 4 символов.', enterName: 'Введите имя и нажмите «Войти».',
     rejoining: c => `Возвращаемся в комнату ${c}…`, cantReach: 'Не удалось связаться с игровым сервером.', reconnecting: 'Переподключение…', connLost: 'Связь потеряна. Переподключаемся…', otherTab: 'Эта комната открыта в другой вкладке.',
     room: c => `Комната ${c}`, log: 'Журнал', soundOn: 'Звук вкл', soundOff: 'Звук выкл',
-    draw: 'Взять', pass: 'Пас', uno: 'УНО', unoCalled: 'УНО сказано', sort: m => `Сортировка: ${({ color: 'цвет', value: 'номер', none: 'выкл' })[m]}`, leave: 'Выйти', menu: 'Меню',
+    draw: 'Взять', pass: 'Пас', uno: 'УНО', unoCalled: 'УНО сказано', sort: m => `Сортировка: ${({ color: 'цвет', value: 'номер', none: 'выкл', manual: 'вручную' })[m]}`, leave: 'Выйти', menu: 'Меню',
     take: k => `Взять +${k}`, pickUpLeft: k => `Брать (осталось ${k})`, drawUntil: (c, k) => `Тянуть до цвета «${c}» (${k})`, penalty: k => `Взять штраф (${k})`, drawAgain: k => `Тянуть ещё (${k})`,
     lightSide: 'Светлая сторона', darkSide: 'Тёмная сторона', colorPending: 'Цвет выбирается', cw: '↻ По часовой ›', ccw: '↺ Против часовой ‹', stack: 'Стопка',
     youWin: 'Вы победили', wins: n => `Победил(а) ${n}`, youLeft: 'Вы вышли из этой партии. Можно досмотреть.',
@@ -1298,7 +1304,7 @@ const STR = {
     flipWild: 'Флип выпал на джокера', flipWildSub: n => `На обороте этой карты — ${n}. Выберите цвет.`,
     swapQ: 'Поменяться руками?', swapSub: k => `После хода у вас останется ${k} ${cardsW(k)}. Поменяйтесь с кем-нибудь или оставьте свою руку.`, keepHand: 'Оставить свою руку',
     duel: 'Дуэль', duelSub: 'Вы и этот игрок открываете карты, пока у каждого не выпадет число. У кого меньше — забирает все открытые карты.',
-    togetherQ: 'Сыграть вместе?', togetherSub: 'Нажимайте карты в том порядке, в каком хотите их сыграть. Нажмите на пронумерованную карту, чтобы убрать её. Цвет задаёт последняя карта.',
+    togetherQ: 'Сыграть вместе?', togetherSub: 'Нажимайте карты, чтобы добавить их по порядку, повторно — чтобы убрать. Перетаскивайте, чтобы поменять порядок. Последняя карта задаёт цвет.',
     playN: k => `Сыграть ${k} ${cardsAcc(k)}`, clearOrder: 'Сбросить порядок', selectAll: 'Выбрать все', cancel: 'Отмена', close: 'Закрыть',
     leaveQ: 'Выйти из партии?', leaveSub: 'Вы выбываете из этой партии, остальные продолжают. Если просто пропала связь, у вас есть минута, чтобы вернуться на своё место.', stay: 'Остаться',
     handEmptied: 'Рука пуста.', finalCounts: 'Карт на руках в конце:', winner: 'победитель', cardsN: k => `${k} ${cardsW(k)}`, playAgain: 'Ещё раз', backLobby: 'В лобби', waitNext: 'Ждём, пока хозяин раздаст следующий раунд.',
@@ -1860,6 +1866,7 @@ const IDLE_MS = 60000, AWAY_MS = 15000;
 const CVAR = { r: 'var(--r)', y: 'var(--y)', g: 'var(--g)', b: 'var(--b)', p: 'var(--p)', t: 'var(--t)', o: 'var(--o)', v: 'var(--v)' };
 const S = loadSettings();
 let G = null, busy = false, sortMode = 'color', lastHandIds = new Set();
+let handOrder = []; // card ids in the order you dragged them (sortMode 'manual')
 let lastLogKey = '', lastLogMsgs = [], lastEvN = 0, lastPlayRect = null, dragging = false, turnKey = '', turnStartedAt = 0;
 let roomCode = '', isHost = false, lastLobby = null, lastGid = null, rouletteOpen = false, roulettePrompted = -1, away = [];
 const $ = id => document.getElementById(id);
@@ -2244,33 +2251,66 @@ async function useCard(card, el, fromRect) {
   act('play', { card: cardCode(card), color, flipColor, target, extra: extra.map(cardCode) });
 }
 function overDiscard(x, y) { const r = rectOf($('discard')); return r && x > r.left - 40 && x < r.right + 40 && y > r.top - 40 && y < r.bottom + 40; }
+// ---------- drag to reorder, Balatro style: the others slide apart to open a gap ----------
+function slotRects(els) { return els.map(e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, l: r.left, t: r.top }; }); }
+function nearestSlot(rects, x, y, allowed) {
+  let best = -1, bd = Infinity;
+  rects.forEach((r, i) => { if (allowed && !allowed(i)) return; const d = Math.abs(r.x - x) + Math.abs(r.y - y) * 1.6; if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+// move element src to slot `to` (visually only), returns the new order of indices
+function previewOrder(els, rects, src, to) {
+  const order = els.map((_, i) => i); order.splice(src, 1); order.splice(to, 0, src);
+  order.forEach((oi, ni) => { const e = els[oi]; const dx = rects[ni].l - rects[oi].l, dy = rects[ni].t - rects[oi].t; e.style.translate = (dx || dy) ? `${dx}px ${dy}px` : ''; });
+  return order;
+}
+function clearPreview(els) { els.forEach(e => { e.style.translate = ''; }); }
+
 function attachCard(el, card) {
   el.addEventListener('pointermove', e => { if (!dragging) JUICE.tilt(el, e); });
   el.addEventListener('pointerleave', () => JUICE.untilt(el));
   el.onpointerdown = e => {
     if (e.button > 0) return;
     const sx = e.clientX, sy = e.clientY, r0 = el.getBoundingClientRect();
-    let ghost = null;
+    let ghost = null, els = null, rects = null, src = -1, target = -1, order = null;
+    const handBox = $('hand').getBoundingClientRect();
+    const inHand = y => y > handBox.top - 40;
     try { el.setPointerCapture(e.pointerId); } catch (x) {}
     const move = ev => {
       const dx = ev.clientX - sx, dy = ev.clientY - sy;
-      if (!ghost && Math.hypot(dx, dy) > 10 && usable(card)) {
+      if (!ghost && Math.hypot(dx, dy) > 10) {
         dragging = true;
+        els = [...$('hand').querySelectorAll('.card[data-id]')]; rects = slotRects(els); src = target = els.indexOf(el);
+        $('hand').classList.add('reorder'); TIP.hide();
         const w = document.createElement('div'); w.innerHTML = el.outerHTML; ghost = w.firstElementChild;
         ghost.className = ghost.className.replace(/\b(ok|dim|jump|new|flipin|nope)\b/g, '');
         Object.assign(ghost.style, { margin: '0', width: r0.width + 'px', height: r0.height + 'px', zIndex: 99, transition: 'none' });
         $('fx').appendChild(ghost); el.classList.add('lifted');
       }
-      if (ghost) { ghost.style.transform = `translate(${r0.left + dx}px,${r0.top + dy}px)`; $('discard').classList.toggle('drop', overDiscard(ev.clientX, ev.clientY)); }
+      if (ghost) {
+        ghost.style.transform = `translate(${r0.left + dx}px,${r0.top + dy}px)`;
+        const onPile = usable(card) && overDiscard(ev.clientX, ev.clientY);
+        $('discard').classList.toggle('drop', onPile);
+        const t2 = !onPile && inHand(ev.clientY) && src >= 0 ? nearestSlot(rects, r0.left + dx + r0.width / 2, r0.top + dy + r0.height / 2) : src;
+        if (t2 !== target) { target = t2; order = previewOrder(els, rects, src, target); if (target !== src) SFX.play('click'); }
+      }
     };
     const up = ev => {
       el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
       $('discard').classList.remove('drop');
       if (ghost) {
-        const gr = ghost.getBoundingClientRect(), hit = ev.type === 'pointerup' && overDiscard(ev.clientX, ev.clientY);
-        dragging = false;
-        if (hit) { ghost.remove(); el.classList.remove('lifted'); useCard(card, el, gr); }
+        const gr = ghost.getBoundingClientRect(), hit = ev.type === 'pointerup' && usable(card) && overDiscard(ev.clientX, ev.clientY);
+        dragging = false; $('hand').classList.remove('reorder');
+        if (hit) { clearPreview(els); ghost.remove(); el.classList.remove('lifted'); useCard(card, el, gr); }
+        else if (ev.type === 'pointerup' && target >= 0 && target !== src) {
+          // keep the new order: from now on the hand is sorted by hand
+          handOrder = order.map(i => els[i].dataset.id); sortMode = 'manual';
+          const dest = rects[target];
+          const a = ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${dest.l}px,${dest.t}px)` }], { duration: 120, easing: 'ease-out' });
+          a.onfinish = () => { ghost.remove(); clearPreview(els); el.classList.remove('lifted'); render(); };
+        }
         else {
+          clearPreview(els);
           const a = ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${r0.left}px,${r0.top}px)` }], { duration: 150, easing: 'ease-out' });
           a.onfinish = () => { ghost.remove(); el.classList.remove('lifted'); render(); };
         }
@@ -2283,7 +2323,7 @@ $('btnDraw').onclick = () => { if (!busy && G && !$('btnDraw').disabled) act('dr
 $('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
 $('btnUno').onclick = () => { if (G && G.players[ME]) act('uno'); };
 $('drawpile').onclick = () => $('btnDraw').onclick();
-$('btnSort').onclick = () => { sortMode = { color: 'value', value: 'none', none: 'color' }[sortMode]; render(); };
+$('btnSort').onclick = () => { sortMode = { color: 'value', value: 'none', none: 'color', manual: 'color' }[sortMode]; render(); };
 $('btnQuit').onclick = () => {
   openModal(`<h2>${t('leaveQ')}</h2><p>${t('leaveSub')}</p><button class="btn primary wide" id="lvGo">${t('leave')}</button><button class="textlink" id="lvNo">${t('stay')}</button>`);
   $('lvGo').onclick = leaveRoom; $('lvNo').onclick = closeModal;
@@ -2369,6 +2409,13 @@ function sortedHand(h) {
   const order = { r: 0, y: 1, g: 2, b: 3, p: 0, t: 1, o: 2, v: 3, w: 4 }, keys = Object.keys(SYM);
   const vr = v => isNaN(+v) ? 10 + keys.indexOf(v) : +v;
   const a = h.slice(), F = c => G.f(c);
+  if (sortMode === 'manual') {
+    const pos = new Map(handOrder.map((id, i) => [String(id), i]));
+    const known = a.filter(c => pos.has(String(c.id))).sort((x, y) => pos.get(String(x.id)) - pos.get(String(y.id)));
+    const fresh = a.filter(c => !pos.has(String(c.id)));   // newly drawn cards go to the right end
+    handOrder = known.concat(fresh).map(c => String(c.id));
+    return known.concat(fresh);
+  }
   if (sortMode === 'color') a.sort((x, y) => order[F(x).c] - order[F(y).c] || vr(F(x).v) - vr(F(y).v));
   else if (sortMode === 'value') a.sort((x, y) => vr(F(x).v) - vr(F(y).v) || order[F(x).c] - order[F(y).c]);
   return a;
@@ -2643,21 +2690,53 @@ function pickTarget(title, sub, skipLabel) {
 // choose which matching cards go down together, and in what order; resolves to the cards, or null to cancel
 function pickExtras(card, same) {
   return new Promise(res => {
-    let order = same.slice(); // tap order = play order; the card you picked always goes first
+    // list = display order; picked cards sit first, in play order. Tap to pick or unpick, drag to move.
+    let list = same.slice(), sel = new Set(same);
+    const order = () => list.filter(c => sel.has(c));
     const draw = () => {
-      const slot = (c, cls, num, k) => `<div class="slot">${num ? `<span class="ord">${num}</span>` : ''}${faceHTML(G.f(c), G.side, cls).replace('class="card', (k != null ? `data-k="${k}" ` : '') + 'class="card')}</div>`;
+      const ord = order();
+      const slot = (c, cls, num, k) => `<div class="slot"${k != null ? ` data-k="${k}"` : ''}>${num ? `<span class="ord">${num}</span>` : ''}${faceHTML(G.f(c), G.side, cls)}</div>`;
       openModal(`<h2>${t('togetherQ')}</h2><p>${t('togetherSub')}</p>
-        <div class="pick">${slot(card, 'lead', 1, null)}${same.map((c, k) => { const at = order.indexOf(c); return slot(c, at >= 0 ? 'on' : 'off', at >= 0 ? at + 2 : 0, k); }).join('')}</div>
-        <button class="btn primary wide" id="pxGo">${t('playN', order.length + 1)}</button>
-        <button class="btn wide" id="pxClear" style="margin-top:8px">${order.length ? t('clearOrder') : t('selectAll')}</button>
+        <div class="pick" id="pickRow">${slot(card, 'lead', 1, null)}${list.map((c, k) => { const at = ord.indexOf(c); return slot(c, at >= 0 ? 'on' : 'off', at >= 0 ? at + 2 : 0, k); }).join('')}</div>
+        <button class="btn primary wide" id="pxGo">${t('playN', ord.length + 1)}</button>
+        <button class="btn wide" id="pxClear" style="margin-top:8px">${ord.length ? t('clearOrder') : t('selectAll')}</button>
         <button class="textlink" id="pxCancel">${t('cancel')}</button>`);
-      $('modalBody').querySelectorAll('[data-k]').forEach(el => el.onclick = () => {
-        const c = same[+el.dataset.k];
-        order = order.includes(c) ? order.filter(x => x !== c) : order.concat(c);
-        SFX.play('click'); draw();
+      const slots = [...$('pickRow').querySelectorAll('.slot[data-k]')];
+      slots.forEach(el => el.onpointerdown = e => {
+        if (e.button > 0) return;
+        const sx = e.clientX, sy = e.clientY, k = +el.dataset.k;
+        let moving = false, rects = null, target = k, ord2 = null;
+        try { el.setPointerCapture(e.pointerId); } catch (x) {}
+        const move = ev => {
+          const dx = ev.clientX - sx, dy = ev.clientY - sy;
+          if (!moving && Math.hypot(dx, dy) > 8) { moving = true; TIP.hide(); rects = slotRects(slots); $('pickRow').classList.add('reorder'); el.classList.add('held'); }
+          if (!moving) return;
+          const r = rects[k];
+          const t2 = nearestSlot(rects, r.x + dx, r.y + dy);
+          if (t2 !== target) { target = t2; ord2 = previewOrder(slots, rects, k, target); el.style.translate = ''; SFX.play('click'); }
+          el.style.translate = `${dx}px ${dy}px`;
+        };
+        const up = ev => {
+          el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+          if (!moving) {
+            // tap: pick it (it joins the end of the picked group) or take it out
+            const c = list[k];
+            if (sel.has(c)) { sel.delete(c); list.splice(k, 1); list.splice(order().length, 0, c); }
+            else { list.splice(k, 1); list.splice(order().length, 0, c); sel.add(c); }
+            SFX.play('click'); draw(); return;
+          }
+          if (ord2 && target !== k) {
+            const c = list[k]; list = ord2.map(i => list[i]);
+            // dropped among the picked cards = picked; dropped past them = left out
+            const pickedBefore = list.slice(0, target).filter(x => sel.has(x)).length;
+            if (pickedBefore === target) sel.add(c);
+          }
+          draw();
+        };
+        el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
       });
-      $('pxClear').onclick = () => { order = order.length ? [] : same.slice(); draw(); };
-      $('pxGo').onclick = () => { closeModal(); res(order); };
+      $('pxClear').onclick = () => { if (order().length) sel.clear(); else sel = new Set(list); draw(); };
+      $('pxGo').onclick = () => { closeModal(); res(order()); };
       $('pxCancel').onclick = () => { closeModal(); res(null); };
     };
     draw();
@@ -2690,7 +2769,7 @@ const TIP = (() => {
   let cur = null, pressT = 0, suppressClick = false;
   const faceOf = card => { const [side, c, v] = (card.dataset.f || '').split('|'); return v ? { side, f: { c, v } } : null; };
   function show(card) {
-    const d = faceOf(card); if (!d) return;
+    const d = faceOf(card); if (!d || dragging) return;
     cur = card;
     const side = d.side === 'D' ? t('tDark') : t('tLight');
     el.innerHTML = `<b>${esc(cardName(d.f))}</b><span class="tipside">${esc(side)}</span>${cardDesc(d.f) ? `<p>${esc(cardDesc(d.f))}</p>` : ''}`;
@@ -2704,6 +2783,7 @@ const TIP = (() => {
   function hide() { cur = null; el.className = ''; }
   document.addEventListener('pointerover', e => {
     if (e.pointerType !== 'mouse') return;
+    if (dragging || document.querySelector('.pick.reorder')) { if (cur) hide(); return; }
     const card = e.target.closest && e.target.closest('.card[data-f]');
     if (card && card !== cur) show(card); else if (!card && cur) hide();
   });
@@ -2711,8 +2791,11 @@ const TIP = (() => {
     if (e.pointerType === 'mouse') { hide(); return; }
     const card = e.target.closest && e.target.closest('.card[data-f]');
     clearTimeout(pressT); hide();
-    if (card) pressT = setTimeout(() => { show(card); suppressClick = true; }, 450);
+    if (card) { const x0 = e.clientX, y0 = e.clientY; pressT = setTimeout(() => { show(card); suppressClick = true; }, 450);
+      const mv = ev => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) { clearTimeout(pressT); document.removeEventListener('pointermove', mv, true); } };
+      document.addEventListener('pointermove', mv, true); setTimeout(() => document.removeEventListener('pointermove', mv, true), 600); }
   }, true);
+  document.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') hide(); }, true);
   const end = () => { clearTimeout(pressT); if (cur && suppressClick) setTimeout(hide, 1600); };
   document.addEventListener('pointerup', end, true);
   document.addEventListener('pointercancel', end, true);
