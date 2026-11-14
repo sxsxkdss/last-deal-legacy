@@ -3158,9 +3158,9 @@ const ASSETS = (() => {
       // ease the tape speed and the muffling toward day or night over a couple of seconds
       const night = document.body.classList.contains('dark');
       const tr = night ? NIGHT_RATE : 1;
-      if (Math.abs(rate - tr) > 0.002) { rate += (tr - rate) * 0.06; if (Math.abs(rate - tr) < 0.004) rate = tr; decks.forEach(d => { d.el.playbackRate = rate; }); }
+      if (Math.abs(rate - tr) > 0.0005) { rate += (tr - rate) * (1 - Math.exp(-dt / 2.6)); if (Math.abs(rate - tr) < 0.001) rate = tr; decks.forEach(d => { d.el.playbackRate = rate; }); }
       const tf = night ? NIGHT_LP : DAY_LP;
-      if (lp && Math.abs(lp.frequency.value - tf) > 1) lp.frequency.setTargetAtTime(tf, SFX.ctx.currentTime, 0.8);
+      if (lp && Math.abs(lp.frequency.value - tf) > 1) lp.frequency.setTargetAtTime(tf, SFX.ctx.currentTime, 2.6);
       const on = want();
       if (!on && playing) { playing = false; ramp(bus.gain, 0, FADE_TOGGLE); master.to = 0; master.rate = 1 / FADE_TOGGLE; setTimeout(() => { if (!playing) decks.forEach(d => d.el.pause()); }, FADE_TOGGLE * 1000 + 50); return; }
       if (on && !playing) { playing = true; decks.forEach(d => { if (d.started && d.el.currentTime > 0 && !d.el.ended) d.el.play().catch(() => {}); }); bus.gain.value = 0; ramp(bus.gain, halfVol(), FADE_TOGGLE); master.env = 0; master.to = 1; master.rate = 1 / FADE_TOGGLE; return; }
