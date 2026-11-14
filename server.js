@@ -17,7 +17,7 @@ const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
 const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb', 'd6', 'pill', 'tower', 'glitch', 'brim', 'foot', 'maze', 'deal', 'monstro'];
-const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'overload', 'potato', 'revenge', 'snitch', 'finisher', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
 const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
 
 const clean = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
@@ -90,7 +90,7 @@ function newCode() {
 function makeRoom(hostToken) {
   const room = {
     code: newCode(), host: hostToken, members: new Map(), order: [],
-    rules: { flip: true, stacking: true, multi: true, combos: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true, chaos: true },
+    rules: { flip: true, stacking: true, multi: true, combos: true, gamble: true, overload: true, potato: true, revenge: true, snitch: true, finisher: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true, chaos: true },
     cards: Object.fromEntries(EXTRA.map(k => [k, true])),
     G: null, seats: [], timer: null, emptySince: null
   };
@@ -182,6 +182,7 @@ function nextBotJob(room) {
     const p = G.players[pi], m = Bot.choose(G, pi);
     if (m) { if (p.hand.length - 1 - (m.extra || []).length <= 1 && Math.random() < 0.85) G.callUno(pi); G.play(pi, m.cardId, m); return; }
     if (G.drewBy === pi) { G.pass(pi); return; }
+    if (G.canGamble(pi) && Math.random() < 0.4) { G.gamble(pi); return; }
     G.draw(pi);
   } };
 }
@@ -220,6 +221,7 @@ function applyAct(G, pi, a) {
     }
     case 'draw': G.draw(pi); break;
     case 'pass': G.pass(pi); break;
+    case 'gamble': G.gamble(pi); break;
     case 'uno': G.callUno(pi); break;
     case 'catch': if (target !== null) G.catchUno(pi, target); break;
     case 'roul': if (G.roulette === pi) G.resolveRoulette(col); break;

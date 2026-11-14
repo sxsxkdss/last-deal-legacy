@@ -40,9 +40,9 @@ const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
-  L: { colored: { '0': 1, '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2, tower: 1 },
+  L: { colored: { '0': 2, '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2, tower: 1 },
        wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, wheel: 2, d6: 1, glitch: 2 } },
-  D: { colored: { '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, interest: 1, foot: 1, maze: 1 },
+  D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, interest: 1, foot: 1, maze: 1 },
        wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1, mul3: 1, devil: 1, sacrifice: 1, brim: 1, deal: 1, monstro: 1 } }
 };
 const FACES = {}, FACE_W = {};
@@ -71,7 +71,7 @@ class Game {
     rules = Object.assign({}, rules);
     if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
     delete rules.sevenZero;
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, overload: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -90,6 +90,7 @@ class Game {
     this.debt = null; // cards someone must draw by hand before play moves on: { pi, n | until, got, kind }
     // Chaos: every few plays the table rolls a random event
     this.chaosIn = 9; this.inflate = 0; this.lock = 0; this.lastChaos = null; this.maze = 0;
+    this.potato = { fuse: 12 + Math.floor(Math.random() * 10), cool: 0 }; // Hot Potato: a hidden fuse ticking down with every play
     this.multNext = 1; // a multiplier played with no stack waits for the next draw card
     this.drewBy = -1; this.winner = null; this.log = []; this.seq = 0;
     this.events = []; this.evSeq = 0;
@@ -142,6 +143,17 @@ class Game {
     return got;
   }
   mercyCheck() {
+    if (!this.rules.mercy && this.rules.overload !== false) for (const p of this.players) {
+      if (!p.out && p.hand.length >= 25) {
+        const pi = this.players.indexOf(p), others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
+        if (!others.length) break;
+        for (let i = p.hand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p.hand[i], p.hand[j]] = [p.hand[j], p.hand[i]]; }
+        const burnt = p.hand.splice(12).length;
+        for (const i of others) this.players[i].oweN = (this.players[i].oweN || 0) + 2;
+        this.addLog(`OVERLOAD: ${p.name}'s hand explodes. ${burnt} cards burn, everyone else catches 2.`, 'bad', 'overload', { n: p.name, k: burnt });
+        this.ev('overload', { pi, k: burnt });
+      }
+    }
     if (this.rules.mercy) for (const p of this.players) {
       if (!p.out && p.hand.length >= this.rules.mercy) {
         p.out = true; p.elim = true;
@@ -536,12 +548,29 @@ class Game {
         break;
       }
     }
+    if (p.revenge && DRAW_VAL[face.v] && this.pending > 0) {
+      const add = DRAW_VAL[face.v] * k; this.pending += add; p.revenge = false;
+      this.addLog(`REVENGE: ${p.name}'s card counts double. The stack is +${this.pending}.`, 'stack', 'revenge', { n: p.name, k: this.pending });
+      this.ev('revenge', { pi, k: this.pending });
+    }
     if (face.v === 'roul') this.turn = this.roulette;
     else if (steps >= 0) this.turn = steps === 0 ? pi : this.nextIdx(pi, steps);
     this.applyShield();
     this.checkFlipBack();
     if (this.inflate > 0) this.inflate--;
     if (this.lock > 0) this.lock--;
+    if (this.rules.potato !== false && this.winner === null && this.potato) {
+      const pt = this.potato;
+      if (pt.fuse > 0 && --pt.fuse === 0) {
+        const v = this.turn; this.players[v].oweN = (this.players[v].oweN || 0) + 3;
+        this.addLog(`The hot potato blows up on ${this.players[v].name}: +3.`, 'bad', 'potato', { n: this.players[v].name });
+        this.ev('potato', { pi: v });
+        pt.cool = 10 + Math.floor(Math.random() * 8);
+      } else if (pt.fuse === 0 && pt.cool > 0 && --pt.cool === 0) {
+        pt.fuse = 10 + Math.floor(Math.random() * 10);
+        this.addLog('A new hot potato starts ticking.', 'flip', 'potatoLit', {}); this.ev('potatoLit', {});
+      }
+    }
     if (this.maze > 0 && face.v !== 'maze') {
       this.maze--;
       if (Math.random() < 0.5 && steps >= 0 && face.v !== 'roul') { this.dir *= -1; this.turn = steps === 0 ? pi : this.nextIdx(pi, steps); this.ev('reverse', { dir: this.dir }); this.addLog('The maze twists: direction flips.', 'flip', 'mazeTwist', {}); }
@@ -602,6 +631,7 @@ class Game {
           : `${p.name} drew ${d.got} card${d.got > 1 ? 's' : ''} before hitting ${COLOR_NAME[d.until]}.`, 'bad',
           d.kind === 'stack' ? 'pickedUp' : 'drewUntil', { n: p.name, k: d.got, h: p.hand.length, c: d.until || null });
         if (d.got >= 10) this.ev('took', { pi, k: d.got });
+        if (d.kind === 'stack' && d.got >= 10 && this.rules.revenge !== false) { p.revenge = true; this.addLog(`${p.name} swears revenge: their next draw card counts double.`, 'stack', 'revengeOn', { n: p.name }); this.ev('revengeOn', { pi }); }
         this.debt = null; this.drewBy = -1; this.drawRun = 0;
         this.turn = this.nextIdx(pi, 1);
         this.applyShield(); this.checkFlipBack();
@@ -611,6 +641,7 @@ class Game {
     }
     if (this.pending > 0) {
       // taking the stack: the cards are picked up one by one
+      if (this.rules.finisher !== false && p.hand.length <= 2) { this.pending += 4; this.addLog(`FINISHER: ${p.name} was about to win. The stack grows to +${this.pending}.`, 'bad', 'finisher', { n: p.name, k: this.pending }); this.ev('finisher', { pi, k: this.pending }); }
       if (p.marked) { p.marked = false; this.pending *= 2; this.addLog(`The devil collects: ${p.name}'s stack is doubled to +${this.pending}.`, 'bad', 'dealDue', { n: p.name, k: this.pending }); this.ev('dealDue', { pi, k: this.pending }); }
       this.debt = { pi, n: this.pending, got: 0, kind: 'stack' };
       this.addLog(`${p.name} takes the +${this.pending} stack.`, 'bad', 'takes', { n: p.name, k: this.pending });
@@ -768,6 +799,26 @@ class Game {
     for (const c of h) { const f = this.f(c); const key = (f.c === 'w' ? 'w:' : '') + f.v; cnt[key] = (cnt[key] || 0) + 1; }
     return Object.values(cnt).some(n => n >= h.length - 1);
   }
+  // Russian roulette: facing a stack of +8 or more, pull the trigger instead of answering it.
+  // Click: the stack is gone and the turn passes. Bang: you take it doubled.
+  canGamble(pi) { return this.rules.gamble !== false && pi === this.turn && this.pending >= 8 && !this.debt && this.roulette === null && !this.owes(pi) && this.winner === null; }
+  gamble(pi) {
+    if (!this.canGamble(pi)) return null;
+    const p = this.players[pi], k = this.pending;
+    this.seq++;
+    if (Math.random() < 0.5) {
+      this.addLog(`${p.name} spins the revolver… click. The +${k} stack is gone.`, 'win', 'gambleWin', { n: p.name, k });
+      this.ev('gamble', { pi, ok: 1, k });
+      this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.drewBy = -1;
+      this.turn = this.nextIdx(pi, 1); this.applyShield(); this.checkFlipBack();
+      return true;
+    }
+    this.pending *= 2;
+    this.addLog(`${p.name} spins the revolver… BANG. The stack doubles to +${this.pending}.`, 'bad', 'gambleLose', { n: p.name, k: this.pending });
+    this.ev('gamble', { pi, ok: 0, k: this.pending });
+    this.draw(pi);
+    return false;
+  }
   catchUno(catcher, target) {
     const t = this.players[target];
     if (!t || !t.vulnerable || t.hand.length !== 1 || t.out || catcher === target) return false;
@@ -775,6 +826,12 @@ class Game {
     this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO. ${t.name} must draw 2.`, 'bad', 'caught', { n: this.players[catcher].name, t: t.name });
     this.ev('caught', { pi: target, by: catcher });
     t.oweN = (t.oweN || 0) + 2; this.seq++;
+    if (this.rules.snitch !== false) {
+      // the snitch also dumps two of their own cards on the victim
+      const c = this.players[catcher]; let given = 0;
+      for (let r = 0; r < 1 && c.hand.length > 1; r++) { t.hand.push(c.hand.splice(Math.floor(Math.random() * c.hand.length), 1)[0]); given++; }
+      if (given) { this.addLog(`Snitch: ${c.name} also dumps ${given} of their cards on ${t.name}.`, 'bad', 'snitch', { n: c.name, t: t.name, g: given }); this.ev('snitch', { a: catcher, b: target, g: given }); }
+    }
     return true;
   }
 }
@@ -895,8 +952,8 @@ function serialize(g, viewer = -1, logN = 8) {
     gid: g.gid, ru: g.rules, sd: g.side,
     p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
-      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0]),
-    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0]),
+    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
     ev: g.events.slice(-12), es: g.evSeq
@@ -912,9 +969,9 @@ function deserialize(st) {
     if (hs[0] === '!') hand = [...hs.slice(1)].map(ch => { const c = { id: CARD_ID++, hidden: true }; c[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(ch)] || { c: 'w', v: 'wild' }); return c; });
     else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
-      out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), oweN: a[5] || 0, owed: [], loan: a[6] || 0 };
+      out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0 };
   });
-  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
+  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
   g.roulette = st.o < 0 ? null : st.o; g.drewBy = st.w; g.winner = st.x < 0 ? null : st.x; g.seq = st.s;
