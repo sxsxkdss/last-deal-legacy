@@ -1,4 +1,4 @@
-// UNO Flip · No Mercy — game server.
+// LAST DEAL — game server.
 // Serves index.html and runs every match on the server, so all players see the same table
 // and anyone can drop out and rejoin a live match in their own seat.
 'use strict';
@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
-const { Game, Bot, serialize, cardCode } = require('./engine.js');
+const { Game, Bot, serialize, cardCode, PRESETS } = require('./engine.js');
 
 const PORT = process.env.PORT || 3000;
 const MAX_SEATS = 6;
@@ -17,7 +17,7 @@ const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
 const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'bomb', 'd6', 'pill', 'foot', 'maze', 'deal', 'monstro'];
-const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'overload', 'potato', 'revenge', 'snitch', 'finisher', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'revenge', 'snitch', 'finisher', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
 const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
 
 const clean = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
@@ -90,8 +90,8 @@ function newCode() {
 function makeRoom(hostToken) {
   const room = {
     code: newCode(), host: hostToken, members: new Map(), order: [],
-    rules: { flip: true, stacking: true, multi: true, combos: true, gamble: true, overload: true, potato: true, revenge: true, snitch: true, finisher: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true, chaos: true },
-    cards: Object.fromEntries(EXTRA.map(k => [k, true])),
+    rules: Object.assign({}, PRESETS.den.rules),
+    cards: Object.assign({}, PRESETS.den.cards),
     G: null, seats: [], timer: null, emptySince: null
   };
   rooms.set(room.code, room);
@@ -372,4 +372,4 @@ setInterval(() => {
   for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; try { ws.ping(); } catch (e) {} }
 }, 20000);
 
-server.listen(PORT, () => console.log(`UNO Flip · No Mercy listening on :${PORT}`));
+server.listen(PORT, () => console.log(`LAST DEAL listening on :${PORT}`));

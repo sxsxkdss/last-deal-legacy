@@ -69,13 +69,13 @@ Which colors and sides each value exists on: just look at the file names in `tem
 | `shuffle` | Black Hole deals hands out |
 | `stack` | a draw stack grows |
 | `took` | someone takes a stack |
-| `uno` | someone calls UNO |
+| `uno` | someone calls "Last card" |
 | `skip` | Skip / Reverse / Skip Everyone |
 | `swap` | hands swap / rotate, Mirror, Shield |
 | `turn` | your turn starts |
 | `ko` | a player is knocked out |
 | `win` | the game is won |
-| `bad` | penalty, caught without UNO, loan due |
+| `bad` | penalty, caught without the call, loan due |
 | `click` | buttons and picks |
 | `tick` / `reel` / `chaos` | chaos slot machine: spinning, each reel stopping, the result |
 | `mult` | Mult ×2 / ×3 |

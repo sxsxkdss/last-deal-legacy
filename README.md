@@ -1,6 +1,6 @@
-# UNO Flip × No Mercy
+# LAST DEAL
 
-An online card game that mashes classic UNO, UNO Flip and UNO Show 'Em No Mercy into one ruleset. Play friends in rooms of up to 6. No accounts needed. A small Node server runs every match, so everyone always sees the same table and anyone who drops out can rejoin their seat.
+A two-sided shedding card game played in a back room under a casino. Day on the floor, night in the back room. Rooms of up to 6 friends, no accounts. A small Node server runs every match, so everyone sees the same table and anyone who drops out can rejoin their seat.
 
 ## What's in the box
 
@@ -22,7 +22,7 @@ An online card game that mashes classic UNO, UNO Flip and UNO Show 'Em No Mercy 
    - **Build command:** `npm install`
    - **Start command:** `npm start`
    - **Instance type:** Free
-5. Click **Create Web Service**. After a minute or two you get a link like `https://uno-flip-no-mercy.onrender.com`. That link is the game: share it with friends.
+5. Click **Create Web Service**. After a minute or two you get a link like `https://last-deal.onrender.com`. That link is the game: share it with friends.
 
 Render redeploys automatically every time you push to the repo.
 
@@ -32,7 +32,7 @@ Any host that runs Node and supports WebSockets works the same way (Railway, Fly
 
 ### Keeping GitHub Pages (optional)
 
-The simplest setup is to use the Render link for everything. If you'd rather keep the GitHub Pages address, open `index.html`, find `const SERVER_URL = '';` near the top of the last script, and set it to your server, for example `const SERVER_URL = 'wss://uno-flip-no-mercy.onrender.com/ws';`. The Pages copy will then play on your server.
+The simplest setup is to use the Render link for everything. If you'd rather keep the GitHub Pages address, open `index.html`, find `const SERVER_URL = '';` near the top of the last script, and set it to your server, for example `const SERVER_URL = 'wss://last-deal.onrender.com/ws';`. The Pages copy will then play on your server.
 
 ## How a room works
 
@@ -47,38 +47,25 @@ The simplest setup is to use the Render link for everything. If you'd rather kee
 
 ## Rules
 
-- **Brutal rules (all on by default, each can be switched off):** Russian roulette (facing +8 or more: 50% the stack vanishes, 50% you take it doubled), Overload (without Mercy, a 100-card hand burns down to 50 and everyone else catches 2), Hot potato (a hidden fuse; whoever is up when it runs out picks up 3), Revenge (take 10+ and your next draw card counts double), Snitch (catching a missing UNO also dumps one of your cards on them), Finisher (a stack reaching someone with 2 cards or fewer grows by +4).
-- **Poker combos (on by default):** number cards can go down together as poker hands, Balatro style: pair, two pair, three of a kind, straight (3+ in a row, one color), flush (5 of one color), full house, four and five of a kind, straight flush. A score panel shows chips × mult; bigger hands throw away extra cards, and the biggest hit everyone.
-- **Chaos (on by default):** every 8–12 plays a slot machine spins and lands on a random event: Inflation (draw cards count double for 6 plays), Leader tax (fewest cards picks up 2), Revolution (every hand moves one seat), Flip storm, Color lock (only the color or a wild for 4 plays), Bleed (everyone picks up 1), Jackpot (a lucky player discards 2 random cards) or Mirror world (direction reverses).
-- **Bots:** the host can add bots in the lobby to fill seats or to test on their own. The server plays them.
-- **Effects:** a swirling shader table, CRT scanlines and grain, pixel-art cards and type, card sway and tilt, particles, screen shake, glitches, and a Balatro-style flame on the stack counter and the armed multiplier that grows with the stack and flares on multipliers, 666 and big drops. Switch to "lite" from the log header or the Menu if a device struggles. It starts in lite mode when the system asks for reduced motion.
-
-- **Drawing:** cards you have to pick up come in automatically, one at a time with an animation. That covers taking a stack, Color Roulette, Wild Draw Color, and the UNO penalty. You can't play while you owe cards.
-- **Languages:** English and Russian, picked from the browser's language. Switch any time on the start screen or in the Menu. The game log is translated on each player's screen.
-- **Sound:** card sounds are synthesized in the browser (slides, slaps, riffles, chimes), with no audio files to download.
-- **Phones:** the layout switches to a single column with swipeable seats, big Draw/Pass/UNO buttons, a one-line log and a Menu for everything else.
-
-- **Deck:** endless and two-sided. Each card has a light and a dark face, drawn from a mix of classic, Flip and No Mercy cards, plus originals: Mirror, Shield, Double Flip, Wild Draw 15 and Black Hole, and a casino set: Mult ×2 / ×3 (multiplies a stack, up to +60, or arms the next draw card), Lucky (1 in 3 to dump 2 random cards), Glass (next player +2, or it shatters on you), 666 (everyone else +2, you +1), Jackpot (pulls the chaos lever) and Loan (dump 2 now, pick up 4 after 3 plays). Plus Gift (give 2 random cards to a player), Echo (repeats the card under it), Freeze (skips two players), Interest (8+ cards pick up 2), Sacrifice (burn 3, everyone else +1), Wheel (random opponent +4) and Bomb (+3 to the next player, +1 to both of their neighbours). Isaac set: D6 (reroll your hand), Pill (a random pill effect), The Tower (three random hits), Glitch (a random effect), Brimstone (next two players +2), Mom's Foot (the leader +4), Curse of the Maze (direction may flip for 6 plays), Devil Deal (lose half your hand, your next stack is doubled), Monstro (next player picks up as many as you hold, up to 6). The host can switch each original off.
-- **Flip:** turns every card over. You see the backs of other players' cards and of the next draw card.
-- **Stacking:** +1 → +2 → +4 → +5 → +6 → +8 → +10 → +15. Mirror sends a stack back, and Shield breaks one.
-- **Same-number drops:** play every card of one number or symbol at once, in the order you choose, matching wilds included. The last card sets the color.
-- **Draw until playable:** one card per tap, and you can't pass until one fits.
-- **Other rules:** 7 swaps hands (optional each time), 0 rotates hands, jump-in with an exact copy of the top card (wilds included), and the UNO penalty. Each rule can be switched on or off.
+- **Basics:** match the top card by colour or symbol, or play a wild. Empty your hand to win. Call **Last card** (button **LAST** / **ОДНА**) at two cards or right after dropping to one; get caught and you draw 2.
+- **Table presets:** the host picks one of three tables in the lobby. **Classic**: plain cards and stacking, no house tricks. **Back room** (default): the house table, balanced. **No limits**: every rule and every card on. Every rule and card can still be switched one by one under *Fine-tune*.
+- **Day and night:** every card has two faces. A **Shift** card turns the table over. Day: the slot machine runs, poker hands pay you, the revolver needs +8. Night: no slots, poker hands hit the next player, the revolver works from +4, the dynamite burns. **Eclipse** swaps for one turn.
+- **Stacking:** +1 → +2 → +4 → +5 → +6 → +8 → +10 → +15. Double / Triple Down multiply a stack (up to +60), Mirror sends it back, the Vest stops one.
+- **Russian roulette:** facing a big stack, pull the trigger: 50% it is gone, 50% you take it doubled.
+- **Poker hands:** number cards can go down together as poker hands (pair up to straight flush). Bigger hands throw away extra cards; the biggest hit everyone.
+- **Last call:** after 250 turns the house closes the table and whoever holds the fewest cards wins. The table counts down the last 30, so no game runs forever.
+- **House cards:** luck (Horseshoe, Scratch Card, Jackpot, Redeal), money (Loan, Interest, Tip, Contract, All-In), violence (Shot Glass, Shotgun, Collector, Handcuffs, Spinner) and the Pot.
+- **Drawing:** stacks and penalties come in by themselves, one card at a time. Drawing until a colour shows up is by hand.
+- **Accessibility:** every colour also has its own shape in the card corners, so no card depends on colour alone.
+- **Bots:** the host can add bots in the lobby.
+- **Languages:** English and Russian.
 
 ## Credits
 
-UNO, UNO Flip and UNO Show 'Em No Mercy are trademarks of Mattel. This is an unofficial fan project, not affiliated with or endorsed by Mattel. If you publish it, consider giving it your own name.
+LAST DEAL is an independent game. It is not affiliated with Mattel or any other card game brand.
 
 ## Your own sprites, fonts and sounds
 
 Drop files into `assets/` and they replace the built-in cards, fonts, sounds and background, one file at a time. No code, no restart: push, `git pull` on the server, refresh. Everything you leave out keeps the built-in version.
 
 `template/` has starting points and the full naming guide: every card exported as a PNG, every sound as a WAV, a pixel font you can draw in text, and an example `pack.json`. Read `template/README.md`.
-
-## Day and night
-
-Flip doesn't just turn the cards, it changes the table. **Day · the floor**: the slot machine runs, poker hands pay you, the revolver needs +8. **Night · the back room**: no slots, poker hands hit the next player, the revolver works from +4, the dynamite burns.
-
-## Settings
-
-Language, sound on/off and volume, music on/off and volume, effects level, screen shake, a still background and card tooltips. Music plays the YouTube track by default (a hidden player); put `assets/sounds/music.mp3` in your pack to use your own file instead.

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: uno-flip-no-mercy
+    name: last-deal
     runtime: node
     plan: free
     buildCommand: npm install

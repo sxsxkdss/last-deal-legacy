@@ -3,750 +3,517 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UNO Flip · No Mercy</title>
-<meta name="description" content="UNO Flip and No Mercy rules in the browser. Endless deck, stacking, light and dark sides. Play friends online, no account needed.">
+<title>LAST DEAL</title>
+<meta name="description" content="LAST DEAL: a two-sided card game played in a back room under a casino. Day on the floor, night in the back room. Play friends online, no account needed.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Oswald:wght@400..700&family=Caveat:wght@500..700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Oswald:wght@400..700&family=Caveat:wght@500..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+/* =====================================================================
+   LAST DEAL — one stylesheet.
+   A lamp-lit card table in a back room, seen from above. Everything on
+   screen is a physical thing on or around that table: paper tags and
+   tape, a receipt for the log, rubber stamps for big moments, chalk on
+   the felt, old grimy cards. Day = the floor (warm bulb), night = the
+   back room (red bulb).
+   Fonts: Oswald (stamped), IBM Plex Mono (typed), Caveat (chalk).
+   ===================================================================== */
+
 /* ---------- tokens ---------- */
-:root{
-  /* one warm-neutral scale; the dark side shifts it two steps darker */
-  --bg:#1a1a18; --s1:#222220; --s2:#2b2b28; --s3:#363632; --line:#3d3d39;
-  --text:#f2f1ec; --muted:#9c9b94;
-  --accent:#c8f03c; --accent-hi:#d6f86a; --on-accent:#141412;
-  /* card colors are game content, not UI chrome */
-  --r:#e2343d; --y:#f4c21b; --g:#23a352; --b:#2069d8;
-  --p:#ff4aa5; --t:#17c6b6; --o:#ff8a22; --v:#9550ff;
-  --ri:#c4202a; --yi:#a87a00; --gi:#147a3a; --bi:#1452b0;
-  --paper:#fbfaf6; --ink:#141412;
-  --frame:#ece7d8; /* table border: light side */
-  --cw:clamp(58px, min(10.5vh, 7.5vw), 104px); --ch:calc(var(--cw) * 1.47);
-  --ease:cubic-bezier(.2,.7,.3,1);
-  --f-ui:'Archivo',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+:root {
+  /* card colours. Day: drained primaries. Night: four inks spread apart in
+     lightness too (teal and orange light, rose mid, violet dark). */
+  --r: #e2343d; --y: #f4c21b; --g: #23a352; --b: #2069d8;
+  --p: #c8457a; --t: #2fb0a3; --o: #dc8430; --v: #7650c8;
+  /* paper, ink, chalk */
+  --paper: #b9ae98; --paper-2: #a49882; --ink: #120e0b; --ink-soft: #3a3026;
+  --stamp: #8e1a14; --stamp-hi: #c21f16; --tape: rgba(170, 160, 120, .7);
+  --chalk: rgba(232, 226, 210, .9); --chalk-2: rgba(232, 226, 210, .78);
+  --gold: #ffe2a0; --bone: #dcd2b8;
+  --text: #f2f1ec;
+  /* fonts (an asset pack may replace these) */
+  --f-ui: 'Archivo', system-ui, sans-serif;
+  --f-stamp: 'Oswald', 'Archivo', system-ui, sans-serif;
+  --f-card: 'Oswald', 'Archivo', system-ui, sans-serif;
+  --f-type: 'IBM Plex Mono', ui-monospace, monospace;
+  --f-chalk: 'Caveat', 'Comic Sans MS', cursive;
+  /* card size */
+  --cw: clamp(58px, min(10.5vh, 7.5vw), 104px); --ch: calc(var(--cw) * 1.47);
+  --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --grime-in: inset 0 0 28px rgba(40, 25, 10, .45), inset 0 0 2px rgba(0, 0, 0, .4);
 }
-body.dark{ --frame:var(--p); --bg:#0d0d0e; --s1:#151516; --s2:#1e1e20; --s3:#29292c; --line:#2f2f33; --muted:#8e8e94; }
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{font:400 14px/20px var(--f-ui);font-variation-settings:"wdth" 100;color:var(--text);background:var(--bg);overflow:hidden;user-select:none;-webkit-user-select:none;transition:background-color 180ms ease-out}
-button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
-.hidden{display:none!important}
-.mono{font-family:var(--f-mono)}
-.label{font:500 12px/16px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+body.dark { --paper: #b2a08e; --paper-2: #9c8a78; --stamp: #9c1810; --stamp-hi: #e0281c; }
 
-/* ---------- controls ---------- */
-.btn{height:40px;padding:0 16px;border-radius:4px;background:var(--s2);font-weight:600;font-size:14px;transition:background-color 150ms ease-out,transform 80ms ease-out,opacity 150ms ease-out;white-space:nowrap}
-.btn:hover:not(:disabled){background:var(--s3)}
-.btn:active:not(:disabled){transform:translateY(1px)}
-.btn:disabled{opacity:.4;cursor:default}
-.btn.primary{background:var(--accent);color:var(--on-accent)}
-.btn.primary:hover:not(:disabled){background:var(--accent-hi)}
-.btn.quiet{background:transparent;color:var(--muted)}
-.btn.quiet:hover:not(:disabled){background:var(--s2);color:var(--text)}
-.btn.wide{width:100%;height:48px;font-size:16px}
-.btn.uno.ready{background:var(--text);color:var(--bg)}
-.btn.uno.called{background:var(--s3);color:var(--muted)}
-input[type=text]{height:40px;padding:0 12px;border-radius:4px;background:var(--s1);border:1px solid var(--line);color:var(--text);font:inherit;outline:none;transition:border-color 150ms ease-out;min-width:0}
-input[type=text]:focus{border-color:var(--text)}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
-.seg button{height:32px;padding:0 12px;color:var(--muted);font:500 13px/32px var(--f-mono);transition:background-color 150ms ease-out,color 150ms ease-out}
-.seg button+button{border-left:1px solid var(--line)}
-.seg button:hover{color:var(--text)}
-.seg button.on{background:var(--s3);color:var(--text)}
+/* ---------- base ---------- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; background: #030202; touch-action: manipulation; }
+body { height: 100%; font: 400 14px/20px var(--f-ui); color: var(--text); background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
+button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+.hidden { display: none !important; } /* the one override: hides anything, whatever its layout */
+.mono { font-family: var(--f-type); }
+.label { font: 500 11px/16px var(--f-type); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+details > summary { cursor: pointer; }
 
-/* ---------- menu pages ---------- */
-.screen{position:fixed;inset:0;overflow:auto}
-.page{max-width:560px;margin:0 auto;padding:48px 24px}
-.title{font:900 48px/44px var(--f-ui);font-variation-settings:"wdth" 70;text-transform:uppercase;letter-spacing:-.01em}
-.title span{color:var(--muted)}
-.lede{color:var(--muted);font-size:16px;line-height:24px;margin:16px 0 32px;max-width:440px}
-.field{display:grid;grid-template-columns:136px 1fr;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
-.field>.label{align-self:center}
-.section{margin-top:32px}
-.section>.label{display:block;margin-bottom:8px}
-.opt{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
-.opt input{width:16px;height:16px;margin-top:2px;accent-color:var(--text)}
-.opt b{font-weight:600;display:block}
-.opt span{color:var(--muted)}
-.actions-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.code-in{width:96px;text-align:center;font:500 16px var(--f-mono);letter-spacing:.2em;text-transform:uppercase}
-.msg{color:var(--muted);min-height:20px;margin-top:8px}
-.textlink{color:var(--muted);text-decoration:underline;text-underline-offset:3px;margin-top:24px;display:inline-block}
-.textlink:hover{color:var(--text)}
-.rv{padding:8px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px}
-.rv:last-child{border-bottom:1px solid var(--line)}
-.rv .mono{color:var(--muted)}
-.rv.off{color:var(--muted)}
-.code{font:500 48px/56px var(--f-mono);letter-spacing:.24em;cursor:pointer}
-.seatrow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
-.seatrow:last-child{border-bottom:1px solid var(--line)}
-.seatrow .who{display:flex;gap:8px;align-items:center;font-weight:600}
-.seatrow.me .who{text-decoration:underline;text-underline-offset:4px}
-.ini{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:4px;background:var(--s3);font:500 11px var(--f-mono);color:var(--text);flex:none}
-@media (max-width:520px){.field{grid-template-columns:1fr;gap:8px}.page{padding:32px 16px}.title{font-size:40px;line-height:38px}}
+/* ---------- the room behind everything ---------- */
+#bg { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -2; display: block; image-rendering: pixelated; }
+#bg.nogl, body.lite #bg { background: radial-gradient(ellipse at 50% 45%, #10291f, #040505 70%); }
+body.dark #bg.nogl, body.dark.lite #bg { background: radial-gradient(ellipse at 50% 45%, #2c0b0e, #050203 70%); }
+#crt { position: fixed; inset: 0; pointer-events: none; z-index: 300;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .18) 0, rgba(0, 0, 0, .18) 1px, transparent 1px, transparent 3px), radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, .8) 100%); }
+body.lite #crt { background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, .75) 100%); }
+#grain { position: fixed; inset: -120px; pointer-events: none; z-index: 301; opacity: .13; background-image: var(--noise); animation: grain .5s steps(5) infinite; }
+@keyframes grain { 0% { transform: translate(0, 0) } 20% { transform: translate(-30px, 20px) } 40% { transform: translate(20px, -40px) } 60% { transform: translate(-50px, -10px) } 80% { transform: translate(40px, 30px) } }
+body.lite #grain { display: none; }
+#fxc { position: fixed; inset: 0; pointer-events: none; z-index: 250; }
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
+#fx .card { position: fixed; left: 0; top: 0; margin: 0; will-change: transform; }
 
-/* ---------- game layout ---------- */
-#game{position:fixed;inset:0;border:6px solid var(--frame);transition:border-color 180ms ease-out;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr) 288px}
-#opps,#table,#bottom,#hand{min-width:0}
-#opps{grid-column:1;display:flex;justify-content:center;gap:8px;padding:16px 16px 0;flex-wrap:wrap}
-#table{grid-column:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:0}
-#side{grid-column:2;grid-row:1/4;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-#bottom{grid-column:1;padding:0 16px 16px}
-
-/* seats */
-.opp{position:relative;width:auto;min-width:136px;max-width:220px;background:var(--s1);border:1px solid transparent;border-radius:4px;padding:8px 12px;transition:border-color 150ms ease-out,opacity 150ms ease-out}
-.opp.turn{border-color:var(--text)}
-.opp.out{opacity:.4}
-.opp .top{display:flex;align-items:center;gap:8px}
-.opp .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.opp .meta{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:8px}
-.opp .tags{text-align:right}
-.opp .cnt{font:900 24px/24px var(--f-ui);font-variation-settings:"wdth" 75}
-.opp .tags{font:500 11px/16px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.opp .tags b{color:var(--text);font-weight:500}
-.fan{position:relative;height:16px;margin-top:8px}
-.fan i{position:absolute;top:0;width:10px;height:16px;border-radius:2px}
-.fan i.w{background:conic-gradient(var(--r) 0 90deg,var(--b) 0 180deg,var(--y) 0 270deg,var(--g) 0)}
-.fan i.w.D{background:conic-gradient(var(--p) 0 90deg,var(--t) 0 180deg,var(--o) 0 270deg,var(--v) 0)}
-.bar{height:2px;background:var(--s3);margin-top:8px}
-.bar>div{height:100%;background:var(--muted);transition:width 180ms ease-out}
-.bar.hot>div{background:var(--text)}
-.timer{height:2px;margin-top:8px;background:var(--text);transform-origin:left;animation:timer linear forwards}
-@keyframes timer{to{transform:scaleX(0)}}
-.catch{margin-top:8px;width:100%;height:28px;font-size:12px}
-
-/* table */
-#banner{font-weight:500;color:var(--muted);text-align:center;min-height:20px}
-#banner.you{color:var(--text);font-weight:700}
-.center{display:flex;align-items:center;gap:48px;position:relative}
-.piles{display:flex;align-items:center;gap:48px;position:relative;padding:20px 28px;border-radius:calc(var(--cw)*.5);background:var(--s1)}
-.mob,#ticker{display:none}
-html,body{touch-action:manipulation}
-#dirRing{position:absolute;left:50%;top:50%;width:calc(100% + 96px);height:calc(100% + 72px);transform:translate(-50%,-50%);pointer-events:none;transition:transform 180ms ease-out;overflow:visible}
-#dirRing.ccw{transform:translate(-50%,-50%) scaleX(-1)}
-#dirRing path{fill:none;stroke:var(--s3);stroke-width:2}
-#dirRing .head{fill:var(--muted);stroke:none}
-.sep{align-self:center;font:500 20px/1 var(--f-mono);color:var(--muted);padding:0 2px}
-.opp .next{color:var(--text)}
-.dirtxt{font:500 13px/20px var(--f-mono)}
-.pile{position:relative;width:calc(var(--cw)*1.3);height:calc(var(--ch)*1.3)}
-.pile .card{position:absolute;inset:0;width:100%;height:100%}
-#drawpile{cursor:pointer}
-#drawpile .card:nth-child(1){transform:translate(-6px,6px);filter:brightness(.55)}
-#drawpile .card:nth-child(2){transform:translate(-3px,3px);filter:brightness(.75)}
-#drawpile.can .card:nth-child(3){outline:2px solid var(--text);outline-offset:4px}
-#discard .card{transition:outline-color 180ms ease-out}
-#discard .card.under{filter:brightness(.7)}
-#discard .card.topc{outline:2px solid var(--cc-now,transparent);outline-offset:6px}
-#discard.drop .card.topc{outline-color:var(--text)}
-#discard .card.land{animation:land 180ms ease-out}
-@keyframes land{from{transform:translate(var(--dx),calc(var(--dy) - 10px)) rotate(calc(var(--rot) + 6deg)) scale(1.1)}}
-.hud{display:flex;flex-direction:column;gap:8px;min-width:136px}
-.hud .row{display:flex;align-items:center;gap:8px}
-.chip{width:12px;height:12px;border-radius:2px;background:var(--cc-now,var(--muted))}
-.stack{font:900 48px/44px var(--f-ui);font-variation-settings:"wdth" 70}
-
-/* me */
-.me{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px;flex-wrap:wrap}
-.me .who{display:flex;align-items:center;gap:8px;font-weight:600}
-.me .cnt{font:900 20px/20px var(--f-ui);font-variation-settings:"wdth" 75}
-.me .bar{width:96px;margin:0}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-#hand{display:flex;justify-content:center;padding:24px 16px 8px;overflow-x:auto}
-#hand .card{flex:none;width:var(--hcw,var(--cw));height:calc(var(--hcw,var(--cw)) * 1.47);cursor:grab;transition:transform 150ms ease-out,opacity 150ms ease-out;touch-action:none;transform-origin:50% 100%;transform:translateY(var(--dy,0px)) rotate(var(--rot,0deg))}
-#hand .card.dim{opacity:.45}
-#hand .brk{flex-basis:100%;height:0}
-#hand .card.ok{transform:translateY(calc(var(--dy,0px) - 6px)) rotate(var(--rot,0deg))}
-#hand .card.ok:hover{transform:translateY(calc(var(--dy,0px) - 16px)) rotate(0deg)}
-#hand .card.jump{outline:2px solid var(--text);outline-offset:2px;transform:translateY(calc(var(--dy,0px) - 6px)) rotate(var(--rot,0deg))}
-#hand .card.new{animation:in 160ms ease-out backwards}
-#hand .card.flipin{animation:fade 180ms ease-out backwards}
-#hand .card.lifted{opacity:.25}
-#hand .card.nope{animation:nope 160ms ease-out}
-@keyframes in{from{opacity:0;transform:translateY(8px)}}
-@keyframes fade{from{opacity:0}}
-@keyframes nope{50%{transform:translateX(-4px)}}
-
-/* cards */
-.card{width:var(--cw);height:var(--ch);border-radius:calc(var(--cw)*.12);background:var(--cc);border:calc(var(--cw)*.06) solid var(--paper);position:relative;overflow:hidden;color:var(--on,#fff)}
-.card.s-D{border-color:#0b0b0c}
-.card.c-r{--cc:var(--r);--gl:var(--ri)}.card.c-y{--cc:var(--y);--gl:var(--yi);--on:var(--ink)}.card.c-g{--cc:var(--g);--gl:var(--gi)}.card.c-b{--cc:var(--b);--gl:var(--bi)}
-.card.c-p{--cc:var(--p);--gl:var(--p)}.card.c-t{--cc:var(--t);--gl:var(--t);--on:var(--ink)}.card.c-o{--cc:var(--o);--gl:var(--o);--on:var(--ink)}.card.c-v{--cc:var(--v);--gl:var(--v)}
-.card.c-w{--cc:#161614}.card.s-D.c-w{--cc:#0b0b0c}
-.card .oval{position:absolute;left:50%;top:50%;width:84%;height:62%;background:var(--paper);border-radius:50%;transform:translate(-50%,-50%) rotate(28deg);display:flex;align-items:center;justify-content:center}
-.card.s-D .oval{background:#0b0b0c}
-.card.c-w .oval{background:conic-gradient(var(--r) 0 90deg,var(--b) 0 180deg,var(--y) 0 270deg,var(--g) 0)}
-.card.s-D.c-w .oval{background:conic-gradient(var(--p) 0 90deg,var(--t) 0 180deg,var(--o) 0 270deg,var(--v) 0)}
-.card .mid{transform:rotate(-28deg);font:900 calc(var(--cw)*.46)/1 var(--f-ui);font-variation-settings:"wdth" 70;color:var(--gl);display:flex;flex-direction:column;align-items:center}
-.card.c-w .mid{color:var(--paper);background:#161614;padding:2px 6px;border-radius:4px;font-size:calc(var(--cw)*.32)}
-.card .mid.sm{font-size:calc(var(--cw)*.3)}
-.card .mid svg{width:calc(var(--cw)*.5);height:calc(var(--cw)*.5);display:block}
-.card .mid.sm svg{width:calc(var(--cw)*.38);height:calc(var(--cw)*.38)}
-.card .cor svg{width:calc(var(--cw)*.19);height:calc(var(--cw)*.19);display:block}
-.card.c-w .mid svg{width:calc(var(--cw)*.34);height:calc(var(--cw)*.34)}
-.card .mid em{font:500 calc(var(--cw)*.105)/1.2 var(--f-mono);font-style:normal;text-transform:uppercase;letter-spacing:.04em;color:var(--ink);margin-top:2px;white-space:nowrap}
-.card.s-D .mid em,.card.c-w .mid em{color:var(--paper)}
-.card .cor{position:absolute;font:900 calc(var(--cw)*.18)/1 var(--f-ui);font-variation-settings:"wdth" 70}
-.card .cor.tl{top:6%;left:8%}.card .cor.br{bottom:6%;right:8%;transform:rotate(180deg)}
-
-/* connection notice */
-#netBanner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:120;background:var(--text);color:var(--bg);font:500 13px/20px var(--f-mono);padding:4px 12px;border-radius:4px}
-/* fx */
-#fx{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
-#fx .card{position:fixed;left:0;top:0;margin:0;will-change:transform}
-#toast{height:48px;margin:-16px 0 -8px;pointer-events:none;font:900 40px/48px var(--f-ui);font-variation-settings:"wdth" 70;text-transform:uppercase;opacity:0;transition:opacity 150ms ease-out;white-space:nowrap}
-#toast.show{opacity:1}
-.float{position:absolute;left:50%;top:8px;transform:translate(-50%,4px);font:500 13px/16px var(--f-mono);background:var(--text);color:var(--bg);padding:2px 8px;border-radius:4px;pointer-events:none;z-index:5;white-space:nowrap;opacity:0;transition:opacity 150ms ease-out,transform 150ms ease-out}
-.float.in{opacity:1;transform:translate(-50%,0)}
-
-/* log */
-.sidehead{height:48px;padding:0 16px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
-#log{flex:1;overflow-y:auto;padding:0 16px;font:400 12px/16px var(--f-mono);color:var(--muted);display:flex;flex-direction:column-reverse}
-#log div{padding:8px 0;border-top:1px solid var(--line)}
-#log div.n{color:var(--text)}
-#log div.win{color:var(--text);font-weight:500}
-
-/* modal */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;animation:fade 150ms ease-out}
-.dialog{background:var(--s2);border-radius:8px;padding:24px;width:100%;max-width:400px}
-.dialog h2{font:800 20px/24px var(--f-ui);margin-bottom:8px}
-.dialog p{color:var(--muted);margin-bottom:16px}
-.colors{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.colors button{height:64px;border-radius:4px;font-weight:700;transition:transform 80ms ease-out,filter 150ms ease-out}
-.colors button:hover{filter:brightness(1.08)}
-.colors button:active{transform:translateY(1px)}
-.list{display:flex;flex-direction:column}
-.list button,.list .li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 0;border-top:1px solid var(--line);font-weight:600;text-align:left;transition:color 150ms ease-out}
-.list button:hover:not(:disabled){color:var(--muted)}
-.list .li:last-child,.list button:last-child{border-bottom:1px solid var(--line)}
-.list .mono{font-weight:500;color:var(--muted)}
-.rulestext{max-height:60vh;overflow:auto;color:var(--text)}
-.rulestext h3{font:500 12px/16px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
-.rulestext h3:first-child{margin-top:0}
-.rulestext li{margin:0 0 8px 16px;color:var(--muted)}
-.rulestext b{color:var(--text);font-weight:600}
-.dialog .btn.wide{margin-top:16px}
-.pick{display:flex;flex-wrap:wrap;gap:8px;--cw:56px;--ch:82px}
-.pick .card{cursor:pointer;transition:opacity 150ms ease-out}
-.pick .card.lead{cursor:default;outline:2px solid var(--text);outline-offset:2px}
-.pick .card.off{opacity:.3}
-.pick .slot{position:relative}
-.pick .ord{position:absolute;top:-8px;left:-8px;z-index:2;min-width:20px;height:20px;border-radius:4px;background:var(--text);color:var(--bg);font:500 12px/20px var(--f-mono);text-align:center}
-
-/* ---------- phones: one column, big touch targets, nothing wraps ---------- */
-@media (max-width:820px){
-  :root{--cw:clamp(50px, min(9.6vh, 16vw), 82px)}
-  #game{height:100dvh;bottom:auto;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;border-width:4px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-  #side{display:none}
-  .desk{display:none}
-  .mob{display:inline-block}
-  #opps{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;gap:4px;padding:8px 8px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  #opps::-webkit-scrollbar{display:none}
-  .opp{flex:none;width:96px;padding:8px}
-  .opp .fan{display:none}
-  .opp .meta{margin-top:4px}
-  .opp .cnt{font-size:20px;line-height:20px}
-  .opp .tags{font-size:10px}
-  .opp .nm{font-size:13px}
-  .sep{font-size:14px;flex:none}
-  #table{gap:8px;padding:4px 0}
-  #banner{font-size:13px;padding:0 8px}
-  #toast{font-size:24px;line-height:32px;height:32px;margin:-8px 0 -4px}
-  .center{flex-direction:column;gap:12px}
-  .piles{gap:28px;padding:14px 18px}
-  #dirRing{width:calc(100% + 36px);height:calc(100% + 28px)}
-  .hud{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 12px;min-width:0}
-  .hud .label{font-size:11px}
-  .stack{font-size:28px;line-height:28px}
-  #bottom{padding:0 8px 8px}
-  .me{margin-bottom:4px;gap:8px}
-  .me .who{gap:6px;font-size:13px}
-  .me .bar{display:none}
-  .actions{width:100%;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px}
-  .btn{height:44px;padding:0 8px;font-size:14px}
-  #ticker{display:block;font:400 12px/16px var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 2px 0;min-height:20px}
-  #hand{padding:20px 14px 20px}
-  .dialog{padding:16px}
-  .colors button{height:56px}
+/* ---------- paper: menus, dialogs, name tags, tooltips ---------- */
+.paper, .page, .dialog, #cardtip, .opp {
+  position: relative; color: var(--ink);
+  background: var(--paper) var(--noise); background-blend-mode: multiply;
+  box-shadow: var(--grime-in), 0 14px 30px rgba(0, 0, 0, .75);
 }
-@media (max-width:820px) and (min-height:740px){
-  #table{gap:16px}
-  .center{gap:20px}
+/* masking tape */
+.page::before, .dialog::before, .opp::before, .slotbox::before {
+  content: ''; position: absolute; top: -9px; left: 50%; width: 74px; height: 20px; transform: translateX(-50%) rotate(-3deg);
+  background: var(--tape); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); pointer-events: none;
 }
-@media (max-width:820px) and (max-height:640px){
-  .opp{width:84px;padding:6px}
-  #toast{display:none}
+.page p, .dialog p, .lede { font: 400 13px/19px var(--f-type); color: var(--ink-soft); }
+.dialog h2, .page h2 { font: 700 20px/24px var(--f-stamp); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+.page input[type=text], .dialog input[type=text] {
+  height: 40px; padding: 0 4px; min-width: 0; outline: none; font: 400 14px var(--f-type); color: var(--ink);
+  background: transparent; border: 0; border-bottom: 2px solid var(--ink); border-radius: 0;
 }
+.page input[type=text]:focus, .dialog input[type=text]:focus { border-bottom-color: var(--stamp); }
+.textlink { margin-top: 24px; display: inline-block; font-family: var(--f-type); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.textlink:hover { color: var(--stamp); }
+.textlink + .textlink { margin-left: 16px; }
 
-/* ===================== EDGY LAYER: shader table, CRT, pixel type, juice ===================== */
-@font-face{font-family:'UnoDigits';src:url(data:font/woff;base64,d09GRk9UVE8AAA2MAAwAAAAAFSAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAABDRkYgAAADxAAACHUAAA1S/GOLmEdERUYAAAw8AAAAJAAAACgALwAiR1BPUwAADGAAAACdAAABHivUJTVHU1VCAAANAAAAAEUAAABOLokteE9TLzIAAAF8AAAAUwAAAGBx7ncqY21hcAAAA4AAAAAuAAAANAAMAIxoZWFkAAABHAAAADYAAAA2LRm1S2hoZWEAAAFUAAAAIAAAACQNIwPTaG10eAAADUgAAABCAAAAQj8mBg1tYXhwAAABdAAAAAYAAAAGABVQAG5hbWUAAAHQAAABrwAABApkbZHmcG9zdAAAA7AAAAATAAAAIP7KANIAAQAAAAQAAMW8mhZfDzz1AAMIAAAAAADhgFONAAAAAOceFyYAK/5gBTYHQAAAAAMAAgAAAAAAAHicY2BkYGA/8E+IgYG1k0GbQZvVjIGRARXwAABR/wMFAABQAAAVAAB4nGNgYU1hVmBgZWBgNWY5y8DAMAtCM51luMQ0n4GBiYGTmQFEsTAwMDAyIIGgYN9ghgMMBgyW7Af+CTEwsB9gfAdTwxLHeomBgUGBgQMAW0UM9gB4nJ2S304TURCHv9MCgiJBEr3wgswDSEuBkkivKqFJkxJqi96v7bFdaXebPaeiiY/io/AIPALhWQzTY9mCMcZsNvlyZuY3f4EtbililtaANgQ2bNMOXGCDJHCRNj8CL+V8ljnkOvAK26YQ+AnnRgKvsmp84DXE/NZ5hpifgddz/NyIuQq8wUHhJvAmT4ubgV+wVXwd+GXu/ZW+H5My4TsZMQOGeIQ9dqlwiHDOEIvQJMFjyRDaZKR8wdJT7zpTPENSMtyC5wnf8GREvCNlRJ8OlgFTRkRkHFBiV78aA2I8O0RU2aPCPhWqvKVKjQ5dTulSy6nv/EH9o1ocMSkJ8o/6f9fM9/OBJkJEQv/BTGKcWiRE97GMtccLhJTPiFY2xlGaU4dIaarRddWddeC0g7tteCY4jihTzimMsZR1O7PMDfW/20ZXs3kuNbud1zYipoclwWG1/uk8n+j+rEY3aSGcMVHfvHJrQeEN8mjeFUr6S66yxbz3k/pKRKx38ImRWi51Q8MwxwZ13it7jpD5LGaTcPT0Yid4nYdTrZLe4IAyZzRo/VfM/VYf3cIvCm+YsgB4nB3HQQ3AMAwEMLcJhAEohH3HH0ER3aS8LGOj8ChrbAet51+CN8md+wFRywaVAAB4nGNgZgCDf8cZLjFgAQA7aAKbAHicrdR7UFTXHQfwu+weOCCuyOUmCiuuFSpIg5ohBh/BxbSNyhq1Y6JJmsyYCr4hhZX11WRjR6v5oTgTkkynTsWJNjrmhTHP5o/U5jFlJTExtokKOpVEBFQQ4vcsv1U7ZxcFmjbpZPrPOfece3/n8TvnfmyGI8aw2WxJM0t9xeW3/WyNr3zR9LKVi3Vfoco01I9takyiobJiVLZdjXVwQ6IdJYmO9Bkbq6qJeqvEuDfCeS4x0RXnEXhvyIuuwROS8dFQI8lmk84U1+ix4/M998zy7Tzw6jvrisvLcn0lZaXFub4Sn18/+5aWF+tWSdnqcl0tq9StimVrdFlcWVya6yspXrZkqS/XV1K6LBKYlzs+smD3fTPdi0oXu6ONZRXuRW5f+aLFxasWla9wl5W4yytWVeTeXfbY2nId7759/ISJ7vlLi3u/n1tetrz4Vz534Wrf0rLyimjnzRREmpHWbY/qjBg2Y2i87XfxhqUzdjhmQszymBP2avtlh08ME/fGjor9a9yEOH/cOblTXosPJGQkPDQod9DRd8J5yAsiJRjUha4jz8G2okiZA19RMNgWRF4yTsHLXrzL7+IIH1Fenh8sUl4+hVN8JFiEI+yF17z+5lZPT1U4zyKXPCOu/pQEueAW8IZ8Fj4nQVwjWNehFCuom/MF5pMgpAgz1pCBIhJUJIp6e1odAU/k9Y2oqykWViJF8EoSFBSREWcJXsGmwIpIaOQzV2zAMg2HEdDBpiGNAHGeMI2xAQ9S+j5Dt2UaMR4DDhLUJkzDHvCwo2/kImEaMTEGZ5CgHGEamwMeZPSFh2ss0wi4jciQOrw24OGUAeG2QCAQ6eI8wXojRZZp9zzpQY2ePk9EUuCLDGcmGUkGaq6mWJGtJxkOIxLBKXoH0gj26NUmSYPadH4ifZQjnEj04/Wee/GarVEZajeu20ML/ZZyE9bhZVKVktRq3oC6cDrJcDrxBn6VwpWSwpXYwC+rdJKE1y0uoHG4i/ChJHx4HoWYShIF1MIe4o8k8Ye5fBcXkHSGR9RWuhy78BH5k9UMdJuvhva5xGdW2EaCz/AaQVwvzKM4i/XiGX0UvEigm4SzhlDXMwP7bV+jWU1Cqx12snqadB7qRLibBD0jMBsegb/jpUaMJhRIwi5ehVncTJJPEpfxL4j/ItGsg9KaTiCZJIZQs4c4SRKLuwt4CDtk+GC4Qjj/7MchZWAHOrE/WW1Sdz6I83xUxZotoQl+y2xGB2ErvIRnpdlB8HICbuU1L0h6VpgtmLYXgyEJkyVhM6+Clz8lyZ8TP8Gzt/JOiXMkqrrOfwInScTRiZ9TpqQfjZvOw0maHZypD26HQCYJsxk/oQseYkOSe0Ih30KSb6GxH2+5JPkKCbNlG9diM8/BVySdELWV2IYDqkklkj+5BV3KjnN8GqfNEy3YZpmnQo/qobcJ84ReAmGbwD26PiBY1z33i/A8EmF17QERWr7dCg8iQc8JsxXX1WfiORLOOj/2qrWoxgoctPVk4Lw9NMVvoV3fl1LCB5JQxw/iYd5FkkcSx897YLL8LYkXcUWExuipDoprM0nMvHpI4OO54rWGpkNnSWIktWcRZ0rizJwcHkGSEyj72FbESG4nsYP/iN/wPHxB0vmBXsFqVKESh5Mb0cmdKlktQavZHZrjt9BCeBzLCUFJ2MfzelcymThripdT5Ua9hN1fYxq8JDvpxMLdORKXSJRhOy/FQ1xPMjyYmPg9CgckhV/D27xAz7sFey2znYdTVjchTRLSOr7BMJJw0YXRxC5pdhOnj8ngNJLOXH3LD+FgckPP+2G7sptnMJUsZZAwj6rLLkedILwurr2vD+OgCN1HgjYKZ70f1WoMtisbfp/cqOL4U1xUblzkT1WceTmS50uEHZhJ2CQJszkbOezdL6lGmO244wASkEqYJAnreT2m8cckuYF4HU8jXi+J8xHHachfIWmjMC/z3FWcyTnEsyXxJlTzTFzUf3O1xak07jQhXhISWk/jVpIYRm0TieMlcUJuvt6i2U6hURbHUv6X9I2kK43HEUcS8dRYSG5J7vwClvqwfDiMdahSPuxLbkSbWqKGcic6ze7QCJ+lnISncJjUk5LUIX4bC/kfVZJbqvgJLiWul8T7MY9/iVqSmETIPvk3DJcaP949nqezl2QmTT1c2Sa5g8SfuBrL+BHUkzRVTajW4jTK7iSkS4KrowvDSSKNLowiHi6J08aM4lSSzj03/DuGLvUYuuyhbL+lRhLu7/NvQZ9/C/r8u59fViN7/cunQmQRTkpC03FkI58k8uk4ZxM3SeKThZzF+Xo2wis9w6L8van5w+1k9ezVl/IVwe9p8RxvirAxUMN/9mp4bZgIDyehR4lieBln1SS02TGErJ7GXgy7/iuGpZjFZwdiePYGhiZJOL+NYZ3GcM8ADH8dxVBfypbQiAiGl/Q5/u8YfvYfMGz9BINJQt7AMPcGhhm9GGZEMLyN2r+N4dZLkqEx3M612MRz8LVO9QAL3+hv4Rv/Hwv3DLAwUVuYEbVw7Xda+FJ/C2eRmKUtbIha2EwS6QMsdJHkQTT22JZ/s/DL6OXts7AhYuHQXgun+S2cG2DhXDzMtSR5EnH2lNk3LfwK0zCbZAedXFgbtfCxfhY6iZ/qs/AtXqDnvWnhmH4W9v5eAyxMjZ5D1EIMvYmh//sx3NMfw3oVy0dxQY3CBT4awTDrezGMH4hhww/HMPcGhm3fjWFcPwxl5C43RTG8s4DjdCb6Y9iA1giGHegwu0ODfZYaPADDt7CQv4hi+HgfhnN7MZxMyDpZfxPDcTydi0hm9GH4AldjKT+CoMbwaY1hKmX1wzCVJFK/hWHF8z2Xn0fH/tj0jKfvcFUnxv8hMYESB+FgAroGucRQ618J0um9AAAAeJxjYGRgYOBhgAAmBhYGRjBkBrO4GbgZGBl4GfgYGAEElwBSeJyNjzEKwkAQRd+Mm7hZJIhnSGHtGcTK0gtYWClBxAPY5gq2XspKBNvcYWQHidi5MOyffX+GvwiQaFigy9V6Q33YnltqAoAZmct+d2qJWXkFKiJKYoagwPRzNwgTnxVn4r7SepL1KEdnF66Uvu/PY/ef7jaopz2sA+b2+r4NRkURCiCSKDxP8pxZj9wTPHkmlf9sjDrJc+UbS+saRQAAAHicLcmxCYAwFADR90VEUmQKJ3AGsbJ0AXtNFedXIhbHHZxAMpl1y7rt8nnUIuvhebQftdyXsdVH/3sUBkknhMQLdn4HWAAAAAVAAUgFiQBSA4gAWwUaAFsFQQBYBYIAXQU3AHUFSwBSBLQAQgVQAFIFSwBSBSoASACeAGcAQwArAF0AQgB9AD8AQgAA) format('woff');font-weight:100 900;unicode-range:U+0030-0039;font-display:block}
-:root{ --f-px:'Archivo', system-ui, sans-serif; --hot:#ff2d55; --gold:#ffd23f; --frame:#ffd23f; }
-body.dark{ --frame:#ff2d55; }
-html{background:#07070a}
-body{background:transparent}
-body::before{display:none}
-#bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-2;image-rendering:auto;display:block}
-#bg.nogl,body.lite #bg{background:radial-gradient(ellipse at 50% 40%,#0c3a34,#050708 72%)}
-body.dark #bg.nogl,body.dark.lite #bg{background:radial-gradient(ellipse at 50% 40%,#4a0619,#07020a 72%)}
-body.lite #bg{visibility:visible}
-#crt{position:fixed;inset:0;pointer-events:none;z-index:300;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.2) 0,rgba(0,0,0,.2) 1px,transparent 1px,transparent 3px),radial-gradient(ellipse at center,transparent 56%,rgba(0,0,0,.62) 100%)}
-#grain{position:fixed;inset:-120px;pointer-events:none;z-index:301;opacity:.075;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");animation:grain .5s steps(5) infinite}
-@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-30px,20px)}40%{transform:translate(20px,-40px)}60%{transform:translate(-50px,-10px)}80%{transform:translate(40px,30px)}}
-body.lite #grain{display:none}
-body.lite #crt{background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.5) 100%)}
-#fxc{position:fixed;inset:0;pointer-events:none;z-index:250}
-/* type */
-.title{font-family:var(--f-px);font-weight:700;letter-spacing:.02em;text-shadow:4px 4px 0 #000,0 0 26px rgba(255,45,85,.35)}
-.title span{color:var(--hot)}
-.lede{color:#c9c7c0}
-#banner{font-family:var(--f-px);font-size:16px;letter-spacing:.03em;color:#d7d5ce;text-shadow:2px 2px 0 #000}
-#banner.you{color:var(--gold);animation:flicker 2.6s infinite}
-@keyframes flicker{0%,18%,22%,61%,65%,100%{opacity:1;text-shadow:2px 2px 0 #000,0 0 14px rgba(255,210,63,.75)}20%,63%{opacity:.45;text-shadow:2px 2px 0 #000}}
-.code{font-family:var(--f-px)}
-/* surfaces: chunky panels with a hard drop */
-.page{background:rgba(8,8,12,.78);border:2px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 8px 0 rgba(0,0,0,.6);margin-top:24px;margin-bottom:24px}
-.opp,.piles,.dialog{background:rgba(8,8,12,.74);border:2px solid rgba(255,255,255,.13);border-radius:12px;box-shadow:0 6px 0 rgba(0,0,0,.6)}
-.opp.turn{border-color:var(--gold);box-shadow:0 6px 0 rgba(0,0,0,.6),0 0 0 3px rgba(255,210,63,.3),0 0 22px rgba(255,210,63,.35)}
-#side{background:rgba(6,6,9,.72)}
-.modal{background:rgba(0,0,0,.55)}
-/* buttons: chunky, they sink when pressed */
-.btn{border-radius:10px;font-family:var(--f-px);font-weight:600;letter-spacing:.02em;background:#262630;border:2px solid rgba(255,255,255,.1);box-shadow:0 4px 0 rgba(0,0,0,.7);transition:transform 70ms ease-out,box-shadow 70ms ease-out,background-color 120ms}
-.btn:hover:not(:disabled){background:#32323e}
-.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.7)}
-.btn.primary{background:var(--hot);color:#fff;border-color:#ff7891}
-.btn.primary:hover:not(:disabled){background:#ff4b6e}
-.btn.quiet{background:transparent;border-color:transparent;box-shadow:none}
-.btn.uno.ready{background:var(--gold);color:#141412;border-color:#ffe58a;animation:throb .7s ease-in-out infinite}
-@keyframes throb{50%{transform:scale(1.07)}}
-.seg button.on{background:var(--hot);color:#fff}
-/* stack counter heats up */
-.stack{color:var(--hot);text-shadow:3px 3px 0 #000,0 0 20px rgba(255,45,85,.85);animation:heat .32s infinite}
-@keyframes heat{25%{translate:calc(var(--heat,0) * -3px) calc(var(--heat,0) * 2px) ;rotate:calc(var(--heat,0) * -2deg)}75%{translate:calc(var(--heat,0) * 3px) calc(var(--heat,0) * -2px);rotate:calc(var(--heat,0) * 2deg)}}
-.chaosline{font:600 13px/18px var(--f-px);color:var(--gold);text-shadow:2px 2px 0 #000}
-.chaosline.warn{color:var(--hot);animation:flicker 1.2s infinite}
-/* toasts pop */
-#toast{font-family:var(--f-px);font-weight:700;color:#fff;text-shadow:3px 3px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,0 0 22px rgba(255,45,85,.85);rotate:-3deg}
-#toast.show{animation:pop2 .38s cubic-bezier(.2,1.9,.4,1)}
-@keyframes pop2{from{transform:scale(.25);rotate:-14deg}}
-.float{font-family:var(--f-px);background:var(--gold);color:#141412;box-shadow:0 3px 0 #000}
-/* cards: hard shadow, sway, tilt, sheen */
-.card{box-shadow:0 5px 0 rgba(0,0,0,.5)}
-#hand{perspective:700px}
-#hand .card{transition:transform 150ms ease-out,opacity 150ms ease-out,rotate 120ms ease-out}
-#hand .card::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at var(--gx,50%) var(--gy,30%),rgba(255,255,255,.4),transparent 46%);opacity:0;transition:opacity 150ms}
-#hand .card:hover::after{opacity:1}
-body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.lifted){animation:sway 3.4s ease-in-out infinite;animation-delay:calc(var(--i,0) * -.41s)}
-@keyframes sway{50%{translate:0 -4px}}
-#hand .card.ok:hover{transform:translateY(calc(var(--dy,0px) - 22px)) rotate(0deg) scale(1.06)}
-#discard .card.land{animation:land2 260ms cubic-bezier(.2,1.8,.4,1)}
-@keyframes land2{from{transform:translate(var(--dx),calc(var(--dy) - 24px)) rotate(calc(var(--rot) + 12deg)) scale(1.25)}}
-.piles{background:rgba(0,0,0,.5);border-style:dashed}
-/* big moments */
-#game.shake2{animation:shake2 .4s}
-@keyframes shake2{10%,50%,90%{translate:calc(var(--shk,8px) * -1) calc(var(--shk,8px) * .4)}30%,70%{translate:var(--shk,8px) calc(var(--shk,8px) * -.4)}}
-#game.glitch{animation:glitch .36s steps(2)}
-@keyframes glitch{0%{filter:drop-shadow(5px 0 rgba(255,0,70,.9)) drop-shadow(-5px 0 rgba(0,255,255,.9));transform:skewX(3deg)}50%{filter:drop-shadow(-6px 0 rgba(255,0,70,.9)) drop-shadow(6px 0 rgba(0,255,255,.9));transform:skewX(-2deg) translateX(5px)}100%{filter:none;transform:none}}
-/* chaos slot machine */
-#slot{position:fixed;inset:0;z-index:180;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .2s}
-#slot.show{opacity:1}
-.slotbox{background:#0b0b10;border:3px solid var(--hot);border-radius:16px;box-shadow:0 8px 0 #000,0 0 44px rgba(255,45,85,.55);padding:16px 20px;text-align:center;transform:scale(.8) rotate(-2deg);transition:transform .28s cubic-bezier(.2,1.8,.4,1)}
-#slot.show .slotbox{transform:scale(1) rotate(-1deg)}
-.slottitle{font:700 14px var(--f-px);color:var(--gold);letter-spacing:.3em;margin-bottom:10px}
-.reels{display:flex;gap:8px;justify-content:center}
-.reels b{width:88px;height:74px;display:grid;place-items:center;background:#fbfaf6;color:#141412;border-radius:8px;font:900 30px var(--f-ui);font-variation-settings:"wdth" 75;box-shadow:inset 0 7px 0 rgba(0,0,0,.18),inset 0 -7px 0 rgba(0,0,0,.18)}
-.reels b.spin{filter:blur(1.4px);transform:translateY(2px)}
-.reels b.stop{background:var(--gold);animation:reelstop .26s cubic-bezier(.2,1.8,.4,1)}
-@keyframes reelstop{from{transform:translateY(-16px)}}
-.slotres{margin-top:12px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s}
-#slot.done .slotres{opacity:1;transform:none}
-.slotname{display:block;font:700 30px var(--f-px);color:#fff;text-shadow:3px 3px 0 #000}
-.slotsub{display:block;font:500 14px var(--f-ui);color:#d0cfd6;margin-top:4px}
-.seatrow .bot{color:var(--gold)}
-@media (max-width:820px){
-  .page{margin:8px;border-radius:12px}
-  .reels b{width:64px;height:56px;font-size:19px}
-  .slotname{font-size:22px}
-  #banner{font-size:14px}
+/* ---------- buttons: printed labels, a red rubber stamp ---------- */
+.btn {
+  height: 40px; padding: 0 16px; white-space: nowrap; border-radius: 2px;
+  font: 600 14px var(--f-stamp); text-transform: uppercase; letter-spacing: .06em; color: var(--ink);
+  background: var(--paper-2) var(--noise); background-blend-mode: multiply;
+  box-shadow: inset 0 0 10px rgba(40, 25, 10, .35), 0 3px 0 rgba(0, 0, 0, .75), 0 8px 14px rgba(0, 0, 0, .5);
+  transition: transform 70ms ease-out, box-shadow 70ms ease-out, filter 120ms;
 }
-@media (prefers-reduced-motion: reduce){ #grain{display:none} }
+.btn:hover:not(:disabled) { filter: brightness(1.08); }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 10px rgba(40, 25, 10, .35), 0 1px 0 rgba(0, 0, 0, .75); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.primary { background-color: var(--stamp); color: #f2e6cf; }
+.btn.primary:disabled { background-color: var(--paper-2); color: var(--ink-soft); opacity: .55; } /* off, not "error" */
+.btn.wide { width: 100%; height: 48px; font-size: 16px; }
+.btn.quiet { background: transparent; box-shadow: none; color: var(--chalk); }
+.btn.gamble { background: #111; color: #ff5a4d; outline: 2px dashed #ff5a4d; outline-offset: -5px; }
+.btn.gamble:hover:not(:disabled) { background: #1d0908; }
+.btn.uno.ready { background-color: var(--gold); color: var(--ink); animation: throb .7s ease-in-out infinite; }
+.btn.uno.called { opacity: .55; }
+@keyframes throb { 50% { transform: scale(1.06) } }
+.actions .btn:nth-child(odd) { rotate: -.6deg; }
+.actions .btn:nth-child(even) { rotate: .5deg; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 2px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.seg button { height: 32px; padding: 0 12px; font: 500 13px/32px var(--f-type); color: var(--ink); }
+.seg button + button { border-left: 2px solid var(--ink); }
+.seg button.on { background: var(--ink); color: var(--paper); }
 
-/* card tooltip */
-#cardtip{position:fixed;left:0;top:0;z-index:300;max-width:260px;padding:8px 10px 9px;background:#0d0d10;color:#f4f1ea;border:2px solid #f4f1ea;box-shadow:4px 4px 0 #000;font:500 13px/17px var(--f-ui);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity 120ms ease-out,transform 120ms ease-out}
-#cardtip.show{opacity:1;transform:none}
-#cardtip.s-D{border-color:#ff2d55}
-#cardtip b{display:block;font:700 15px/18px var(--f-px);text-transform:uppercase}
-#cardtip .tipside{display:block;font:500 11px/14px var(--f-mono);opacity:.6;margin-top:1px}
-#cardtip p{margin:6px 0 0}
-body.lite #cardtip{transition:none}
-#hand .card{-webkit-touch-callout:none;user-select:none}
+/* ---------- start + lobby pages ---------- */
+.screen { position: fixed; inset: 0; overflow: auto; }
+.page { max-width: 560px; margin: 24px auto; padding: 48px 24px; border-radius: 3px; }
+.title { font: 700 56px/.92 var(--f-stamp); letter-spacing: .02em; text-transform: uppercase; color: var(--ink); }
+.title span { display: inline-block; margin-top: 8px; padding: 2px 10px; color: var(--stamp); border: 4px solid var(--stamp); rotate: -4deg; opacity: .9; mix-blend-mode: multiply; }
+.lede { margin: 16px 0 32px; max-width: 440px; }
+.field { display: grid; grid-template-columns: 136px 1fr; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px dashed rgba(29, 23, 18, .3); }
+.section { margin-top: 28px; }
+.section > .label { display: block; margin-bottom: 8px; }
+.actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.code-in { width: 96px; text-align: center; letter-spacing: .2em; text-transform: uppercase; }
+.msg { min-height: 20px; margin-top: 8px; font: 400 13px var(--f-type); color: var(--ink-soft); }
+.code { font: 700 52px/56px var(--f-stamp); letter-spacing: .2em; color: var(--stamp); cursor: pointer; }
+.seatrow { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px dashed rgba(29, 23, 18, .3); }
+.seatrow:last-child { border-bottom: 1px dashed rgba(29, 23, 18, .3); }
+.seatrow .who { display: flex; gap: 8px; align-items: center; font: 600 14px var(--f-type); }
+.seatrow.me .who { text-decoration: underline; text-underline-offset: 4px; }
+.seatrow .bot { color: var(--stamp); }
+.ini { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 2px; font: 500 11px var(--f-type); background: var(--ink); color: var(--paper); }
+.rv { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-top: 1px dashed rgba(29, 23, 18, .3); font-family: var(--f-type); }
+.rv .mono { color: var(--ink-soft); }
+.rv.off { opacity: .55; }
+/* presets: three index cards; the fine-tune list stays folded */
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.preset { display: flex; flex-direction: column; gap: 4px; padding: 12px 12px 14px; text-align: left; border-radius: 2px;
+  background: var(--paper-2) var(--noise); background-blend-mode: multiply; color: var(--ink);
+  box-shadow: inset 0 0 10px rgba(40, 25, 10, .35), 0 3px 0 rgba(0, 0, 0, .55); transition: transform 80ms ease-out; }
+.preset b { font: 700 16px/18px var(--f-stamp); text-transform: uppercase; letter-spacing: .05em; }
+.preset span { font: 500 11px/15px var(--f-type); color: var(--ink); opacity: .8; }
+.preset:nth-child(1) { rotate: -1deg; } .preset:nth-child(3) { rotate: .8deg; }
+.preset:hover { transform: translateY(-2px); }
+.preset.on { background-color: var(--ink); color: var(--paper); box-shadow: 0 0 0 3px var(--stamp), 0 6px 14px rgba(0, 0, 0, .5); }
+.preset.on span { color: var(--paper); opacity: .85; }
+details.fine { margin-top: 16px; border-top: 2px solid var(--ink); }
+details.fine > summary { padding: 12px 0; font: 600 12px/16px var(--f-type); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); list-style: none; }
+details.fine > summary::before { content: '+ '; }
+details.fine[open] > summary::before { content: '− '; }
+details.fine > summary::-webkit-details-marker { display: none; }
+.opt { display: grid; grid-template-columns: 24px 1fr; gap: 8px; padding: 12px 0; border-top: 1px dashed rgba(29, 23, 18, .3); cursor: pointer; }
+.opt input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--ink); }
+.opt b { display: block; font-weight: 600; }
+.opt span { font-size: 13px; line-height: 18px; color: var(--ink-soft); }
+.sublabel { display: block; margin: 20px 0 4px; }
 
-/* drag to reorder */
-#hand.reorder .card,.pick.reorder .slot{animation:none!important;transition:translate 140ms cubic-bezier(.2,.8,.2,1)}
-#hand.reorder .card.lifted{opacity:.15}
-.pick .slot{touch-action:none;cursor:grab;transition:translate 140ms cubic-bezier(.2,.8,.2,1)}
-.pick .slot.held{transition:none;z-index:5;cursor:grabbing;filter:drop-shadow(0 10px 0 rgba(0,0,0,.45))}
-#hand .card{touch-action:none}
-.pickwarn{color:var(--hot);margin:10px 0 0;font-weight:600}
+/* ---------- the game: layout ---------- */
+#game { position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr) 380px; }
+body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
+@keyframes vhs { 0%, 96%, 100% { transform: translateY(0) } 97% { transform: translateY(-2px) } 98% { transform: translateY(1px) } }
+#opps, #table, #bottom, #hand { min-width: 0; }
+#opps { grid-column: 1; display: flex; justify-content: center; gap: 18px; padding: 22px 16px 0; flex-wrap: wrap; }
+#table { grid-column: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; min-height: 0; }
+#side { grid-column: 2; grid-row: 1 / 4; display: flex; flex-direction: column; min-height: 0; background: #0b0908; }
+#bottom { grid-column: 1; padding: 0 16px 16px; }
+.mob, #ticker { display: none; }
 
-/* Balatro flame behind the multiplier */
-.flame{position:absolute;z-index:0;pointer-events:none;image-rendering:pixelated;opacity:0;transition:opacity .2s}
-#hud{position:relative;z-index:1}
-#hud .stack,#hud .multchip{position:relative;z-index:2}
-#hud .multchip{color:#fff;text-shadow:2px 2px 0 #00264d;display:inline-block;align-self:flex-start}
-#hud .stack{display:inline-block;align-self:flex-start;padding:0 6px}
-#hud .stack.burning{color:#fff;text-shadow:3px 3px 0 #5a0a1c,-2px -2px 0 #5a0a1c,2px -2px 0 #5a0a1c,-2px 2px 0 #5a0a1c}
-body.lite .flame{display:none}
+/* ---------- name tags around the table ---------- */
+.opp { min-width: 136px; max-width: 220px; padding: 10px 12px 8px; border-radius: 2px; transition: transform .2s, box-shadow .2s, opacity .2s; }
+.opp:nth-child(odd) { rotate: -1.5deg; } .opp:nth-child(even) { rotate: 1.2deg; }
+.opp.turn { transform: translateY(4px) scale(1.04); box-shadow: 0 0 0 3px var(--stamp-hi), var(--grime-in), 0 14px 30px rgba(0, 0, 0, .75); }
+.opp.out { opacity: .4; }
+.opp.away { opacity: .55; filter: grayscale(.6); }
+.opp .top { display: flex; align-items: center; gap: 8px; }
+.opp .nm { font: 600 14px var(--f-type); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.opp .meta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 8px; }
+.opp .cnt { font: 700 34px/28px var(--f-chalk); }
+.opp .tags { text-align: right; font: 500 11px/16px var(--f-type); color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; }
+.opp .tags b { font-weight: 600; color: var(--ink); }
+.opp .next { color: var(--ink); }
+.fan { position: relative; height: 16px; margin-top: 8px; opacity: .85; }
+.fan i { position: absolute; top: 0; width: 10px; height: 16px; border-radius: 1px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+.fan i.w { background: conic-gradient(var(--r) 0 90deg, var(--b) 0 180deg, var(--y) 0 270deg, var(--g) 0); }
+.fan i.w.D { background: conic-gradient(var(--p) 0 90deg, var(--t) 0 180deg, var(--o) 0 270deg, var(--v) 0); }
+.bar { height: 2px; margin-top: 8px; background: rgba(0, 0, 0, .25); }
+.bar > div { height: 100%; background: var(--ink-soft); transition: width 180ms ease-out; }
+.bar.hot > div { background: var(--stamp); }
+.timer { height: 2px; margin-top: 8px; background: var(--ink); transform-origin: left; animation: timer linear forwards; }
+@keyframes timer { to { transform: scaleX(0) } }
+.catch { margin-top: 8px; width: 100%; height: 28px; font-size: 12px; }
+.sep { align-self: center; padding: 0 2px; font: 500 20px/1 var(--f-type); color: var(--chalk-2); }
 
-/* combo chooser line + Balatro-style score panel */
-.pickcombo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 0;font-family:var(--f-px)}
-.pickcombo b{font-size:18px;color:#fff;text-transform:uppercase;margin-right:4px}
-.pickcombo.bad{color:var(--hot);font-weight:600}
-.pickcombo em{font-style:normal;color:var(--gold);font-size:13px}
-.pickcombo i,#combo i{font-style:normal;color:#fe5f55;font-weight:900}
-.chips,.mult{display:inline-block;min-width:44px;padding:3px 10px;text-align:center;font:900 20px/26px var(--f-ui);font-variation-settings:"wdth" 75;color:#fff;border-radius:6px;box-shadow:0 3px 0 rgba(0,0,0,.6)}
-.chips{background:#009dff}.mult{background:#fe5f55;position:relative;z-index:2}
-#combo{position:fixed;left:50%;top:38%;z-index:150;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 22px 16px;background:#16161c;border:3px solid #fff;border-radius:12px;box-shadow:6px 6px 0 #000;transition:opacity .15s,transform .2s cubic-bezier(.2,1.6,.4,1)}
-#combo.show{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-2deg)}
-#combo .cwho,#combo .cpay{position:relative;z-index:2}
-#combo .cwho{font:500 12px/14px var(--f-mono);color:#aaa}
-#combo .cname{position:relative;z-index:2;font:700 30px/32px var(--f-px);color:#fff;text-transform:uppercase;text-shadow:3px 3px 0 #000}
-#combo .cscore{display:flex;align-items:center;gap:8px}
-#combo .chips,#combo .mult{font-size:30px;line-height:38px;min-width:64px}
-#combo .cpay{font:600 14px/18px var(--f-px);color:var(--gold)}
-body.lite #combo{transition:none}
+/* ---------- the felt: chalk and piles ---------- */
+#banner { min-height: 20px; text-align: center; font: 600 26px/1.1 var(--f-chalk); color: var(--chalk); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
+.center { position: relative; display: flex; align-items: center; gap: 48px; }
+.piles { position: relative; display: flex; align-items: center; gap: 48px; padding: 20px 28px; }
+.piles::after { content: ''; position: absolute; inset: -14px; border: 2px dashed rgba(240, 234, 218, .18); border-radius: 24px; pointer-events: none; }
+.pile { position: relative; width: calc(var(--cw) * 1.3); height: calc(var(--ch) * 1.3); }
+.pile .card { position: absolute; inset: 0; width: 100%; height: 100%; }
+#drawpile { cursor: pointer; }
+#drawpile .card:nth-child(1) { transform: translate(-6px, 6px); filter: brightness(.5); }
+#drawpile .card:nth-child(2) { transform: translate(-3px, 3px); filter: brightness(.7); }
+#drawpile.can .card:nth-child(3) { outline: 2px solid var(--gold); outline-offset: 4px; }
+#discard .card.under { filter: brightness(.65) saturate(.6); }
+#discard .card.topc { outline: 2px dashed rgba(240, 234, 218, .55); outline-offset: 6px; }
+#discard.drop .card.topc { outline-color: var(--gold); }
+#discard .card.land { animation: land 260ms cubic-bezier(.2, 1.8, .4, 1); }
+@keyframes land { from { transform: translate(var(--dx), calc(var(--dy) - 24px)) rotate(calc(var(--rot) + 12deg)) scale(1.25) } }
+#dirRing { position: absolute; left: 50%; top: 50%; width: calc(100% + 96px); height: calc(100% + 72px); transform: translate(-50%, -50%); pointer-events: none; overflow: visible; }
+#dirRing.ccw { transform: translate(-50%, -50%) scaleX(-1); }
+#dirRing path { fill: none; stroke: rgba(240, 234, 218, .18); stroke-width: 2; }
+#dirRing .head { fill: var(--chalk-2); stroke: none; }
 
-/* the hand never clips its cards: lifted, hovered and swaying cards may rise above it */
-#hand{overflow:visible!important;padding-top:36px}
-@media (max-width:720px){#hand{padding-top:30px}}
+/* the HUD beside the piles: chalk notes */
+.hud { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 136px; color: var(--chalk); font-family: var(--f-type); text-shadow: 0 1px 2px rgba(0, 0, 0, .9); }
+.hud .row { display: flex; align-items: center; gap: 8px; }
+.hud .label { color: var(--chalk-2); }
+.dirtxt { font: 500 13px/20px var(--f-type); }
+.chip { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 2px; background: var(--cc-now, var(--chalk-2)); color: rgba(0, 0, 0, .55); }
+.chip .suit { width: 10px; height: 10px; }
+.phase { display: inline-flex; align-items: center; gap: 8px; font: 600 14px/18px var(--f-stamp); text-transform: uppercase; letter-spacing: .12em; color: var(--chalk); }
+.phase b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 14px; background: #ffd27a; color: #1a1208; box-shadow: 0 0 18px rgba(255, 210, 122, .7); }
+.phase.night b { background: #ff4436; color: #1a0505; box-shadow: 0 0 18px rgba(255, 68, 54, .8); }
+.phaserules { max-width: 230px; font: 500 11px/15px var(--f-type); color: var(--chalk-2); }
+.chaosline { font: 600 20px/22px var(--f-chalk); color: var(--gold); }
+.chaosline.dim { color: rgba(232, 226, 210, .72); }
+.chaosline.warn { animation: flicker 1.2s infinite; }
+.chaosline.lastcall { font-size: 24px; color: #ff6a55; }
+@keyframes flicker { 0%, 18%, 22%, 61%, 65%, 100% { opacity: 1 } 20%, 63% { opacity: .5 } }
+#hud .multchip { display: inline-block; align-self: flex-start; }
+/* the stack counter: a big stamped number that heats up and starts to smoulder */
+.stack { display: inline-block; align-self: flex-start; padding: 0 6px; font: 700 48px/44px var(--f-stamp); color: #ffefd0; text-shadow: 0 2px 0 #000; animation: heat .32s infinite; }
+@keyframes heat { 25% { translate: calc(var(--heat, 0) * -3px) calc(var(--heat, 0) * 2px); rotate: calc(var(--heat, 0) * -2deg) } 75% { translate: calc(var(--heat, 0) * 3px) calc(var(--heat, 0) * -2px); rotate: calc(var(--heat, 0) * 2deg) } }
+.ember { --emb: 0; color: color-mix(in srgb, #ffefd0, #ff9a4a calc(var(--emb) * 60%));
+  text-shadow: 0 2px 0 #000, 0 0 calc(4px + var(--emb) * 16px) rgba(255, 96, 30, calc(.25 + var(--emb) * .55)), 0 calc(var(--emb) * -6px) calc(var(--emb) * 22px) rgba(160, 30, 10, calc(var(--emb) * .6)); }
+.stack.ember, .multchip.ember { animation: heat .32s infinite, smoulder 1.6s ease-in-out infinite; }
+#combo .mult.ember { animation: smoulder .8s ease-in-out infinite; }
+@keyframes smoulder { 50% { filter: brightness(calc(1 + var(--emb) * .25)) } }
+.float { position: absolute; left: 50%; top: 8px; z-index: 5; padding: 2px 8px; white-space: nowrap; pointer-events: none; border-radius: 2px;
+  font: 600 13px/16px var(--f-stamp); background: var(--paper); color: var(--ink); box-shadow: 0 3px 0 #000;
+  opacity: 0; transform: translate(-50%, 4px); transition: opacity 150ms ease-out, transform 150ms ease-out; }
+.float.in { opacity: 1; transform: translate(-50%, 0); }
 
-/* the card oval: a real pixel ellipse on a square grid (22×34 cells), not a rotated, stretched shape */
-.card .oval{left:50%;top:50%;width:84%;height:62%;transform:translate(-50%,-50%) rotate(28deg);border-radius:50%;clip-path:none;-webkit-mask:none;mask:none}
-.card .mid{transform:rotate(-28deg)}
-.card.c-w .oval{background:conic-gradient(var(--r) 0 90deg,var(--b) 0 180deg,var(--y) 0 270deg,var(--g) 0)}
-.card.s-D.c-w .oval{background:conic-gradient(var(--p) 0 90deg,var(--t) 0 180deg,var(--o) 0 270deg,var(--v) 0)}
-/* wider side panel; its header wraps instead of spilling over */
-@media (min-width:821px){#game{grid-template-columns:minmax(0,1fr) 380px}}
-.sidehead{height:auto;min-height:48px;flex-wrap:wrap;row-gap:4px;padding-top:6px;padding-bottom:6px}
+/* big moments: a rubber stamp hits the table */
+#toast { height: auto; margin: -16px 0 -8px; padding: 0 14px; white-space: nowrap; pointer-events: none; opacity: 0;
+  font: 700 40px/1.15 var(--f-stamp); text-transform: uppercase; color: var(--stamp-hi); border: 5px solid currentColor; rotate: -7deg;
+  text-shadow: 0 0 1px rgba(0, 0, 0, .6); transition: opacity 150ms ease-out; }
+#toast:empty { border-color: transparent; }
+#toast.show { opacity: 1; animation: stamp .32s cubic-bezier(.2, 1.8, .4, 1); }
+@keyframes stamp { 0% { transform: scale(2.2); opacity: 0 } 60% { opacity: 1 } 100% { transform: scale(1) } }
+#game.shake2 { animation: shake2 .4s; }
+@keyframes shake2 { 10%, 50%, 90% { translate: calc(var(--shk, 8px) * -1) calc(var(--shk, 8px) * .4) } 30%, 70% { translate: var(--shk, 8px) calc(var(--shk, 8px) * -.4) } }
+/* the bulb drops out for a moment (was a colour glitch) */
+#game.glitch { animation: dropout .36s steps(1); }
+@keyframes dropout { 0% { filter: brightness(.3) } 30% { filter: brightness(1.15) } 55% { filter: brightness(.5) } 80%, 100% { filter: none } }
 
-/* text symbols on cards */
-.sym{display:block;font-family:'Segoe UI Symbol','Noto Sans Symbols 2','Noto Sans Symbols','Apple Symbols','DejaVu Sans',sans-serif;font-weight:700;line-height:1;font-variant-emoji:text}
-.card .mid .sym{font-size:calc(var(--cw)*.44)}
-.card .mid.sm .sym{font-size:calc(var(--cw)*.3)}
-.card .cor .sym{font-size:calc(var(--cw)*.18)}
-.card .mid{text-shadow:none}
+/* ---------- me + my hand ---------- */
+#bottom .me { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+#bottom .me .who { display: flex; align-items: center; gap: 8px; }
+#bottom .me .ini { background: var(--paper); color: var(--ink); }
+#bottom .me .cnt { font: 700 30px/20px var(--f-chalk); color: var(--chalk); }
+#bottom .me .bar { width: 96px; margin: 0; background: rgba(255, 255, 255, .12); }
+#bottom .me .bar > div { background: var(--chalk-2); }
+#meName { font: 600 14px var(--f-type); color: var(--chalk); }
+#meTags { color: var(--chalk-2); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#hand { display: flex; justify-content: center; padding: 36px 16px 8px; overflow: visible; perspective: 700px; }
+#hand .brk { flex-basis: 100%; height: 0; }
+#hand .card { flex: none; width: var(--hcw, var(--cw)); height: calc(var(--hcw, var(--cw)) * 1.47); cursor: grab; touch-action: none; -webkit-touch-callout: none;
+  transform-origin: 50% 100%; transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg));
+  transition: transform 150ms ease-out, opacity 150ms ease-out, rotate 120ms ease-out, filter 150ms; }
+body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.lifted) { animation: sway 3.4s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.41s); }
+@keyframes sway { 50% { translate: 0 -4px } }
+#hand .card.ok { transform: translateY(calc(var(--dy, 0px) - 6px)) rotate(var(--rot, 0deg)); }
+#hand .card.ok:hover { transform: translateY(calc(var(--dy, 0px) - 22px)) rotate(0deg) scale(1.06); }
+#hand .card.jump { outline: 2px solid var(--gold); outline-offset: 2px; transform: translateY(calc(var(--dy, 0px) - 6px)) rotate(var(--rot, 0deg)); }
+#hand .card.dim { opacity: .45; }
+#hand .card.new { animation: in 160ms ease-out backwards; }
+#hand .card.flipin { animation: fade 180ms ease-out backwards; }
+#hand .card.lifted { opacity: .25; }
+#hand .card.nope { animation: nope 160ms ease-out; }
+#hand.reorder .card, .pick.reorder .slot { animation: none; transition: translate 140ms cubic-bezier(.2, .8, .2, 1); }
+#hand.reorder .card.lifted { opacity: .15; }
+@keyframes in { from { opacity: 0; transform: translateY(8px) } }
+@keyframes fade { from { opacity: 0 } }
+@keyframes nope { 50% { transform: translateX(-4px) } }
 
-/* square-cornered cards */
-.card,.card::after,#hand .card::after,.card.spr{border-radius:0!important}
-
-/* the chooser never runs off screen: the dialog scrolls and big hands get smaller cards */
-.modal .dialog{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
-.pick.many{--cw:44px;--ch:65px;gap:6px}
-.pick.lots{--cw:36px;--ch:53px;gap:5px}
-.pick.lots .card .mid em,.pick.many .card .mid em{display:none}
-.dialog:has(.pick.many),.dialog:has(.pick.lots){max-width:560px}
-/* Russian roulette button */
-.btn.gamble{background:#3a0d14;border-color:#ff2d55;color:#fff}
-.btn.gamble:not(:disabled):hover{background:#5c1420}
-
-/* ===================== THE HOUSE: one visual language =====================
-   Lacquered black wood, brass trim, casino felt. Day = green felt + gold light. Night = oxblood felt + red light.
-   Gold is for money and the House, red for danger, blue only for chips. */
-:root{--brass:#c9a227;--brass-dim:rgba(201,162,39,.38);--lacquer:rgba(14,10,8,.88);--felt:#0f3d2f;--felt-hi:#16573f;--ink-gold:#ffd77a;--danger:#e8243f}
-body.dark{--felt:#3a0b16;--felt-hi:#5a1424;--brass:#d4483b;--brass-dim:rgba(212,72,59,.42);--ink-gold:#ffb0a0}
-#crt{background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)!important}
-#grain{opacity:.05}
-/* panels */
-.page,.opp,.dialog,#side{background:var(--lacquer)!important;border:1px solid var(--brass-dim)!important;box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.04)!important}
-.page,.dialog{border-radius:12px!important}
-.opp{border-radius:10px!important}
-#side{border-width:0 0 0 1px!important;border-radius:0!important}
-.sidehead{border-bottom:1px solid var(--brass-dim)!important}
-.label{color:var(--brass);letter-spacing:.14em;font-weight:600}
-/* the table: felt with a brass rail */
-.piles{background:radial-gradient(ellipse at 50% 35%,var(--felt-hi),var(--felt) 70%)!important;border:2px solid var(--brass)!important;border-style:solid!important;border-radius:22px!important;box-shadow:inset 0 0 0 5px rgba(0,0,0,.35),inset 0 0 40px rgba(0,0,0,.45),0 10px 0 rgba(0,0,0,.55)!important}
-/* buttons */
-.btn{background:#1d1714!important;border:1px solid var(--brass-dim)!important;color:#efe6d6;box-shadow:0 3px 0 rgba(0,0,0,.7)!important;font-family:var(--f-ui)!important;font-weight:700;letter-spacing:.02em}
-.btn:hover:not(:disabled){background:#2a211c!important}
-.btn.primary{background:linear-gradient(#b8162f,#8e0f23)!important;border-color:#ffcf5a66!important;color:var(--ink-gold)!important}
-.btn.primary:hover:not(:disabled){background:linear-gradient(#cc1c37,#a01228)!important}
-.btn.quiet{background:transparent!important;border-color:transparent!important;box-shadow:none!important;color:#cfc4b2}
-.btn.gamble{background:linear-gradient(#2b0a10,#1a0508)!important;border-color:var(--danger)!important;color:#ffd0d6!important}
-.seg{border-color:var(--brass-dim)!important}
-.seg button.on{background:var(--brass)!important;color:#140f0a!important}
-/* titles and signage */
-.title{font-family:var(--f-ui)!important;font-weight:900;font-variation-settings:"wdth" 68;letter-spacing:.01em;color:#f3ead8;text-shadow:0 2px 0 #000,0 0 30px rgba(201,162,39,.25)!important}
-.title span{color:var(--brass)}
-#toast{font-family:var(--f-ui)!important;font-weight:900;font-variation-settings:"wdth" 68;color:var(--ink-gold)!important;text-shadow:0 3px 0 #2a0508,0 0 18px rgba(232,36,63,.55)!important;rotate:-2deg}
-#banner{font-family:var(--f-ui)!important;font-weight:700;color:#efe6d6}
-.chaosline{color:var(--ink-gold)}
-.chaosline.dim{color:#8f8676}
-/* day / night badge */
-.phase{display:inline-flex;align-items:center;gap:8px;font:800 14px/18px var(--f-ui);font-variation-settings:"wdth" 75;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-gold)}
-.phase b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:14px;background:var(--brass);color:#140f0a}
-.phase.night b{background:#d4483b;color:#1a0508}
-.phaserules{font:500 11px/15px var(--f-mono);color:#a99e8c;max-width:220px}
-@media (max-width:820px){.phaserules{display:none}}
-/* cards keep their own colors; only the frame around the hand and chooser follow the house */
-.pick .ord{background:var(--brass)!important;color:#140f0a!important}
-.pickcombo b{color:var(--ink-gold)}
-#combo{background:var(--lacquer)!important;border:2px solid var(--brass)!important}
-#cardtip{background:var(--lacquer)!important;border:1px solid var(--brass)!important;box-shadow:0 8px 24px rgba(0,0,0,.5)!important}
-#cardtip b{font-family:var(--f-ui)!important;font-weight:800;color:var(--ink-gold)}
-.slotbox{background:var(--lacquer)!important;border:2px solid var(--brass)!important}
-.rulestag{color:var(--ink-gold);font-style:italic;margin:0 0 8px}
-.rulestext h3{color:var(--brass);letter-spacing:.06em;text-transform:uppercase;font-size:13px}
-/* settings */
-.settings{display:flex;flex-direction:column;gap:2px}
-.settings .set{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,.06)}
-.settings .set span{color:#cfc4b2;font-size:13px}
-.settings .seg{flex-wrap:wrap}
-.settings .seg button{padding:6px 10px;font-size:13px}
-.settings input[type=range]{width:100%;accent-color:var(--brass)}
-.settings input[type=text]{width:100%}
-@media (max-width:520px){.settings .set{grid-template-columns:1fr;gap:6px}}
-.textlink+.textlink{margin-left:16px}
-
-/* ============================ THE BACK ROOM ============================
-   A lamp-lit card table seen from above. Everything is a physical thing on or around it:
-   paper name tags, masking tape, a receipt for the log, rubber stamps for big moments, chalk on the felt.
-   Fonts: Oswald (stamped, condensed), IBM Plex Mono (typed paper), Caveat (chalk/marker). */
-:root{--paper:#ece2cc;--paper-2:#ddd0b3;--ink:#1d1712;--ink-soft:#4a3f33;--stamp:#b3261e;--chalk:rgba(240,234,218,.86);--tape:rgba(232,220,170,.78);
-  --f-stamp:'Oswald','Archivo',system-ui,sans-serif;--f-type:'IBM Plex Mono',ui-monospace,monospace;--f-chalk:'Caveat','Comic Sans MS',cursive;--noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
-body.dark{--stamp:#c22a20}
-html{background:#030202!important}body{background:transparent!important}
-#game{border:0!important;background:transparent!important}
-#crt{background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.7) 100%)!important}
-#grain{opacity:.09!important}
-@keyframes vhs{0%,96%,100%{transform:translateY(0)}97%{transform:translateY(-2px)}98%{transform:translateY(1px)}}
-body:not(.lite) #game{animation:vhs 7s steps(1) infinite}
-
-/* ---------- paper things ---------- */
-.page,.dialog,#cardtip,#combo,.opp{background:var(--paper)!important;background-image:var(--noise)!important;background-blend-mode:multiply!important;color:var(--ink)!important;border:0!important;
-  box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 12px 24px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.4)!important}
-.page,.dialog{border-radius:3px!important}
-.page .label,.dialog .label,.page p,.dialog p,.dialog h2,.page .lede{color:var(--ink)!important}
-.dialog h2,.page h2{font-family:var(--f-stamp)!important;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-.lede,.dialog p{font-family:var(--f-type)!important;font-size:13px;line-height:19px;color:var(--ink-soft)!important}
-.page input,.dialog input,.page select{background:transparent!important;border:0!important;border-bottom:2px solid var(--ink)!important;border-radius:0!important;color:var(--ink)!important;font-family:var(--f-type)!important}
-.page .field,.dialog .set{border-top:1px dashed rgba(29,23,18,.3)!important}
-.label{font-family:var(--f-type)!important;color:var(--ink-soft)!important;letter-spacing:.12em!important;font-size:11px!important;text-transform:uppercase}
-/* tape on paper */
-.page::before,.dialog::before,.opp::before{content:'';position:absolute;top:-9px;left:50%;width:74px;height:20px;transform:translateX(-50%) rotate(-3deg);background:var(--tape);box-shadow:0 1px 2px rgba(0,0,0,.25);pointer-events:none}
-.page,.dialog{position:relative}
-.textlink{color:var(--ink)!important;font-family:var(--f-type)!important}
-
-/* ---------- buttons: printed labels and a red rubber stamp ---------- */
-.btn{background:var(--paper-2)!important;background-image:var(--noise)!important;background-blend-mode:multiply!important;color:var(--ink)!important;border:0!important;border-radius:2px!important;
-  font-family:var(--f-stamp)!important;font-weight:600!important;text-transform:uppercase;letter-spacing:.06em!important;box-shadow:0 3px 0 rgba(0,0,0,.55),0 6px 12px rgba(0,0,0,.35)!important}
-.btn:hover:not(:disabled){filter:brightness(1.06)}
-.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.55)!important}
-.btn:disabled{opacity:.38}
-.btn.primary{background:var(--stamp)!important;color:#f6ead2!important}
-.btn.gamble{background:#111!important;color:#ff5a4d!important;outline:2px dashed #ff5a4d;outline-offset:-5px}
-.btn.quiet{background:transparent!important;box-shadow:none!important;color:var(--chalk)!important}
-.actions .btn:nth-child(odd){rotate:-.6deg}.actions .btn:nth-child(even){rotate:.5deg}
-.seg{border:2px solid var(--ink)!important;border-radius:2px!important;background:transparent!important}
-.seg button{color:var(--ink)!important;font-family:var(--f-type)!important;background:transparent!important}
-.seg button.on{background:var(--ink)!important;color:var(--paper)!important}
-.settings input[type=range]{accent-color:var(--stamp)}
-.settings .set span{color:var(--ink)!important}
-
-/* ---------- title: a stamped case file ---------- */
-.title{font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;color:var(--ink)!important;text-shadow:none!important;letter-spacing:.02em!important;line-height:.95!important}
-.title span{display:inline-block;color:var(--stamp)!important;border:4px solid var(--stamp);padding:2px 10px;margin-top:6px;rotate:-4deg;opacity:.9;mix-blend-mode:multiply}
-
-/* ---------- the players around the table: paper name tags ---------- */
-#opps{gap:18px!important;padding-top:22px!important}
-.opp{border-radius:2px!important;padding:10px 12px 8px!important;transition:transform .2s,box-shadow .2s!important}
-.opp:nth-child(odd){rotate:-1.5deg}.opp:nth-child(even){rotate:1.2deg}
-.opp .nm{font-family:var(--f-type)!important;font-weight:600;color:var(--ink)!important}
-.opp .cnt{font-family:var(--f-chalk)!important;font-weight:700!important;font-size:34px!important;line-height:28px!important;color:var(--ink)!important;font-variation-settings:normal!important}
-.opp .tags,.opp .tags b{font-family:var(--f-type)!important;color:var(--ink-soft)!important}
-.opp .ini{background:var(--ink)!important;color:var(--paper)!important;border-radius:2px!important}
-.opp.turn{transform:translateY(4px) scale(1.04);box-shadow:0 0 0 3px var(--stamp),0 14px 28px rgba(0,0,0,.6)!important}
-.opp.away{opacity:.55;filter:grayscale(.6)}
-.opp .bar,.opp .fan{opacity:.85}
-
-/* ---------- on the felt: chalk ---------- */
-.piles{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important}
-.piles::after{content:'';position:absolute;inset:-14px;border:2px dashed rgba(240,234,218,.18);border-radius:24px;pointer-events:none}
-#banner{font-family:var(--f-chalk)!important;font-size:26px!important;font-weight:600!important;color:var(--chalk)!important;text-shadow:0 1px 0 rgba(0,0,0,.4)!important;letter-spacing:.01em}
-.hud,.hud .row,.dirtxt{color:var(--chalk)!important;font-family:var(--f-type)!important}
-.chaosline{font-family:var(--f-chalk)!important;font-size:20px!important;color:#ffe2a0!important;text-shadow:none!important}
-.chaosline.dim{color:rgba(240,234,218,.5)!important}
-.phase{font-family:var(--f-stamp)!important;color:var(--chalk)!important;letter-spacing:.12em!important}
-.phase b{background:#ffd27a!important;color:#1a1208!important;box-shadow:0 0 18px rgba(255,210,122,.7)}
-.phase.night b{background:#ff4436!important;color:#1a0505!important;box-shadow:0 0 18px rgba(255,68,54,.8)}
-.phaserules{font-family:var(--f-type)!important;color:rgba(240,234,218,.55)!important}
-.stack{font-family:var(--f-stamp)!important;font-variation-settings:normal!important;color:#ffefd0!important}
-.me .cnt{font-family:var(--f-chalk)!important;font-size:30px!important;color:var(--chalk)!important;font-variation-settings:normal!important}
-#meName{font-family:var(--f-type)!important;color:var(--chalk)!important}
-#meTags{font-family:var(--f-type)!important;color:rgba(240,234,218,.6)!important}
-.me .ini{background:var(--paper)!important;color:var(--ink)!important}
-
-/* ---------- big moments: a rubber stamp hits the table ---------- */
-#toast{font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;color:var(--stamp)!important;text-shadow:none!important;
-  border:5px solid currentColor;padding:0 14px;height:auto!important;line-height:1.15!important;rotate:-7deg!important;mix-blend-mode:screen;filter:contrast(1.2)}
-body.dark #toast{color:#ff5a4d!important}
-#toast.show{animation:stamp .32s cubic-bezier(.2,1.8,.4,1)!important}
-@keyframes stamp{0%{transform:scale(2.2);opacity:0}60%{opacity:1}100%{transform:scale(1)}}
-
-/* ---------- the log: a receipt ---------- */
-#side{background:#0b0908!important;border:0!important}
-.sidehead{border-bottom:1px solid rgba(255,255,255,.06)!important}
-.sidehead .label{color:rgba(240,234,218,.6)!important}
-#side .btn.quiet{color:rgba(240,234,218,.75)!important;font-family:var(--f-type)!important;text-transform:none}
-#log{flex:0 1 auto!important;max-height:calc(100% - 96px);min-height:80px;margin:12px 16px 16px;padding:14px 14px 18px!important;background:#f1ece0;background-image:var(--noise);background-blend-mode:multiply;color:#2a241d!important;font-family:var(--f-type)!important;
-  -webkit-mask:linear-gradient(#000,#000) top/100% calc(100% - 10px) no-repeat,radial-gradient(circle at 5px 100%,transparent 5px,#000 5.5px) bottom left/10px 10px repeat-x;
-  mask:linear-gradient(#000,#000) top/100% calc(100% - 10px) no-repeat,radial-gradient(circle at 5px 100%,transparent 5px,#000 5.5px) bottom left/10px 10px repeat-x;box-shadow:0 10px 30px rgba(0,0,0,.6)}
-#log div,#log p{color:#2a241d!important;border-color:rgba(42,36,29,.15)!important}
-
-/* ---------- the cards: worn casino stock with a poker-chip centre ---------- */
-.card{border-radius:calc(var(--cw)*.07)!important;border:calc(var(--cw)*.055) solid #efe6d1!important;background:var(--cc)!important;
-  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 0 0 1px rgba(0,0,0,.25),0 6px 10px rgba(0,0,0,.5),0 2px 2px rgba(0,0,0,.4)!important}
-.card::before{content:'';position:absolute;inset:0;background:var(--noise);mix-blend-mode:multiply;opacity:.55;pointer-events:none;border-radius:inherit;z-index:3}
-.card::after{content:'';position:absolute;inset:calc(var(--cw)*.035);border:1px solid rgba(255,255,255,.35);border-radius:calc(var(--cw)*.04);pointer-events:none;z-index:2}
-.card.s-D{border-color:#16120f!important}
-.card.s-D::after{border-color:rgba(255,255,255,.12)}
-.card .oval{width:74%!important;height:auto!important;aspect-ratio:1;border-radius:50%!important;transform:translate(-50%,-50%)!important;clip-path:none!important;
-  background:radial-gradient(circle,#f3ead6 0 56%,transparent 57%),repeating-conic-gradient(#f3ead6 0 12deg,transparent 12deg 30deg)!important;box-shadow:0 0 0 2px rgba(0,0,0,.18),0 2px 4px rgba(0,0,0,.35)}
-.card.s-D .oval{background:radial-gradient(circle,#15110e 0 56%,transparent 57%),repeating-conic-gradient(#15110e 0 12deg,transparent 12deg 30deg)!important}
-.card.c-w .oval{background:radial-gradient(circle,#15110e 0 56%,transparent 57%),conic-gradient(var(--r) 0 90deg,var(--b) 0 180deg,var(--y) 0 270deg,var(--g) 0)!important}
-.card.s-D.c-w .oval{background:radial-gradient(circle,#15110e 0 56%,transparent 57%),conic-gradient(var(--p) 0 90deg,var(--t) 0 180deg,var(--o) 0 270deg,var(--v) 0)!important}
-.card.c-w{background:#15110e!important}
-.card .mid{transform:none!important;font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;font-size:calc(var(--cw)*.36)!important;text-shadow:none!important}
-.card.c-w .mid{background:none!important;box-shadow:none!important;color:#f3ead6!important}
-.card.s-D .mid{color:var(--cc)!important}
-.card .mid.sm{font-size:calc(var(--cw)*.22)!important}
-.card .mid .sym{font-size:calc(var(--cw)*.3)!important}
-.card .mid em{font-family:var(--f-type)!important;font-size:calc(var(--cw)*.075)!important;letter-spacing:.06em;color:inherit!important;opacity:.75;margin-top:1px}
-.card .cor{font-family:var(--f-stamp)!important;font-weight:700!important;font-variation-settings:normal!important;font-size:calc(var(--cw)*.2)!important;color:#f6eeda!important;text-shadow:0 1px 0 rgba(0,0,0,.35);z-index:4}
-.card.c-y .cor,.card.c-t .cor,.card.c-o .cor{color:#1d1712!important;text-shadow:none}
-.card .cor .sym{font-size:calc(var(--cw)*.17)!important}
-#hand .card.ok{box-shadow:0 0 0 2px #ffe2a0,0 10px 18px rgba(0,0,0,.6)!important}
-#discard .card.topc{outline:2px dashed rgba(240,234,218,.55)!important;outline-offset:6px!important}
-
-/* ---------- chooser, tooltips, combo slip, slot machine ---------- */
-.pick .ord{background:var(--stamp)!important;color:#f6ead2!important;font-family:var(--f-stamp)!important;border-radius:50%!important}
-.pickcombo b,#combo .cname{color:var(--ink)!important;font-family:var(--f-stamp)!important;text-shadow:none!important}
-.pickcombo em,#combo .cpay{color:var(--stamp)!important;font-family:var(--f-type)!important}
-#combo{border-radius:3px!important}
-#combo .cwho{color:var(--ink-soft)!important}
-.chips,.mult{font-family:var(--f-stamp)!important;font-variation-settings:normal!important;border-radius:50%!important;min-width:56px!important;aspect-ratio:1;display:inline-grid!important;place-items:center;
-  box-shadow:0 0 0 4px rgba(255,255,255,.35) inset,0 3px 0 rgba(0,0,0,.4)!important}
-#cardtip b{color:var(--ink)!important;font-family:var(--f-stamp)!important;text-transform:uppercase}
-#cardtip .tipside{color:var(--ink-soft)!important}
-#cardtip p{color:var(--ink)!important;font-family:var(--f-type)!important;font-size:12px}
-.slotbox{background:#141110!important;background-image:var(--noise)!important;border:3px solid #6b5a3a!important;box-shadow:0 20px 40px rgba(0,0,0,.7)!important}
-.slottitle{color:#ffd27a!important;font-family:var(--f-stamp)!important}
-.reels b{background:var(--paper)!important;color:var(--ink)!important;font-family:var(--f-stamp)!important;border-radius:3px!important}
-.slotname{font-family:var(--f-stamp)!important;color:#ffe2a0!important}
-.rulestext{color:var(--ink)!important;font-family:var(--f-type)!important;font-size:13px}
-.rulestext h3{color:var(--stamp)!important;font-family:var(--f-stamp)!important}
-.rulestext b{color:var(--ink)!important}
-.rulestag{color:var(--ink-soft)!important}
-.list button,.list .li{color:var(--ink)!important;border-color:rgba(29,23,18,.18)!important;font-family:var(--f-type)!important}
-.list .mono{color:var(--ink-soft)!important}
-.modal{background:rgba(0,0,0,.62)!important;backdrop-filter:blur(2px)}
-.float{background:var(--paper)!important;color:var(--ink)!important;font-family:var(--f-stamp)!important;border-radius:2px!important}
-#lbSeats .li,#lbSeats>div{color:var(--ink)!important}
-#lbRules,#lbCards{color:var(--ink)}
-.opt,.opt span{color:var(--ink)!important}
-.code{font-family:var(--f-stamp)!important;color:var(--stamp)!important;letter-spacing:.2em}
-@media (max-width:820px){
-  #banner{font-size:20px!important}
-  .opp .cnt{font-size:26px!important}
-  .opp::before{width:44px;height:14px;top:-7px}
-  #toast{border-width:3px}
+/* ---------- the cards: worn stock from a drawer in a basement ----------
+   Day: drained colour, bone-white stencil marks, a bone-grey edge.
+   Night: darker coloured stock, black ink marks, a black edge.
+   Every colour also carries its own shape in two corners. */
+.card {
+  position: relative; overflow: hidden; width: var(--cw); height: var(--ch);
+  background: var(--cc); color: var(--bone);
+  border: calc(var(--cw) * .05) solid #6f6655; border-radius: calc(var(--cw) * .045);
+  filter: saturate(.68) brightness(.9) contrast(1.12);
+  box-shadow: inset 0 0 calc(var(--cw) * .28) rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(0, 0, 0, .5), 0 0 0 1px #000, 0 9px 14px rgba(0, 0, 0, .85);
 }
-
-/* ============ DARKER: the back room at 3 a.m. (grime, a dying bulb, blood-red ink) ============ */
-:root{--paper:#b9ae98;--paper-2:#a49882;--ink:#120e0b;--ink-soft:#3a3026;--stamp:#8e1a14;--chalk:rgba(232,226,210,.9);--tape:rgba(170,160,120,.7)}
-body.dark{--paper:#b2a08e;--paper-2:#9c8a78;--stamp:#9c1810}
-#bg{image-rendering:pixelated!important}
-#grain{opacity:.13!important}
-#crt{background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px),radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8) 100%)!important}
-body.lite #crt{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.75) 100%)!important}
-/* paper gets dirty at the edges */
-.page,.dialog,#cardtip,#combo,.opp{box-shadow:inset 0 0 28px rgba(40,25,10,.45),inset 0 0 2px rgba(0,0,0,.4),0 14px 30px rgba(0,0,0,.75)!important}
-.btn{box-shadow:inset 0 0 10px rgba(40,25,10,.35),0 3px 0 rgba(0,0,0,.75),0 8px 14px rgba(0,0,0,.5)!important}
-.btn.primary{color:#f2e6cf!important}
-/* cards: older stock, grime in the corners */
-.card{border-color:#cfc4ab!important;box-shadow:inset 0 0 calc(var(--cw)*.18) rgba(30,18,8,.45),0 0 0 1px rgba(0,0,0,.35),0 8px 14px rgba(0,0,0,.7)!important}
-.card::before{opacity:.75!important}
-.card .oval{filter:saturate(.85) brightness(.95)}
-.card.s-D{border-color:#100c0a!important}
-/* readable chalk: no faint text on the felt */
-.phaserules{color:rgba(232,226,210,.82)!important}
-.chaosline.dim{color:rgba(232,226,210,.72)!important}
-#meTags{color:rgba(232,226,210,.82)!important}
-.hud .row,.dirtxt{color:rgba(232,226,210,.9)!important}
-#banner,.chaosline,.phase,.hud{text-shadow:0 1px 2px rgba(0,0,0,.9)!important}
-.sidehead .label,#side .btn.quiet{color:rgba(232,226,210,.8)!important}
-#log{background:#cfc8b8!important}
-/* stamps in dried-blood red */
-#toast{color:#c21f16!important;mix-blend-mode:normal!important;text-shadow:0 0 1px rgba(0,0,0,.6)!important}
-#toast:empty{border-color:transparent!important}
-body.dark #toast{color:#e0281c!important}
-.opp.turn{box-shadow:0 0 0 3px #c21f16,inset 0 0 28px rgba(40,25,10,.45),0 14px 30px rgba(0,0,0,.75)!important}
-
-/* ===================== CARDS, KLUBNIKA STYLE =====================
-   Old cards from a drawer in a basement: drained colour, grime, scratches, a stain,
-   crude stencilled bone-white marks. Night cards are black stock with dim coloured ink. */
-.card:not(.spr){background:var(--cc)!important;border:calc(var(--cw)*.05) solid #6f6655!important;border-radius:calc(var(--cw)*.045)!important;
-  filter:saturate(.68) brightness(.9) contrast(1.12);
-  box-shadow:inset 0 0 calc(var(--cw)*.28) rgba(0,0,0,.7),inset 0 0 0 1px rgba(0,0,0,.5),0 0 0 1px #000,0 9px 14px rgba(0,0,0,.85)!important}
-.card:not(.spr)::before{content:'';position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;mix-blend-mode:multiply;opacity:1!important;
-  background:radial-gradient(circle at var(--sx,30%) var(--sy,70%),transparent 16%,rgba(70,38,12,.22) 17.5% 19%,transparent 20.5%),
-    radial-gradient(ellipse at 50% 120%,rgba(30,15,5,.55),transparent 60%),url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")!important}
-.card:not(.spr)::after{content:'';position:absolute;inset:calc(var(--cw)*.045);border:1px solid rgba(216,206,180,.28)!important;border-radius:calc(var(--cw)*.03);z-index:4;pointer-events:none;
-  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-opacity='.35' stroke-width='.6' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100'/></svg>") center/cover;mix-blend-mode:screen}
-.card.st0{--sx:24%;--sy:72%}.card.st1{--sx:78%;--sy:24%}.card.st2{--sx:68%;--sy:80%}.card.st3{--sx:30%;--sy:28%}.card.st4{--sx:84%;--sy:58%}.card.st5{--sx:12%;--sy:46%}
-/* the face: no chip any more, just stencil marks straight on the colour */
-.card .oval{background:none!important;box-shadow:none!important;width:86%!important;aspect-ratio:auto!important;height:70%!important;filter:none!important}
-.card .mid{color:#dcd2b8!important;font-family:'Oswald',sans-serif!important;font-weight:700!important;font-size:calc(var(--cw)*.5)!important;line-height:.9!important;letter-spacing:-.01em;
-  text-shadow:0 2px 0 rgba(0,0,0,.65),0 0 6px rgba(0,0,0,.4)!important;filter:url(#rough)}
-.card .mid.sm{font-size:calc(var(--cw)*.3)!important}
-.card .mid .ico{width:calc(var(--cw)*.5);height:calc(var(--cw)*.5);display:block;filter:drop-shadow(0 2px 0 rgba(0,0,0,.65))}
-.card .mid em{font-family:'IBM Plex Mono',monospace!important;font-weight:600!important;font-size:calc(var(--cw)*.072)!important;color:#dcd2b8!important;opacity:.7;margin-top:calc(var(--cw)*.04);text-transform:uppercase;letter-spacing:.08em}
-.card .cor{color:#dcd2b8!important;font-family:'Oswald',sans-serif!important;font-size:calc(var(--cw)*.19)!important;text-shadow:0 1px 0 rgba(0,0,0,.7)!important;filter:url(#rough)}
-.card .cor .ico{width:calc(var(--cw)*.17);height:calc(var(--cw)*.17);display:block}
-.card.c-y .cor,.card.c-t .cor,.card.c-o .cor,.card.c-y .mid,.card.c-t .mid,.card.c-o .mid{color:#1b1510!important;text-shadow:0 1px 0 rgba(255,255,255,.18)!important}
-.card.c-y .mid .ico,.card.c-t .mid .ico,.card.c-o .mid .ico{filter:none}
+.card.c-r { --cc: var(--r); } .card.c-y { --cc: var(--y); } .card.c-g { --cc: var(--g); } .card.c-b { --cc: var(--b); }
+.card.c-p { --cc: var(--p); } .card.c-t { --cc: var(--t); } .card.c-o { --cc: var(--o); } .card.c-v { --cc: var(--v); }
+.card.c-w { --cc: #100d0b; }
+/* grime, a ring stain, scratches */
+.card::before { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; border-radius: inherit; mix-blend-mode: multiply;
+  background: radial-gradient(circle at var(--sx, 30%) var(--sy, 70%), transparent 16%, rgba(70, 38, 12, .22) 17.5% 19%, transparent 20.5%),
+    radial-gradient(ellipse at 50% 120%, rgba(30, 15, 5, .55), transparent 60%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.card::after { content: ''; position: absolute; inset: calc(var(--cw) * .045); z-index: 4; pointer-events: none; border: 1px solid rgba(216, 206, 180, .28); border-radius: calc(var(--cw) * .03); mix-blend-mode: screen;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-opacity='.35' stroke-width='.6' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100'/></svg>") center / cover; }
+.card.st0 { --sx: 24%; --sy: 72%; } .card.st1 { --sx: 78%; --sy: 24%; } .card.st2 { --sx: 68%; --sy: 80%; }
+.card.st3 { --sx: 30%; --sy: 28%; } .card.st4 { --sx: 84%; --sy: 58%; } .card.st5 { --sx: 12%; --sy: 46%; }
+/* the face: stencil marks straight on the colour */
+.card .oval { position: absolute; left: 50%; top: 50%; width: 86%; height: 70%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
+.card .mid { display: flex; flex-direction: column; align-items: center; font: 700 calc(var(--cw) * .5)/.9 var(--f-card); letter-spacing: -.01em; color: inherit;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .65), 0 0 6px rgba(0, 0, 0, .4); filter: url(#rough); }
+.card .mid.sm { font-size: calc(var(--cw) * .3); }
+.card .mid .ico { display: block; width: calc(var(--cw) * .5); height: calc(var(--cw) * .5); filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .65)); }
+.card .mid em { margin-top: calc(var(--cw) * .04); font: 600 calc(var(--cw) * .072)/1.2 var(--f-type); font-style: normal; text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; opacity: .75; }
+.card .sym { display: block; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Symbols', 'Apple Symbols', 'DejaVu Sans', sans-serif; font-weight: 700; line-height: 1; font-size: calc(var(--cw) * .3); }
+.card .cor { position: absolute; z-index: 4; font: 700 calc(var(--cw) * .19)/1 var(--f-card); text-shadow: 0 1px 0 rgba(0, 0, 0, .7); filter: url(#rough); }
+.card .cor .ico { display: block; width: calc(var(--cw) * .17); height: calc(var(--cw) * .17); }
+.card .cor .sym { font-size: calc(var(--cw) * .17); }
+.card .cor.tl { top: 6%; left: 8%; }
+.card .cor.br { bottom: 6%; right: 8%; transform: rotate(180deg); }
+.card .suit { position: absolute; z-index: 4; width: calc(var(--cw) * .13); height: calc(var(--cw) * .13); fill: currentColor; opacity: .85; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .5)); }
+.card .suit.tr { top: 7%; right: 9%; }
+.card .suit.bl { bottom: 7%; left: 9%; transform: rotate(180deg); }
+/* light stock gets dark ink */
+.card.c-y, .card.c-t, .card.c-o { color: #1b1510; }
+.card.c-y .mid, .card.c-t .mid, .card.c-o .mid, .card.c-y .cor, .card.c-t .cor, .card.c-o .cor { text-shadow: 0 1px 0 rgba(255, 255, 255, .18); }
+.card.c-y .mid .ico, .card.c-t .mid .ico, .card.c-o .mid .ico { filter: none; }
 /* wild: black stock with four worn colour tiles */
-.card.c-w:not(.spr){background:#100d0b!important}
-.card.c-w .oval{width:50%!important;height:auto!important;aspect-ratio:1!important;border-radius:0!important;box-shadow:none!important;
-  background:linear-gradient(var(--r),var(--r)) 0 0/45% 45% no-repeat,linear-gradient(var(--b),var(--b)) 100% 0/45% 45% no-repeat,linear-gradient(var(--y),var(--y)) 0 100%/45% 45% no-repeat,linear-gradient(var(--g),var(--g)) 100% 100%/45% 45% no-repeat!important;opacity:.85}
-.card.s-D.c-w .oval{background:linear-gradient(var(--p),var(--p)) 0 0/45% 45% no-repeat,linear-gradient(var(--t),var(--t)) 100% 0/45% 45% no-repeat,linear-gradient(var(--o),var(--o)) 0 100%/45% 45% no-repeat,linear-gradient(var(--v),var(--v)) 100% 100%/45% 45% no-repeat!important}
-.card.c-w .mid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#efe6cf!important;background:none!important;box-shadow:none!important;text-shadow:0 0 4px #000,0 2px 0 #000!important}
-.card.c-w:has(.mid:empty) .oval{width:58%!important}
-/* night: black stock, dim coloured ink */
-.card.s-D:not(.spr):not(.c-w){background:#0f0c0a!important;border-color:#0b0907!important}
-.card.s-D:not(.c-w) .mid,.card.s-D:not(.c-w) .cor{color:color-mix(in srgb,var(--cc) 85%,#fff)!important;text-shadow:0 0 10px color-mix(in srgb,var(--cc) 60%,transparent),0 2px 0 #000!important}
-.card.s-D:not(.c-w)::after{border-color:color-mix(in srgb,var(--cc) 55%,transparent)!important}
-.card.s-D:not(.spr){filter:saturate(.9) brightness(1) contrast(1.1)}
-/* lit cards in your hand stay readable */
-#hand .card.ok{filter:saturate(.8) brightness(1.02) contrast(1.12)}
-#hand .card:not(.ok):not(.jump){filter:saturate(.5) brightness(.68) contrast(1.1)}
-.card.spr{filter:none}
-/* the flame behind the HUD never covers its text */
-#hud>:not(.flame){position:relative;z-index:2}
+.card.c-w .oval { width: 50%; height: auto; aspect-ratio: 1; opacity: .85;
+  background: linear-gradient(var(--r), var(--r)) 0 0 / 45% 45% no-repeat, linear-gradient(var(--b), var(--b)) 100% 0 / 45% 45% no-repeat, linear-gradient(var(--y), var(--y)) 0 100% / 45% 45% no-repeat, linear-gradient(var(--g), var(--g)) 100% 100% / 45% 45% no-repeat; }
+.card.s-D.c-w .oval { background: linear-gradient(var(--p), var(--p)) 0 0 / 45% 45% no-repeat, linear-gradient(var(--t), var(--t)) 100% 0 / 45% 45% no-repeat, linear-gradient(var(--o), var(--o)) 0 100% / 45% 45% no-repeat, linear-gradient(var(--v), var(--v)) 100% 100% / 45% 45% no-repeat; }
+.card.c-w .mid { position: absolute; inset: 0; justify-content: center; color: #efe6cf; text-shadow: 0 0 4px #000, 0 2px 0 #000; }
+.card.c-w:has(.mid:empty) .oval { width: 58%; }
+/* night: darker coloured stock, black ink, a black edge (no more black-on-black) */
+.card.s-D { border-color: #15100c; filter: saturate(.85) brightness(.95) contrast(1.1); }
+.card.s-D:not(.c-w) { background: color-mix(in srgb, var(--cc) 82%, #000); color: #0e0a08; }
+.card.s-D:not(.c-w) .mid, .card.s-D:not(.c-w) .cor { text-shadow: 0 1px 0 rgba(255, 255, 255, .22); }
+.card.s-D:not(.c-w) .mid .ico { filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .22)); }
+.card.s-D:not(.c-w)::after { border-color: rgba(0, 0, 0, .45); }
+.card.s-D.c-w { border-color: #3b3128; }
+/* in your hand: playable cards lit, the rest in shadow but still legible */
+#hand .card.ok { filter: saturate(.8) brightness(1.02) contrast(1.12); box-shadow: 0 0 0 2px var(--gold), 0 10px 18px rgba(0, 0, 0, .6); }
+#hand .card:not(.ok):not(.jump) { filter: saturate(.55) brightness(.78) contrast(1.08); }
+.card.spr { filter: none; }
+#hand .card.s-D:not(.ok):not(.jump) { filter: saturate(.65) brightness(.9) contrast(1.08); }
 
-.rulestext,.rulestext li,.rulestext p,.rulestext i,.dialog li,.dialog ul,.page li,.list button span,.list .li span,#lbRules,#lbRules *:not(.card):not(.card *),#lbCards,#lbCards *:not(.card):not(.card *),.opt .t,.opt .d{color:var(--ink)!important}
-.rulestext b,.dialog b:not(.cname){color:#000!important}
-.opt .d,.rulestext .mono{color:var(--ink-soft)!important}
+/* ---------- side panel: a receipt for the log ---------- */
+.sidehead { min-height: 48px; padding: 6px 16px; display: flex; flex-wrap: wrap; row-gap: 4px; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.sidehead .label { color: var(--chalk-2); }
+#side .btn.quiet { height: 32px; padding: 0 8px; font: 400 13px var(--f-type); text-transform: none; letter-spacing: 0; color: var(--chalk-2); }
+#log { flex: 0 1 auto; max-height: calc(100% - 96px); min-height: 80px; margin: 12px 16px 16px; padding: 14px 14px 18px; overflow-y: auto;
+  display: flex; flex-direction: column-reverse; font: 400 12px/16px var(--f-type); color: #2a241d;
+  background: #cfc8b8 var(--noise); background-blend-mode: multiply; box-shadow: 0 10px 30px rgba(0, 0, 0, .6);
+  -webkit-mask: linear-gradient(#000, #000) top / 100% calc(100% - 10px) no-repeat, radial-gradient(circle at 5px 100%, transparent 5px, #000 5.5px) bottom left / 10px 10px repeat-x;
+  mask: linear-gradient(#000, #000) top / 100% calc(100% - 10px) no-repeat, radial-gradient(circle at 5px 100%, transparent 5px, #000 5.5px) bottom left / 10px 10px repeat-x; }
+#log div { padding: 8px 0; border-top: 1px solid rgba(42, 36, 29, .15); }
+#log div.n, #log div.win { color: #000; font-weight: 500; }
+#netBanner { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 120; padding: 4px 12px; border-radius: 2px; font: 500 13px/20px var(--f-type); background: var(--paper); color: var(--ink); }
 
-/* the combo slip: a dark, grimy tally card like the rest of the room, not bright paper */
-#combo{background:#14100d!important;background-image:var(--noise)!important;background-blend-mode:overlay!important;border:1px solid #3a2f24!important;
-  box-shadow:inset 0 0 30px rgba(0,0,0,.8),0 0 0 1px #000,0 18px 36px rgba(0,0,0,.85)!important;color:#d8cdb2!important}
-#combo::before{background:rgba(120,110,80,.45)!important}
-#combo .cname{color:#d8cdb2!important;text-shadow:0 2px 0 #000!important;filter:url(#rough)}
-#combo .cwho{color:#8f846f!important}
-#combo .cpay{color:#d2463a!important}
-#combo i,.pickcombo i{color:#8f846f!important}
-.chips,.mult{color:#e6dcc4!important;box-shadow:inset 0 0 0 3px rgba(0,0,0,.35),inset 0 0 14px rgba(0,0,0,.55),0 3px 0 #000!important;filter:saturate(.7)}
-.chips{background:#1f4a6e!important}
-.mult{background:#7c211a!important}
+/* ---------- dialogs ---------- */
+.modal { position: fixed; inset: 0; z-index: 100; padding: 16px; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .62); backdrop-filter: blur(2px); animation: fade 150ms ease-out; }
+.dialog { width: 100%; max-width: 400px; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; padding: 24px; border-radius: 3px; }
+.dialog:has(.pick.many), .dialog:has(.pick.lots) { max-width: 560px; }
+.dialog .btn.wide { margin-top: 16px; }
+.dialog b { color: #000; }
+.colors { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.colors button { height: 64px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 2px; font: 700 15px var(--f-stamp); text-transform: uppercase; letter-spacing: .06em;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, .45), 0 3px 0 rgba(0, 0, 0, .6); filter: saturate(.75); transition: transform 80ms ease-out, filter 150ms ease-out; }
+.colors button:hover { filter: saturate(.9) brightness(1.08); }
+.colors button:active { transform: translateY(1px); }
+.colors .suit { width: 14px; height: 14px; fill: currentColor; }
+.list { display: flex; flex-direction: column; }
+.list button, .list .li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 0; text-align: left; font: 600 14px var(--f-type); color: var(--ink); border-top: 1px dashed rgba(29, 23, 18, .25); }
+.list button:last-child, .list .li:last-child { border-bottom: 1px dashed rgba(29, 23, 18, .25); }
+.list button:hover:not(:disabled) { color: var(--stamp); }
+.list .mono { font-weight: 500; color: var(--ink-soft); }
+.rulestext { max-height: 60vh; overflow: auto; font: 400 13px/19px var(--f-type); color: var(--ink); }
+.rulestext h3 { margin: 18px 0 8px; font: 700 14px/16px var(--f-stamp); letter-spacing: .06em; text-transform: uppercase; color: var(--stamp); }
+.rulestext h3:first-child { margin-top: 0; }
+.rulestext li { margin: 0 0 8px 16px; }
+.rulestext b { color: #000; font-weight: 600; }
+.rulestag { margin: 0 0 8px; font-style: italic; color: var(--ink-soft); }
+/* the multi-drop chooser */
+.pick { display: flex; flex-wrap: wrap; gap: 8px; --cw: 56px; --ch: 82px; }
+.pick.many { --cw: 44px; --ch: 65px; gap: 6px; }
+.pick.lots { --cw: 36px; --ch: 53px; gap: 5px; }
+.pick.lots .card .mid em, .pick.many .card .mid em { display: none; }
+.pick .slot { position: relative; touch-action: none; cursor: grab; transition: translate 140ms cubic-bezier(.2, .8, .2, 1); }
+.pick .slot.held { transition: none; z-index: 5; cursor: grabbing; filter: drop-shadow(0 10px 0 rgba(0, 0, 0, .45)); }
+.pick .card { cursor: pointer; transition: opacity 150ms ease-out; }
+.pick .card.lead { cursor: default; outline: 2px solid var(--ink); outline-offset: 2px; }
+.pick .card.off { opacity: .3; }
+.pick .ord { position: absolute; top: -8px; left: -8px; z-index: 6; min-width: 20px; height: 20px; border-radius: 50%; text-align: center; font: 600 12px/20px var(--f-stamp); background: var(--stamp); color: #f6ead2; }
+.pickwarn { margin: 10px 0 0; font-weight: 600; color: var(--stamp); }
+.pickcombo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; font-family: var(--f-type); }
+.pickcombo b { margin-right: 4px; font: 700 18px var(--f-stamp); text-transform: uppercase; color: var(--ink); }
+.pickcombo.bad { font-weight: 600; color: var(--stamp); }
+.pickcombo em { font-style: normal; font-size: 13px; color: var(--stamp); }
+.pickcombo i { font-style: normal; font-weight: 900; color: var(--ink-soft); }
+/* chips and mult: two grimy discs, not candy */
+.chips, .mult { display: inline-grid; place-items: center; min-width: 56px; aspect-ratio: 1; padding: 3px 10px; border-radius: 50%;
+  font: 700 20px/26px var(--f-stamp); color: #e6dcc4;
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .35), inset 0 0 14px rgba(0, 0, 0, .55), 0 3px 0 #000; }
+.chips { background: #4f4835 var(--noise); background-blend-mode: multiply; }
+.mult { position: relative; z-index: 2; background: #6e1a14 var(--noise); background-blend-mode: multiply; }
+/* settings */
+.settings { display: flex; flex-direction: column; gap: 2px; }
+.settings .set { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px dashed rgba(29, 23, 18, .3); }
+.settings .set span { font-size: 13px; color: var(--ink); }
+.settings input[type=range] { width: 100%; accent-color: var(--stamp); }
+.settings input[type=text] { width: 100%; }
+
+/* ---------- the combo slip: a dark, grimy tally card ---------- */
+#combo { position: fixed; left: 50%; top: 38%; z-index: 150; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 22px 16px; border-radius: 3px; pointer-events: none;
+  background: #14100d var(--noise); background-blend-mode: overlay; color: #d8cdb2; border: 1px solid #3a2f24;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, .8), 0 0 0 1px #000, 0 18px 36px rgba(0, 0, 0, .85);
+  opacity: 0; transform: translate(-50%, -50%) scale(.6); transition: opacity .15s, transform .2s cubic-bezier(.2, 1.6, .4, 1); }
+#combo.show { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); }
+#combo .cwho { font: 500 12px/14px var(--f-type); color: #8f846f; }
+#combo .cname { font: 700 30px/32px var(--f-stamp); text-transform: uppercase; color: #d8cdb2; text-shadow: 0 2px 0 #000; filter: url(#rough); }
+#combo .cscore { display: flex; align-items: center; gap: 8px; }
+#combo .chips, #combo .mult { font-size: 30px; line-height: 38px; min-width: 64px; }
+#combo i { font-style: normal; font-weight: 900; color: #8f846f; }
+#combo .cpay { font: 600 14px/18px var(--f-type); color: #d2463a; }
+
+/* ---------- card tooltip ---------- */
+#cardtip { position: fixed; left: 0; top: 0; z-index: 300; max-width: 260px; padding: 8px 10px 9px; border-radius: 2px; pointer-events: none; font: 500 12px/17px var(--f-type);
+  opacity: 0; transform: translateY(4px); transition: opacity 120ms ease-out, transform 120ms ease-out; }
+#cardtip.show { opacity: 1; transform: none; }
+#cardtip b { display: block; font: 700 15px/18px var(--f-stamp); text-transform: uppercase; }
+#cardtip .tipside { display: block; margin-top: 1px; font: 500 11px/14px var(--f-type); color: var(--ink-soft); }
+#cardtip p { margin: 6px 0 0; }
+body.lite #cardtip, body.lite #combo { transition: none; }
+
+/* ---------- the slot machine: a typed paper slip with a stamp ---------- */
+#slot { position: fixed; inset: 0; z-index: 180; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity .2s; }
+#slot.show { opacity: 1; }
+.slotbox { position: relative; padding: 20px 22px 18px; text-align: center; border-radius: 2px; color: var(--ink);
+  background: var(--paper) var(--noise); background-blend-mode: multiply; box-shadow: var(--grime-in), 0 20px 40px rgba(0, 0, 0, .8);
+  transform: scale(.85) rotate(-3deg); transition: transform .28s cubic-bezier(.2, 1.8, .4, 1); }
+#slot.show .slotbox { transform: scale(1) rotate(-1.5deg); }
+.slottitle { margin-bottom: 12px; font: 600 12px var(--f-type); letter-spacing: .3em; text-transform: uppercase; color: var(--ink-soft); }
+.reels { display: flex; gap: 8px; justify-content: center; }
+.reels b { width: 84px; height: 70px; display: grid; place-items: center; font: 700 28px var(--f-stamp); color: var(--ink); background: rgba(255, 250, 235, .25); border: 2px solid var(--ink); border-radius: 2px; box-shadow: inset 0 6px 0 rgba(0, 0, 0, .12), inset 0 -6px 0 rgba(0, 0, 0, .12); }
+.reels b.spin { filter: blur(1.4px); transform: translateY(2px); }
+.reels b.stop { color: var(--stamp); animation: reelstop .26s cubic-bezier(.2, 1.8, .4, 1); }
+@keyframes reelstop { from { transform: translateY(-16px) } }
+.slotres { margin-top: 14px; opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
+#slot.done .slotres { opacity: 1; transform: none; }
+.slotname { display: inline-block; padding: 0 10px; font: 700 28px/1.2 var(--f-stamp); text-transform: uppercase; color: var(--stamp); border: 4px solid var(--stamp); rotate: -4deg; mix-blend-mode: multiply; }
+.slotsub { display: block; margin-top: 8px; font: 500 13px var(--f-type); color: var(--ink-soft); }
+
+/* ---------- phones: one column, big touch targets ---------- */
+@media (max-width: 820px) {
+  :root { --cw: clamp(50px, min(9.6vh, 16vw), 82px); }
+  #game { height: 100dvh; grid-template-columns: minmax(0, 1fr); padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  #side, .desk { display: none; }
+  .mob { display: inline-block; }
+  .page { margin: 8px; padding: 32px 16px; }
+  #opps { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; gap: 10px; padding: 14px 8px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  #opps::-webkit-scrollbar { display: none; }
+  .opp { flex: none; width: 96px; min-width: 0; padding: 8px; }
+  .opp::before { width: 44px; height: 14px; top: -7px; }
+  .opp .fan { display: none; }
+  .opp .meta { margin-top: 4px; }
+  .opp .cnt { font-size: 26px; line-height: 22px; }
+  .opp .tags { font-size: 10px; }
+  .opp .nm { font-size: 13px; }
+  .sep { font-size: 14px; flex: none; }
+  #table { gap: 8px; padding: 4px 0; }
+  #banner { font-size: 20px; padding: 0 8px; }
+  #toast { font-size: 24px; margin: -8px 0 -4px; border-width: 3px; }
+  .center { flex-direction: column; gap: 12px; }
+  .piles { gap: 28px; padding: 14px 18px; }
+  #dirRing { width: calc(100% + 36px); height: calc(100% + 28px); }
+  .hud { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 12px; min-width: 0; }
+  .phaserules { display: none; }
+  .chaosline { font-size: 18px; }
+  .stack { font-size: 28px; line-height: 28px; }
+  #bottom { padding: 0 8px 8px; }
+  #bottom .me { margin-bottom: 4px; gap: 8px; }
+  #bottom .me .who { gap: 6px; }
+  #bottom .me .bar { display: none; }
+  .actions { width: 100%; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 6px; }
+  .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr; }
+  .btn { height: 44px; padding: 0 8px; }
+  #ticker { display: block; padding: 4px 2px 0; min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 400 12px/16px var(--f-type); color: var(--chalk-2); }
+  #hand { padding: 30px 14px 20px; }
+  .dialog { padding: 16px; }
+  .colors button { height: 56px; }
+  .reels b { width: 64px; height: 56px; font-size: 19px; }
+  .slotname { font-size: 22px; }
+}
+@media (max-width: 820px) and (min-height: 740px) { #table { gap: 16px; } .center { gap: 20px; } }
+@media (max-width: 820px) and (max-height: 640px) { .opp { width: 84px; padding: 6px; } #toast { display: none; } }
+@media (max-width: 520px) {
+  .field { grid-template-columns: 1fr; gap: 8px; }
+  .title { font-size: 46px; }
+  .presets { grid-template-columns: 1fr; }
+  .preset { rotate: 0deg; }
+  .settings .set { grid-template-columns: 1fr; gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) { #grain { display: none; } }
+.field .seg { justify-self: start; }
+.page input::placeholder { color: rgba(18, 14, 11, .45); }
+
 </style>
 </head>
 <body>
@@ -757,7 +524,7 @@ body.dark #toast{color:#e0281c!important}
 
 <div id="start" class="screen">
   <div class="page">
-    <h1 class="title">UNO Flip<br><span>No Mercy</span></h1>
+    <h1 class="title">Last<br><span>Deal</span></h1>
     <p class="lede" data-i18n="lede"></p>
     <div class="field"><span class="label" data-i18n="language"></span><div class="seg" id="segLang"></div></div>
     <div class="field"><span class="label" data-i18n="name"></span><input id="pname" type="text" maxlength="14" value="Player"></div>
@@ -785,8 +552,11 @@ body.dark #toast{color:#e0281c!important}
     <div id="lbHost">
       <div class="section actions-row"><button class="btn" id="btnAddBot" data-i18n="addBot"></button><button class="btn" id="btnRmBot" data-i18n="rmBot"></button></div>
       <div class="section"><button class="btn primary wide" id="btnRoomStart" data-i18n="startGame"></button></div>
-      <div class="section"><span class="label" data-i18n="rules"></span><div id="lbRules"></div></div>
-      <div class="section"><span class="label" data-i18n="extraCards"></span><div id="lbCards"></div></div>
+      <div class="section"><span class="label" data-i18n="presets"></span><div class="presets" id="lbPresets"></div>
+        <details class="fine" id="lbFine"><summary id="lbFineSum"></summary>
+          <span class="label sublabel" data-i18n="rules"></span><div id="lbRules"></div>
+          <span class="label sublabel" data-i18n="extraCards"></span><div id="lbCards"></div>
+        </details></div>
     </div>
     <div id="lbGuest" class="section hidden"><span class="label" data-i18n="tableRules"></span><div id="lbRulesView" style="margin-top:8px"></div></div>
     <div class="msg" id="lbWait"></div>
@@ -824,7 +594,7 @@ body.dark #toast{color:#e0281c!important}
     <div id="ticker"></div>
     <div id="hand"></div>
   </div>
-  <div id="side"><div class="sidehead"><span class="label" data-i18n="log"></span><span class="label" id="netTag"></span><button class="btn quiet" id="btnFx" style="height:32px;padding:0 8px"></button><button class="btn quiet" id="btnSound" style="height:32px;padding:0 8px">Sound on</button></div><div id="log"></div></div>
+  <div id="side"><div class="sidehead"><span class="label" data-i18n="log"></span><span class="label" id="netTag"></span><button class="btn quiet" id="btnFx"></button><button class="btn quiet" id="btnSound">Sound on</button></div><div id="log"></div></div>
 </div>
 
 <div id="netBanner" class="hidden"></div>
@@ -875,6 +645,18 @@ function comboOf(faces) {
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'bomb', 'd6', 'pill', 'foot', 'maze', 'deal', 'monstro'];
+const LAST_CALL = 250;
+// Lobby presets. Every rule key the server knows, every house card.
+const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'revenge', 'snitch', 'finisher', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const PRESETS = (() => {
+  const on = (keys, all) => Object.fromEntries(all.map(k => [k, keys.includes(k)]));
+  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'lastCall'];
+  return {
+    classic: { rules: on(base, RULE_ALL), cards: on([], EXTRA_CARDS) },
+    den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'revenge', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['monstro', 'deal', 'interest', 'wd15'].includes(k)), EXTRA_CARDS) },
+    mayhem: { rules: on(RULE_ALL, RULE_ALL), cards: on(EXTRA_CARDS, EXTRA_CARDS) }
+  };
+})();
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
@@ -909,7 +691,7 @@ class Game {
     rules = Object.assign({}, rules);
     if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
     delete rules.sevenZero;
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, overload: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -981,17 +763,6 @@ class Game {
     return got;
   }
   mercyCheck() {
-    if (!this.rules.mercy && this.rules.overload !== false) for (const p of this.players) {
-      if (!p.out && p.hand.length >= 100) {
-        const pi = this.players.indexOf(p), others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
-        if (!others.length) break;
-        for (let i = p.hand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p.hand[i], p.hand[j]] = [p.hand[j], p.hand[i]]; }
-        const burnt = p.hand.splice(50).length;
-        for (const i of others) this.players[i].oweN = (this.players[i].oweN || 0) + 2;
-        this.addLog(`OVERLOAD: ${p.name}'s hand explodes. ${burnt} cards burn, everyone else catches 2.`, 'bad', 'overload', { n: p.name, k: burnt });
-        this.ev('overload', { pi, k: burnt });
-      }
-    }
     if (this.rules.mercy) for (const p of this.players) {
       if (!p.out && p.hand.length >= this.rules.mercy) {
         p.out = true; p.elim = true;
@@ -1006,8 +777,24 @@ class Game {
       this.ev('win', { pi: this.winner });
     }
     if (this.winner === null && this.players[this.turn].out) this.turn = this.nextIdx(this.turn, 1);
+    this.lastCallCheck();
     if (this.roulette !== null && this.players[this.roulette].out) { this.roulette = null; }
     if (this.debt && this.players[this.debt.pi].out) this.debt = null;
+  }
+  // Last Call: after LAST_CALL handovers the house closes. Fewest cards wins; a tie goes to whoever sits soonest in turn order.
+  lastCallLeft() { return this.rules.lastCall === false ? null : Math.max(0, LAST_CALL - (this.turnNo || 0)); }
+  lastCallCheck() {
+    if (this.winner !== null || this.rules.lastCall === false || (this.turnNo || 0) < LAST_CALL) return;
+    if (this.pending > 0 || this.debt || this.roulette !== null) return; // let the stack land first
+    let best = -1, i = this.turn;
+    for (let k = 0; k < this.players.length; k++, i = (i + this.dir + this.players.length) % this.players.length) {
+      const p = this.players[i]; if (p.out) continue;
+      if (best < 0 || p.hand.length + (p.oweN || 0) < this.players[best].hand.length + (this.players[best].oweN || 0)) best = i;
+    }
+    if (best < 0) return;
+    this.winner = best;
+    this.addLog(`Last call. The house closes the table: ${this.players[best].name} holds the fewest cards and wins.`, 'win', 'lastCall', { n: this.players[best].name, k: this.players[best].hand.length });
+    this.ev('lastcall', { pi: best }); this.ev('win', { pi: best });
   }
   play(pi, cardId, opts = {}) {
     const p = this.players[pi];
@@ -1512,7 +1299,7 @@ class Game {
     this.addLog(`${this.players[pi].name} passes.`, '', 'pass', { n: this.players[pi].name });
     this.drewBy = -1; this.drawRun = 0; this.seq++;
     this.turn = this.nextIdx(pi, 1);
-    this.checkFlipBack();
+    this.checkFlipBack(); this.lastCallCheck();
     return true;
   }
   resolveRoulette(color) {
@@ -1792,7 +1579,7 @@ function serialize(g, viewer = -1, logN = 8) {
     p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
       (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0]),
-    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
     ev: g.events.slice(-12), es: g.evSeq
@@ -1810,7 +1597,7 @@ function deserialize(st) {
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
       out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0 };
   });
-  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
+  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
   g.roulette = st.o < 0 ? null : st.o; g.drewBy = st.w; g.winner = st.x < 0 ? null : st.x; g.seq = st.s;
@@ -1819,7 +1606,13 @@ function deserialize(st) {
   return g;
 }
 
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf };
+// every handover of the turn ticks the Last Call clock
+Object.defineProperty(Game.prototype, 'turn', {
+  get() { return this._turn; },
+  set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
+  configurable: true
+});
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL };
 
 </script>
 <script>
@@ -1837,7 +1630,7 @@ const cardsAcc = n => LANG === 'ru' ? plural(n, 'карту', 'карты', 'к�
 const NAMES = {
   en: {
     colors: { r: 'Red', y: 'Yellow', g: 'Green', b: 'Blue', p: 'Pink', t: 'Teal', o: 'Orange', v: 'Purple', w: 'Wild' },
-    values: { skip: 'Skip', rev: 'Reverse', d1: 'Draw 1', d2: 'Draw 2', d4: 'Draw 4', d5: 'Draw 5', flip: 'Flip', dflip: 'Double Flip', discall: 'Discard All', skipall: 'Skip Everyone', mirror: 'Mirror', shield: 'Shield',
+    values: { skip: 'Skip', rev: 'Reverse', d1: 'Draw 1', d2: 'Draw 2', d4: 'Draw 4', d5: 'Draw 5', flip: 'Shift', dflip: 'Double Flip', discall: 'Discard All', skipall: 'Skip Everyone', mirror: 'Mirror', shield: 'Shield',
       wild: 'Wild', wd2: 'Wild Draw 2', wd4: 'Wild Draw 4', wrd4: 'Wild Reverse Draw 4', wd6: 'Wild Draw 6', wd10: 'Wild Draw 10', wd15: 'Wild Draw 15', wrd8: 'Wild Reverse Draw 8', wdc: 'Wild Draw Color', roul: 'Wild Color Roulette', duel: 'Wild Duel', bhole: 'Black Hole',
       mul2: 'Wild Mult ×2', mul3: 'Wild Mult ×3', lucky: 'Lucky', glass: 'Glass', devil: 'Wild 666', spin: 'Wild Jackpot', loan: 'Loan',
       gift: 'Gift', echo: 'Wild Echo', freeze: 'Freeze', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Bomb',
@@ -1845,7 +1638,7 @@ const NAMES = {
   },
   ru: {
     colors: { r: 'Красный', y: 'Жёлтый', g: 'Зелёный', b: 'Синий', p: 'Розовый', t: 'Бирюзовый', o: 'Оранжевый', v: 'Фиолетовый', w: 'Джокер' },
-    values: { skip: 'Пропуск', rev: 'Разворот', d1: 'Возьми 1', d2: 'Возьми 2', d4: 'Возьми 4', d5: 'Возьми 5', flip: 'Флип', dflip: 'Двойной флип', discall: 'Сброс цвета', skipall: 'Пропуск всех', mirror: 'Зеркало', shield: 'Щит',
+    values: { skip: 'Пропуск', rev: 'Разворот', d1: 'Возьми 1', d2: 'Возьми 2', d4: 'Возьми 4', d5: 'Возьми 5', flip: 'Смена', dflip: 'Двойной флип', discall: 'Сброс цвета', skipall: 'Пропуск всех', mirror: 'Зеркало', shield: 'Щит',
       wild: 'Джокер', wd2: 'Джокер +2', wd4: 'Джокер +4', wrd4: 'Джокер разворот +4', wd6: 'Джокер +6', wd10: 'Джокер +10', wd15: 'Джокер +15', wrd8: 'Джокер разворот +8', wdc: 'Джокер «тяни цвет»', roul: 'Цветная рулетка', duel: 'Дуэль', bhole: 'Чёрная дыра',
       mul2: 'Множитель ×2', mul3: 'Множитель ×3', lucky: 'Удача', glass: 'Стекло', devil: 'Джокер 666', spin: 'Джекпот', loan: 'Кредит',
       gift: 'Подарок', echo: 'Эхо', freeze: 'Заморозка', interest: 'Проценты', sacrifice: 'Жертва', wheel: 'Колесо', bomb: 'Бомба',
@@ -1857,7 +1650,7 @@ const cardName = f => !f ? '' : (f.c === 'w' ? NAMES[LANG].values[f.v] : colorNa
 // short labels printed on the cards themselves
 const CARD_TXT = {
   en: { flip: 'flip', dflip: 'double flip', discall: 'discard', skipall: 'everyone', mirror: 'mirror', shield: 'shield', wild: 'wild', reverse: 'reverse', wdc: 'draw color', roul: 'roulette', duel: 'duel', bhole: 'black hole', mult: 'mult', lucky: 'lucky', glass: 'glass', devil: 'pact', spin: 'jackpot', loan: 'loan', gift: 'gift', echo: 'echo', freeze: 'freeze', interest: 'interest', sacrifice: 'sacrifice', wheel: 'wheel', bomb: 'bomb', d6: 'reroll', pill: 'pill', tower: 'tower', glitch: 'glitch', brim: 'brimstone', foot: 'foot', maze: 'maze', deal: 'deal', monstro: 'monstro' },
-  ru: { flip: 'флип', dflip: 'двойной флип', discall: 'сброс', skipall: 'всех', mirror: 'зеркало', shield: 'щит', wild: 'джокер', reverse: 'разворот', wdc: 'тяни цвет', roul: 'рулетка', duel: 'дуэль', bhole: 'чёрная дыра', mult: 'множ.', lucky: 'удача', glass: 'стекло', devil: 'сделка', spin: 'джекпот', loan: 'кредит', gift: 'подарок', echo: 'эхо', freeze: 'мороз', interest: 'проценты', sacrifice: 'жертва', wheel: 'колесо', bomb: 'бомба', d6: 'реролл', pill: 'пилюля', tower: 'башня', glitch: 'глитч', brim: 'бримстоун', foot: 'нога', maze: 'лабиринт', deal: 'сделка', monstro: 'монстро' }
+  ru: { flip: 'смена', dflip: 'двойной флип', discall: 'сброс', skipall: 'всех', mirror: 'зеркало', shield: 'щит', wild: 'джокер', reverse: 'разворот', wdc: 'тяни цвет', roul: 'рулетка', duel: 'дуэль', bhole: 'чёрная дыра', mult: 'множ.', lucky: 'удача', glass: 'стекло', devil: 'сделка', spin: 'джекпот', loan: 'кредит', gift: 'подарок', echo: 'эхо', freeze: 'мороз', interest: 'проценты', sacrifice: 'жертва', wheel: 'колесо', bomb: 'бомба', d6: 'реролл', pill: 'пилюля', tower: 'башня', glitch: 'глитч', brim: 'бримстоун', foot: 'нога', maze: 'лабиринт', deal: 'сделка', monstro: 'монстро' }
 };
 
 const STR = {
@@ -1866,7 +1659,7 @@ const STR = {
     addBot: 'Add bot', rmBot: 'Remove bot', botTag: 'Bot', fx: m => `Effects: ${m === 'full' ? 'full' : 'lite'}`, menuFx: 'Effects',
     chaosIn: n => `Chaos in ${n}`, inflated: n => `Inflation ×2 · ${n}`, locked: n => `Color lock · ${n}`, chaosTitle: 'Chaos',
     ev: { inflation: ['Inflation', 'Draw cards count double for 6 plays'], tax: ['Leader tax', 'Whoever has the fewest cards picks up 2'], revolution: ['Revolution', 'Every hand moves one seat along'],
-      storm: ['Flip storm', 'The table flips'], lock: ['Color lock', 'Only the color or a wild for 4 plays'], bleed: ['Bleed', 'Everyone picks up 1'],
+      storm: ['Shift change', 'Day and night swap'], lock: ['Color lock', 'Only the color or a wild for 4 plays'], bleed: ['Bleed', 'Everyone picks up 1'],
       jackpot: ['Payout', 'A lucky player throws away 2 random cards'], mirrorworld: ['Mirror world', 'Direction reverses'] },
     lede: 'Classic, Flip and No Mercy cards in one endless deck, played online with friends. No accounts. Drop out and you can rejoin your seat.',
     name: 'Name', createRoom: 'Create room', haveCode: 'Have a code?', joinRoom: 'Join room', howTo: 'How to play', language: 'Language',
@@ -1878,7 +1671,7 @@ const STR = {
     connecting: 'Connecting…', connServer: 'Connecting to the game server…', enterCode: 'Enter the 4-character room code.', enterName: 'Enter your name, then Join.',
     rejoining: c => `Rejoining room ${c}…`, cantReach: 'Could not reach the game server.', reconnecting: 'Reconnecting…', connLost: 'Connection lost. Reconnecting…', otherTab: 'This room was opened in another tab.',
     room: c => `Room ${c}`, log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off',
-    draw: 'Draw', pass: 'Pass', uno: 'UNO', unoCalled: 'UNO called', sort: m => `Sort: ${({ color: 'color', value: 'number', none: 'off', manual: 'by hand' })[m]}`, leave: 'Leave', menu: 'Menu',
+    draw: 'Draw', pass: 'Pass', uno: 'LAST', unoCalled: 'Called', sort: m => `Sort: ${({ color: 'color', value: 'number', none: 'off', manual: 'by hand' })[m]}`, leave: 'Leave', menu: 'Menu',
     take: k => `Take +${k}`, pickUpLeft: k => `Pick up (${k} left)`, drawUntil: (c, k) => `Draw until ${c} (${k})`, penalty: k => `Pick up penalty (${k})`, drawAgain: k => `Draw again (${k})`,
     lightSide: 'Light side', darkSide: 'Dark side', colorPending: 'Color pending', cw: '↻ Clockwise ›', ccw: '↺ Counter-clockwise ‹', stack: 'Stack',
     youWin: 'You win', wins: n => `${n} wins`, youLeft: 'You left this match. Watching the rest of it.',
@@ -1888,7 +1681,7 @@ const STR = {
     rouletteMe: 'Roulette: name a color', rouletteOther: n => `${n} is naming a color`,
     stackOrTake: (m, k) => `Stack +${m} or higher, mirror it, or take +${k}`, playOrPass: 'Play the card you drew, or pass', yourTurn: 'Your turn: tap or drag a card',
     keepDrawing: c => `Nothing fits. Keep drawing until you hit ${c} or a wild.`, drawOne: 'Nothing fits. Draw a card.', turnOf: (n, aw) => `${n}'s turn${aw ? ' (away, skipping soon)' : ''}`,
-    tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Up next', tagShield: 'Shield', tagWinner: 'Winner', tagUno: 'UNO', tagPlayer: 'Player',
+    tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Up next', tagShield: 'Shield', tagWinner: 'Winner', tagUno: 'LAST', tagPlayer: 'Player',
     catchBtn: 'Catch: +2',
     tJump: 'Jump-in', tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Skip everyone', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands rotate',
     tRoulette: 'Roulette', tMulti: k => `${k} at once`, tCaught: 'Caught: +2', tMirror: n => `Mirrored to ${n}`, tShieldUp: 'Shield up', tShield: k => `Shield breaks +${k}`,
@@ -1911,7 +1704,7 @@ const STR = {
     addBot: 'Добавить бота', rmBot: 'Убрать бота', botTag: 'Бот', fx: m => `Эффекты: ${m === 'full' ? 'все' : 'мин.'}`, menuFx: 'Эффекты',
     chaosIn: n => `Хаос через ${n}`, inflated: n => `Инфляция ×2 · ${n}`, locked: n => `Блок цвета · ${n}`, chaosTitle: 'Хаос',
     ev: { inflation: ['Инфляция', 'Карты «Возьми» считаются вдвойне 6 ходов'], tax: ['Налог на лидера', 'У кого меньше всего карт — берёт 2'], revolution: ['Революция', 'Все руки сдвигаются на одно место'],
-      storm: ['Флип-шторм', 'Стол переворачивается'], lock: ['Блокировка цвета', '4 хода — только цвет или джокер'], bleed: ['Кровопускание', 'Каждый берёт 1'],
+      storm: ['Пересменка', 'День и ночь меняются'], lock: ['Блокировка цвета', '4 хода — только цвет или джокер'], bleed: ['Кровопускание', 'Каждый берёт 1'],
       jackpot: ['Выплата', 'Счастливчик сбрасывает 2 случайные карты'], mirrorworld: ['Зазеркалье', 'Направление меняется'] },
     lede: 'Классика, Флип и No Mercy в одной бесконечной колоде. Играйте онлайн с друзьями. Без регистрации. Вылетели — можно вернуться на своё место.',
     name: 'Имя', createRoom: 'Создать комнату', haveCode: 'Есть код?', joinRoom: 'Войти', howTo: 'Как играть', language: 'Язык',
@@ -1923,7 +1716,7 @@ const STR = {
     connecting: 'Подключение…', connServer: 'Подключаемся к игровому серверу…', enterCode: 'Введите код комнаты из 4 символов.', enterName: 'Введите имя и нажмите «Войти».',
     rejoining: c => `Возвращаемся в комнату ${c}…`, cantReach: 'Не удалось связаться с игровым сервером.', reconnecting: 'Переподключение…', connLost: 'Связь потеряна. Переподключаемся…', otherTab: 'Эта комната открыта в другой вкладке.',
     room: c => `Комната ${c}`, log: 'Журнал', soundOn: 'Звук вкл', soundOff: 'Звук выкл',
-    draw: 'Взять', pass: 'Пас', uno: 'УНО', unoCalled: 'УНО сказано', sort: m => `Сортировка: ${({ color: 'цвет', value: 'номер', none: 'выкл', manual: 'вручную' })[m]}`, leave: 'Выйти', menu: 'Меню',
+    draw: 'Взять', pass: 'Пас', uno: 'ОДНА', unoCalled: 'Сказано', sort: m => `Сортировка: ${({ color: 'цвет', value: 'номер', none: 'выкл', manual: 'вручную' })[m]}`, leave: 'Выйти', menu: 'Меню',
     take: k => `Взять +${k}`, pickUpLeft: k => `Брать (осталось ${k})`, drawUntil: (c, k) => `Тянуть до цвета «${c}» (${k})`, penalty: k => `Взять штраф (${k})`, drawAgain: k => `Тянуть ещё (${k})`,
     lightSide: 'Светлая сторона', darkSide: 'Тёмная сторона', colorPending: 'Цвет выбирается', cw: '↻ По часовой ›', ccw: '↺ Против часовой ‹', stack: 'Стопка',
     youWin: 'Вы победили', wins: n => `Победил(а) ${n}`, youLeft: 'Вы вышли из этой партии. Можно досмотреть.',
@@ -1933,7 +1726,7 @@ const STR = {
     rouletteMe: 'Рулетка: назовите цвет', rouletteOther: n => `${n} выбирает цвет`,
     stackOrTake: (m, k) => `Положите +${m} или больше, отразите или возьмите +${k}`, playOrPass: 'Сыграйте взятую карту или пасуйте', yourTurn: 'Ваш ход: нажмите на карту или перетащите её',
     keepDrawing: c => `Ходить нечем. Тяните, пока не выпадет «${c}» или джокер.`, drawOne: 'Ходить нечем. Возьмите карту.', turnOf: (n, aw) => `Ходит ${n}${aw ? ' (нет на месте, скоро пропуск)' : ''}`,
-    tagLeft: 'Вышел', tagAway: 'Нет', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Щит', tagWinner: 'Победитель', tagUno: 'УНО', tagPlayer: 'Игрок',
+    tagLeft: 'Вышел', tagAway: 'Нет', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Щит', tagWinner: 'Победитель', tagUno: 'ОДНА', tagPlayer: 'Игрок',
     catchBtn: 'Поймать: +2',
     tJump: 'Вмешался!', tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропуск всех', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
     tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tCaught: 'Пойман: +2', tMirror: n => `Отражено: ${n}`, tShieldUp: 'Щит поднят', tShield: k => `Щит отбил +${k}`,
@@ -1941,7 +1734,7 @@ const STR = {
     tD6: 'РЕРОЛЛ', tTower: 'БАШНЯ', tBrim: 'БРИМСТОУН', tFoot: n => `Нога мамы → ${n}`, tMaze: 'ПРОКЛЯТИЕ ЛАБИРИНТА', tDeal: 'СДЕЛКА С ДЬЯВОЛОМ', tDealDue: k => `Дьявол берёт своё: +${k}`, tMonstro: n => `Монстро → ${n}`, mazeLeft: k => `Лабиринт: ${k}`, tagMarked: 'Метка', combo_pair: 'Пара', combo_twopair: 'Две пары', combo_three: 'Сет', combo_straight: 'Стрит', combo_flush: 'Флеш', combo_fullhouse: 'Фулл-хаус', combo_four: 'Каре', combo_straightflush: 'Стрит-флеш', combo_five: 'Покер',
     comboToss: n => `−${n} ${cardsAcc(n)}`, comboHit: n => `всем +${n}`, noCombo: 'Это не комбинация', comboQ: 'Сыграть комбинацию?', comboSub: 'Выберите числовые карты, которые складываются в покерную комбинацию: пара, две пары, сет, каре, стрит (3+ подряд одного цвета), флеш (5 одного цвета), фулл-хаус. Карты ложатся слева направо; перетаскивайте, чтобы поменять порядок, нажмите, чтобы выключить.', tGift: n => `Подарок → ${n}`, tEcho: 'Эхо', tEchoNone: 'Эхо затихло', tInterest: 'Проценты', tSacrifice: 'Жертва', tWheel: n => `Колесо → ${n}`, tBomb: 'БУМ', giftQ: 'Кому подарок?', giftSub: k => `${k} случайные карты из вашей руки уйдут ему.`, tagLoan: n => `кредит ${n}`, multNext: x => `след. «Возьми» ×${x}`, tDark: 'Тёмная сторона', tLight: 'Светлая сторона', tOut: n => `${n} выбыл(а)`, tUno: 'УНО',
     pickColor: 'Выберите цвет', rouletteTitle: 'Цветная рулетка', rouletteSub: 'Назовите цвет. Вы тянете карты, пока он не выпадет, и забираете все.',
-    flipWild: 'Флип выпал на джокера', flipWildSub: n => `На обороте этой карты — ${n}. Выберите цвет.`,
+    flipWild: 'Смена открыла джокера', flipWildSub: n => `На обороте этой карты — ${n}. Выберите цвет.`,
     swapQ: 'Поменяться руками?', swapSub: k => `После хода у вас останется ${k} ${cardsW(k)}. Поменяйтесь с кем-нибудь или оставьте свою руку.`, keepHand: 'Оставить свою руку',
     duel: 'Дуэль', duelSub: 'Вы и этот игрок открываете карты, пока у каждого не выпадет число. У кого меньше — забирает все открытые карты.',
     togetherQ: 'Сыграть вместе?', togetherSub: 'Карты ложатся слева направо. Перетаскивайте, чтобы поменять порядок; нажмите на карту, чтобы выключить или включить её. Последняя карта задаёт цвет.', firstMustFit: 'Первая карта должна сама подходить к сбросу.',
@@ -1956,38 +1749,38 @@ function t(key, ...args) { const v = (STR[LANG] && STR[LANG][key]) ?? STR.en[key
 
 const RULES_I18N = {
   en: [
-    ['flip', 'Flip cards', 'Flip turns every card to its dark side, and back.'],
+    ['flip', 'Shift (day/night)', 'Flip turns every card to its dark side, and back.'],
     ['stacking', 'Stacking', 'Answer a draw card with one of equal or higher value.'],
     ['multi', 'Same-number drops', 'Play every card with the same number or symbol at once: red 7, then blue 7 and green 7 on top. Matching wilds can go down together too.'],
     ['drawUntil', 'Draw until color', "With nothing to play, you draw one card at a time and can't pass until you draw the current color or a wild."],
     ['seven', '7 swaps hands', 'Playing a 7 lets you trade hands with any player, if you want to.'],
     ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
     ['jumpIn', 'Jump-in', 'Play an exact copy of the top card out of turn, wilds included.'],
-    ['uno', 'UNO penalty', 'Get caught at one card without calling UNO: draw 2.'],
+    ['uno', 'Last card call', 'Get caught on one card without calling "Last card": draw 2.'],
     ['chaos', 'Chaos', 'Every few plays a slot machine spins and hits the table with a random event.'],
     ['gamble', 'Russian roulette', 'Facing a stack of +8 or more, pull the trigger instead: 50% the stack is gone, 50% you take it doubled.'],
-    ['overload', 'Overload', 'Without the Mercy Rule, a hand that hits 100 cards explodes: it burns down to 50, everyone else catches 2.'],
+    ['lastCall', 'Last call', 'After 250 turns the house closes the table: fewest cards wins. Keeps every game finite.'],
     ['potato', 'Hot potato', 'A hidden fuse ticks with every play. When it runs out, whoever is up picks up 3.'],
     ['revenge', 'Revenge', 'Take a stack of 10+ and your next draw card counts double.'],
-    ['snitch', 'Snitch', 'Catch someone without UNO and you also dump one of your cards on them.'],
+    ['snitch', 'Snitch', 'Catch someone who didn’t call “Last card” and you also dump one of your cards on them.'],
     ['finisher', 'Finisher', 'A stack that lands on someone with 2 cards or fewer grows by +4.'],
     ['combos', 'Poker combos', 'Number cards can go down together as poker hands (pair, straight, flush, full house…). Bigger hands throw away extra cards; four and five of a kind and straight flushes hit everyone.']
   ],
   ru: [
-    ['flip', 'Карты Флип', 'Флип переворачивает все карты на тёмную сторону и обратно.'],
+    ['flip', 'Смена (день/ночь)', 'Флип переворачивает все карты на тёмную сторону и обратно.'],
     ['stacking', 'Стопки', 'На карту «Возьми» можно ответить такой же или старше.'],
     ['multi', 'Сброс одинаковых', 'Сыграйте сразу все карты с одним числом или символом: красная 7, сверху синяя и зелёная 7. Одинаковые джокеры тоже можно сыграть вместе.'],
     ['drawUntil', 'Тянуть до цвета', 'Если ходить нечем, тяните по одной карте. Пасовать нельзя, пока не выпадет текущий цвет или джокер.'],
     ['seven', '7 — обмен руками', 'Сыграв 7, можно поменяться руками с любым игроком (по желанию).'],
     ['zero', '0 — руки по кругу', 'Сыграв 0, все передают руку следующему игроку.'],
     ['jumpIn', 'Вмешательство', 'Точную копию верхней карты, включая джокеров, можно сыграть вне очереди.'],
-    ['uno', 'Штраф за УНО', 'Поймали с одной картой без «УНО»: возьмите 2.'],
+    ['uno', 'Крик «Одна»', 'Поймали с одной картой без крика «Одна»: возьмите 2.'],
     ['chaos', 'Хаос', 'Каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.'],
     ['gamble', 'Русская рулетка', 'Перед стопкой +8 и больше можно нажать на спуск: 50% — стопка исчезает, 50% — берёте её вдвойне.'],
-    ['overload', 'Перегруз', 'Без правила милосердия рука, дошедшая до 100 карт, взрывается: сгорает до 50, остальные ловят по 2.'],
+    ['lastCall', 'Последний звонок', 'Через 250 ходов дом закрывает стол: побеждает тот, у кого меньше карт. Ни одна партия не тянется вечно.'],
     ['potato', 'Горячая картошка', 'Скрытый фитиль тикает с каждым ходом. Когда догорит, тот, чей ход, берёт 3.'],
     ['revenge', 'Месть', 'Взяли стопку 10+ — ваша следующая карта «Возьми» считается вдвойне.'],
-    ['snitch', 'Стукач', 'Поймали кого-то без УНО — заодно скиньте ему одну свою карту.'],
+    ['snitch', 'Стукач', 'Поймали кого-то без крика «Одна» — заодно скиньте ему одну свою карту.'],
     ['finisher', 'Добивание', 'Стопка, которая приходит к игроку с 2 картами или меньше, растёт на +4.'],
     ['combos', 'Покерные комбинации', 'Числовые карты можно класть вместе покерными комбинациями (пара, стрит, флеш, фулл-хаус…). Чем сильнее комбинация, тем больше лишних карт уходит из руки; каре, покер и стрит-флеш бьют по всем.']
   ]
@@ -2063,7 +1856,7 @@ function fmtLog(l, myName) {
     ko: () => `${N(a.n)} набрал(а) ${a.k} ${cardsAcc(a.k)} и выбывает.`,
     lastLeft: () => `${N(a.n)} остаётся последним и побеждает.`,
     play: () => `${N(a.n)} ${a.j ? 'вмешивается:' : 'играет'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? ` и сбрасывает ещё ${a.d} ${cardsAcc(a.d)}` : ''}.`,
-    uno: () => `${N(a.n)} говорит «УНО».`, unoLate: () => `${N(a.n)} успевает сказать «УНО».`,
+    uno: () => `${N(a.n)} говорит «Одна».`, unoLate: () => `${N(a.n)} успевает сказать «Одна».`,
     win: () => `${N(a.n)} избавляется от всех карт и побеждает.`,
     swap: () => `${N(a.n)} меняется руками с ${N(a.t)} (${a.a} ↔ ${a.b}).`,
     rotate: () => `Все передают руки ${a.cw ? 'по часовой' : 'против часовой'}!`,
@@ -2091,7 +1884,7 @@ function fmtLog(l, myName) {
     monstro: () => `Ва-банк: ${N(a.t)} берёт +${a.a}.`,
     gambleWin: () => `${N(a.n)} крутит барабан… щёлк. Стопка +${a.k} исчезает.`,
     gambleLose: () => `${N(a.n)} крутит барабан… БАХ. Стопка удваивается до +${a.k}.`,
-    overload: () => `ПЕРЕГРУЗ: рука ${N(a.n)} взрывается. ${a.k} ${cardsAcc(a.k)} сгорает, остальные ловят по 2.`,
+    lastCall: () => `Последний звонок. Дом закрывает стол: у ${N(a.n)} меньше всех карт (${a.k}), победа.`,
     finisher: () => `ДОБИВАНИЕ: ${N(a.n)} почти выиграл(а). Стопка растёт до +${a.k}.`,
     revengeOn: () => `${N(a.n)} клянётся отомстить: следующая «Возьми» — вдвойне.`,
     revenge: () => `МЕСТЬ: карта ${N(a.n)} считается вдвойне. Стопка +${a.k}.`,
@@ -2109,8 +1902,8 @@ function fmtLog(l, myName) {
     bomb: () => `Дробовик ${N(a.n)} бьёт в ${N(a.t)}: +${a.a}; ${(a.l || []).map(N).join(' и ')} +${a.b}.`,
     bhole: () => `Общак. Все руки собраны и розданы заново: ${(a.l || []).map(x => x[0] + ' ' + x[1]).join(', ')}.`,
     wdc: () => `${N(a.n)} должен тянуть, пока не выпадет «${C(a.c)}».`,
-    flipsCancel: () => `${a.k} флипа гасят друг друга. Стол остаётся на ${a.dk ? 'тёмной' : 'светлой'} стороне.`,
-    flip: () => `Флип! Всё переворачивается на ${a.dk ? 'тёмную' : 'светлую'} сторону. Сверху теперь ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
+    flipsCancel: () => `${a.k} смены гасят друг друга. Стол остаётся на ${a.dk ? 'тёмной' : 'светлой'} стороне.`,
+    flip: () => `Смена! ${a.dk ? 'Наступает ночь' : 'Наступает день'}. Сверху теперь ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
     dflip: () => `Затмение: стол вернётся после хода игрока ${N(a.n)}.`,
     dflipOff: () => `Затмение закончилось. Снова ${a.dk ? 'ночь' : 'день'}: ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
     stack: () => `Стопка уже +${a.k}. ${N(a.n)} должен добавить или взять.`,
@@ -2124,13 +1917,13 @@ function fmtLog(l, myName) {
     stackGone: () => `Стопка +${a.k}, направленная на ${N(a.n)}, сброшена.`,
     awayColor: () => `${N(a.n)} нет на месте. Цвет выбран случайно.`, awayStack: () => `${N(a.n)} нет на месте, стопка забрана за него.`,
     chaos: () => `Хаос: ${(STR.ru.ev[a.e] || [a.e])[0]}${(a.w || []).length ? ' (' + a.w.join(', ') + ')' : ''}. ${(STR.ru.ev[a.e] || ['', ''])[1]}.`,
-    awaySkip: () => `${N(a.n)} нет на месте. Ход пропущен.`, caught: () => `${N(a.n)} ловит ${N(a.t)} без «УНО». ${N(a.t)} берёт 2.`
+    awaySkip: () => `${N(a.n)} нет на месте. Ход пропущен.`, caught: () => `${N(a.n)} ловит ${N(a.t)} без крика «Одна». ${N(a.t)} берёт 2.`
   } : {
     first: () => `First card: ${cardName(a.f)}. ${N(a.n)} starts.`,
     ko: () => `${N(a.n)} hit ${a.k} cards and is knocked out.`,
     lastLeft: () => `${N(a.n)} is the last player left and wins.`,
     play: () => `${N(a.n)} ${a.j ? 'jumps in with' : 'plays'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? ` and discards ${a.d} more ${cardsAcc(a.d)}` : ''}.`,
-    uno: () => `${N(a.n)} calls UNO.`, unoLate: () => `${N(a.n)} calls UNO just in time.`,
+    uno: () => `${N(a.n)} calls "Last card".`, unoLate: () => `${N(a.n)} calls "Last card" just in time.`,
     win: () => `${N(a.n)} empties their hand and wins.`,
     swap: () => `${N(a.n)} swaps hands with ${N(a.t)} (${a.a} ↔ ${a.b}).`,
     rotate: () => `Everyone passes their hand ${a.cw ? 'clockwise' : 'counter-clockwise'}!`,
@@ -2158,7 +1951,7 @@ function fmtLog(l, myName) {
     monstro: () => `All-in: ${N(a.t)} picks up +${a.a}.`,
     gambleWin: () => `${N(a.n)} spins the revolver… click. The +${a.k} stack is gone.`,
     gambleLose: () => `${N(a.n)} spins the revolver… BANG. The stack doubles to +${a.k}.`,
-    overload: () => `OVERLOAD: ${N(a.n)}'s hand explodes. ${a.k} cards burn, everyone else catches 2.`,
+    lastCall: () => `Last call. The house closes the table: ${N(a.n)} holds the fewest cards (${a.k}) and wins.`,
     finisher: () => `FINISHER: ${N(a.n)} was about to win. The stack grows to +${a.k}.`,
     revengeOn: () => `${N(a.n)} swears revenge: their next draw card counts double.`,
     revenge: () => `REVENGE: ${N(a.n)}'s card counts double. The stack is +${a.k}.`,
@@ -2177,7 +1970,7 @@ function fmtLog(l, myName) {
     bhole: () => `The Pot. Every hand is pooled and dealt back out: ${(a.l || []).map(x => x[0] + ' ' + x[1]).join(', ')}.`,
     wdc: () => `${N(a.n)} must draw until they hit ${C(a.c)}.`,
     flipsCancel: () => `${a.k} flips cancel out. The table stays on the ${a.dk ? 'dark' : 'light'} side.`,
-    flip: () => `Flip. Everything turns to the ${a.dk ? 'dark' : 'light'} side. Top card is now ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
+    flip: () => `Shift. ${a.dk ? 'Night falls' : 'Day breaks'}. Top card is now ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
     dflip: () => `Eclipse: it turns back after ${N(a.n)}'s turn.`,
     dflipOff: () => `The eclipse passes. Back to ${a.dk ? 'night' : 'day'}: ${cardName(a.f)}${a.c ? ' → ' + C(a.c) : ''}.`,
     stack: () => `Stack is now +${a.k}. ${N(a.n)} must stack or take it.`,
@@ -2191,7 +1984,7 @@ function fmtLog(l, myName) {
     stackGone: () => `The +${a.k} stack aimed at ${N(a.n)} is discarded.`,
     awayColor: () => `${N(a.n)} is away. A random color is called for them.`, awayStack: () => `${N(a.n)} is away and takes the stack.`,
     chaos: () => `Chaos: ${(STR.en.ev[a.e] || [a.e])[0]}${(a.w || []).length ? ' (' + a.w.join(', ') + ')' : ''}. ${(STR.en.ev[a.e] || ['', ''])[1]}.`,
-    awaySkip: () => `${N(a.n)} is away. Turn skipped.`, caught: () => `${N(a.n)} catches ${N(a.t)} not saying UNO. ${N(a.t)} must draw 2.`
+    awaySkip: () => `${N(a.n)} is away. Turn skipped.`, caught: () => `${N(a.n)} catches ${N(a.t)} not calling "Last card". ${N(a.t)} must draw 2.`
   };
   try { if (l.k && L[l.k]) return L[l.k](); } catch (e) {}
   return l.msg;
@@ -2200,7 +1993,7 @@ function fmtLog(l, myName) {
 const RULES_HTML = {
   en: `<h3>Basics</h3><ul><li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
     <li>The deck never runs out. Cards come from a mix of classic, Flip and No Mercy cards.</li>
-    <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> UNO, <b>P</b> pass.</li>
+    <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> Last card, <b>P</b> pass.</li>
     <li>The host switches each rule and each extra card on or off in the lobby.</li></ul>
     <h3>Drawing</h3><ul><li>A stack you take and penalties come in automatically, one card at a time. Drawing until a color shows up (nothing to play, Color Roulette, Wild Draw Color) is by hand, one tap per card.</li>
     <li>While you owe cards, you can't play until they are picked up.</li></ul>
@@ -2214,7 +2007,7 @@ const RULES_HTML = {
     <li><b>7</b> lets you swap hands with one player, or keep yours. <b>0</b> passes every hand along.</li>
     <li><b>Same-number drops</b>: play every card with the same number or symbol together, in the order you choose. Matching wilds go down together too (one color choice). Draw cards add up, skips skip that many players, and an even number of reverses or flips cancels out.</li>
     <li><b>Jump-in</b>: play an exact copy of the top card out of turn, wilds included (a Wild +4 on a Wild +4). Outlined cards qualify.</li>
-    <li><b>UNO</b>: call it at two cards or right after dropping to one. If you're caught, you draw 2.</li></ul>
+    <li><b>Last card</b>: call it at two cards or right after dropping to one. If you're caught, you draw 2.</li></ul>
     <h3>Action cards</h3><ul>
     <li><b>Skip</b>, <b>Reverse</b>, <b>Skip Everyone</b> (you go again), <b>Discard All</b> (discard every card of that color).</li>
     <li><b>Color Roulette</b>: the next player names a color and draws until it appears.</li>
@@ -2241,11 +2034,11 @@ const RULES_HTML = {
     <li><b>Russian roulette</b>: facing a stack of +8 or more, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
     <li><b>Overload</b>: without the Mercy Rule, a hand of 100 explodes: it burns down to 50 and everyone else catches 2.</li>
     <li><b>Hot potato</b>: a hidden fuse ticks with every play; when it runs out, whoever is up picks up 3.</li>
-    <li><b>Revenge</b>: take a stack of 10+ and your next draw card counts double. <b>Snitch</b>: catching someone without UNO also dumps one of your cards on them. <b>Finisher</b>: a stack reaching someone with 2 cards or fewer grows by +4.</li></ul>
+    <li><b>Revenge</b>: take a stack of 10+ and your next draw card counts double. <b>Snitch</b>: catching someone who didn’t call “Last card” also dumps one of your cards on them. <b>Finisher</b>: a stack reaching someone with 2 cards or fewer grows by +4.</li></ul>
     <h3>Poker combos</h3><ul><li>Number cards can go down together as poker hands. The first card must fit the pile; the last sets the color.</li>
     <li><b>Pair</b>: just the drop. <b>Two Pair</b>, <b>Three of a Kind</b>: throw away 1 more random card. <b>Straight</b> (3+ in a row, one color): throw away 1 more per card beyond 2. <b>Flush</b> (5 of one color), <b>Full House</b>: throw away 2 more.</li>
     <li><b>Four of a Kind</b>: everyone else picks up 1. <b>Five of a Kind</b>, <b>Straight Flush</b> (5+ in a row, one color): throw away 1 more and everyone else picks up 2.</li></ul>
-    <h3>Chaos</h3><ul><li>Every 8–12 plays a slot machine spins and lands on one event: Inflation (draw cards count double for 6 plays), Leader tax (fewest cards picks up 2), Revolution (hands move one seat), Flip storm, Color lock (only the color or a wild for 4 plays), Bleed (everyone picks up 1), Jackpot (a lucky player discards 2 random cards) or Mirror world (direction reverses).</li></ul>
+    <h3>Chaos</h3><ul><li>Every 8–12 plays a slot machine spins and lands on one event: Inflation (draw cards count double for 6 plays), Leader tax (fewest cards picks up 2), Revolution (hands move one seat), Shift change, Color lock (only the color or a wild for 4 plays), Bleed (everyone picks up 1), Jackpot (a lucky player discards 2 random cards) or Mirror world (direction reverses).</li></ul>
     <h3>Rooms</h3><ul><li>Up to 6 players, no accounts. The host can add bots in the lobby to fill seats or to test. The server runs the match, so everyone sees the same table.</li>
     <li>Lose your connection and you have 60 seconds to come back to your seat. Opening the page again rejoins you.</li>
     <li>While a player is away, their turn is skipped after 15 seconds. Press Leave, or stay away longer than a minute, and you're out of that match; the last player left wins.</li></ul>`,
@@ -2265,7 +2058,7 @@ const RULES_HTML = {
     <li><b>7</b> — можно поменяться руками с игроком или оставить свою. <b>0</b> — все передают руки по кругу.</li>
     <li><b>Сброс одинаковых</b>: сыграйте все карты с одним числом или символом в выбранном порядке. Одинаковые джокеры тоже идут вместе (цвет выбирается один раз). «Возьми» складываются, пропуски пропускают столько же игроков, чётное число разворотов или флипов гасит друг друга.</li>
     <li><b>Вмешательство</b>: точную копию верхней карты, включая джокеров (Джокер +4 на Джокер +4), можно сыграть вне очереди. Такие карты обведены.</li>
-    <li><b>УНО</b>: скажите при двух картах или сразу после того, как осталась одна. Поймают — возьмёте 2.</li></ul>
+    <li><b>«Одна»</b>: крикните при двух картах или сразу после того, как осталась одна. Поймают — возьмёте 2.</li></ul>
     <h3>Карты действий</h3><ul>
     <li><b>Пропуск</b>, <b>Разворот</b>, <b>Пропуск всех</b> (вы ходите снова), <b>Сброс цвета</b> (сбросьте все карты этого цвета).</li>
     <li><b>Цветная рулетка</b>: следующий игрок называет цвет и тянет, пока он не выпадет.</li>
@@ -2292,7 +2085,7 @@ const RULES_HTML = {
     <li><b>Русская рулетка</b>: перед стопкой +8 и больше нажмите «Рулетка»: 50% — стопка исчезает и ход переходит дальше, 50% — берёте её вдвойне.</li>
     <li><b>Перегруз</b>: без правила милосердия рука из 100 карт взрывается: сгорает до 50, остальные ловят по 2.</li>
     <li><b>Горячая картошка</b>: скрытый фитиль тикает с каждым ходом; когда догорит, тот, чей ход, берёт 3.</li>
-    <li><b>Месть</b>: взяли стопку 10+ — следующая ваша «Возьми» вдвойне. <b>Стукач</b>: поймали без УНО — заодно скиньте одну свою карту. <b>Добивание</b>: стопка, пришедшая к игроку с 2 картами или меньше, растёт на +4.</li></ul>
+    <li><b>Месть</b>: взяли стопку 10+ — следующая ваша «Возьми» вдвойне. <b>Стукач</b>: поймали без крика «Одна» — заодно скиньте одну свою карту. <b>Добивание</b>: стопка, пришедшая к игроку с 2 картами или меньше, растёт на +4.</li></ul>
     <h3>Покерные комбинации</h3><ul><li>Числовые карты можно класть вместе покерными комбинациями. Первая карта должна подходить к сбросу, последняя задаёт цвет.</li>
     <li><b>Пара</b>: просто сброс. <b>Две пары</b>, <b>Сет</b>: ещё 1 случайная карта уходит из руки. <b>Стрит</b> (3+ подряд одного цвета): ещё по 1 карте за каждую сверх двух. <b>Флеш</b> (5 одного цвета), <b>Фулл-хаус</b>: ещё 2 карты.</li>
     <li><b>Каре</b>: все остальные берут 1. <b>Покер</b> (5 одинаковых), <b>Стрит-флеш</b> (5+ подряд одного цвета): ещё 1 карта уходит, все остальные берут 2.</li></ul>
@@ -2545,16 +2338,16 @@ for (const L of ['en', 'ru']) {
   const g = RULES_I18N[L].find(x => x[0] === 'gamble');
   if (g) g[2] = L === 'en' ? 'Facing a stack (+8 by day, +4 at night), pull the trigger instead: 50% the stack is gone, 50% you take it doubled.' : 'Перед стопкой (днём от +8, ночью от +4) можно нажать на спуск: 50% — стопка исчезает, 50% — берёте её вдвойне.';
   const f = RULES_I18N[L].find(x => x[0] === 'flip');
-  if (f) f[2] = L === 'en' ? 'Flip turns every card over: day becomes night and the table rules change with it.' : 'Флип переворачивает все карты: день становится ночью, и вместе с ним меняются правила стола.';
+  if (f) f[2] = L === 'en' ? 'Shift cards turn every card over: day becomes night and the table rules change with it.' : 'Карта «Смена» переворачивает все карты: день становится ночью, и вместе с ним меняются правила стола.';
 }
 
 RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The House deals one endless two-sided deck. By day you play on the floor; at night, in the back room.</p>
     <h3>Basics</h3><ul>
     <li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
-    <li>Tap a card or drag it to the pile. Drag cards sideways in your hand to reorder them. Hover (or long-press) a card to read it. Keys: <b>D</b>/<b>Space</b> draw, <b>U</b> UNO, <b>P</b> pass.</li>
+    <li>Tap a card or drag it to the pile. Drag cards sideways in your hand to reorder them. Hover (or long-press) a card to read it. Keys: <b>D</b>/<b>Space</b> draw, <b>U</b> Last card, <b>P</b> pass.</li>
     <li>The host switches every rule and every House card on or off in the lobby.</li></ul>
     <h3>Day and night</h3><ul>
-    <li>Every card has a day face and a night face. <b>Flip</b> turns the whole table: day becomes night, and the rules of the table change with it.</li>
+    <li>Every card has a day face and a night face. <b>Shift</b> turns the whole table: day becomes night, and the rules of the table change with it.</li>
     <li><b>Day · the floor</b>: the slot machine runs, poker hands pay <i>you</i> (extra cards leave your hand), the revolver needs a stack of +8.</li>
     <li><b>Night · the back room</b>: no slots, poker hands hurt the next player instead, the revolver is allowed from +4, and the dynamite under the table burns.</li>
     <li><b>Eclipse</b> switches day and night for one turn only. You see the other side of everyone else's cards and of the next card in the deck, never your own.</li></ul>
@@ -2573,15 +2366,15 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
     <h3>Table rules</h3><ul>
     <li><b>7</b> swaps hands with one player (or keep yours). <b>0</b> passes every hand along.</li>
     <li><b>Same-symbol drops</b>: play every card with the same symbol together. <b>Jump-in</b>: play an exact copy of the top card out of turn.</li>
-    <li><b>UNO</b>: call it at two cards or right after dropping to one. Caught: you draw 2, and the <b>Snitch</b> dumps one of their cards on you.</li>
-    <li><b>Overload</b>: a hand of 100 explodes: it burns down to 50 and everyone else catches 2.</li></ul>
+    <li><b>Last card</b>: call it at two cards or right after dropping to one. Caught: you draw 2, and the <b>Snitch</b> dumps one of their cards on you.</li>
+    <li><b>Last call</b>: after 250 turns the house closes the table and whoever holds the fewest cards wins. The table counts down the last 30.</li></ul>
     <h3>The House's cards</h3><ul>
     <li><b>Luck</b>: Horseshoe (1 in 3: two cards leave your hand), Scratch Card (a random prize or loss), Jackpot (pull the slot lever now), Redeal (a fresh hand).</li>
     <li><b>Money</b>: Loan (two cards gone now, four back in 3 plays), Interest (everyone with 8+ pays 2), Tip (give 2 cards away), Contract (lose half your hand, your next stack is doubled), All-In (the next player picks up as many as you hold, up to 6).</li>
     <li><b>Violence</b>: Shot Glass (next player +2, or it breaks in your hand), Shotgun (next player +3, both neighbours +1), Collector (the leader +4), Handcuffs (the next two are skipped), Spinner (6 plays of random direction flips).</li>
     <li><b>The Pot</b> pools every hand and deals it back out evenly.</li></ul>
     <h3>Slots and dynamite</h3><ul>
-    <li>By day, every 8–12 plays the slot machine spins: Inflation, Leader tax, Revolution, Flip storm, Color lock, Bleed, Payout or Mirror world.</li>
+    <li>By day, every 8–12 plays the slot machine spins: Inflation, Leader tax, Revolution, Shift change, Color lock, Bleed, Payout or Mirror world.</li>
     <li>At night a hidden fuse burns with every play. When it runs out, whoever is up picks up 3. The table shows when it is about to blow.</li></ul>
     <h3>Rooms</h3><ul>
     <li>Up to 6 players, no accounts. The host can add bots. The server runs the match, so everyone sees the same table.</li>
@@ -2589,10 +2382,10 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
 RULES_HTML.ru = `<p class="rulestag">Подпольный карточный притон под казино. Дом сдаёт одну бесконечную двустороннюю колоду. Днём играют в зале, ночью — в подсобке.</p>
     <h3>Основы</h3><ul>
     <li>Кладите карту того же цвета или символа, или джокер. Избавьтесь от всех карт, чтобы выиграть.</li>
-    <li>Нажмите на карту или перетащите её на сброс. Тащите карты в руке вбок, чтобы поменять порядок. Наведите (или подержите палец) на карту, чтобы прочитать её. Клавиши: <b>D</b>/<b>Пробел</b> взять, <b>U</b> УНО, <b>P</b> пас.</li>
+    <li>Нажмите на карту или перетащите её на сброс. Тащите карты в руке вбок, чтобы поменять порядок. Наведите (или подержите палец) на карту, чтобы прочитать её. Клавиши: <b>D</b>/<b>Пробел</b> взять, <b>U</b> «Одна», <b>P</b> пас.</li>
     <li>Хозяин комнаты включает и выключает в лобби каждое правило и каждую карту Дома.</li></ul>
     <h3>День и ночь</h3><ul>
-    <li>У каждой карты есть дневная и ночная сторона. <b>Флип</b> переворачивает весь стол: день становится ночью, и вместе с ним меняются правила стола.</li>
+    <li>У каждой карты есть дневная и ночная сторона. <b>Смена</b> переворачивает весь стол: день становится ночью, и вместе с ним меняются правила стола.</li>
     <li><b>День · зал</b>: работает слот-машина, покерные комбинации платят <i>вам</i> (лишние карты уходят из руки), рулетка — от стопки +8.</li>
     <li><b>Ночь · подсобка</b>: слотов нет, комбинации бьют следующего игрока, рулетка разрешена от +4, под столом горит динамит.</li>
     <li><b>Затмение</b> меняет день и ночь только на один ход. Вы видите обратную сторону чужих карт и следующей карты колоды, но не своих.</li></ul>
@@ -2611,27 +2404,33 @@ RULES_HTML.ru = `<p class="rulestag">Подпольный карточный п�
     <h3>Правила стола</h3><ul>
     <li><b>7</b> — обмен рукой с одним игроком (или оставьте свою). <b>0</b> — все передают руки по кругу.</li>
     <li><b>Сброс одинаковых</b>: все карты с одним символом вместе. <b>Вмешательство</b>: точную копию верхней карты можно кинуть вне очереди.</li>
-    <li><b>УНО</b>: скажите на двух картах или сразу после того, как осталась одна. Поймали — берёте 2, а <b>стукач</b> ещё и скидывает вам одну свою.</li>
-    <li><b>Перегруз</b>: рука из 100 карт взрывается — сгорает до 50, остальные ловят по 2.</li></ul>
+    <li><b>«Одна»</b>: крикните на двух картах или сразу после того, как осталась одна. Поймали — берёте 2, а <b>стукач</b> ещё и скидывает вам одну свою.</li>
+    <li><b>Последний звонок</b>: через 250 ходов дом закрывает стол, и побеждает тот, у кого меньше всего карт. Последние 30 ходов стол отсчитывает вслух.</li></ul>
     <h3>Карты Дома</h3><ul>
     <li><b>Удача</b>: Подкова (1 к 3: две карты уходят), Лотерейка (случайный выигрыш или проигрыш), Джекпот (рычаг слотов сразу), Пересдача (новая рука).</li>
     <li><b>Деньги</b>: Займ (две карты уходят сейчас, четыре — через 3 хода), Проценты (у кого 8+, платит 2), Чаевые (отдать 2 карты), Контракт (половина руки уходит, следующая стопка вдвойне), Ва-банк (следующий берёт столько, сколько у вас, до 6).</li>
     <li><b>Насилие</b>: Рюмка (следующему +2 или бьётся у вас в руке), Дробовик (следующему +3, соседям по 1), Коллектор (лидеру +4), Наручники (двое следующих пропускают), Вертушка (6 ходов случайных разворотов).</li>
     <li><b>Общак</b> собирает все руки и раздаёт поровну.</li></ul>
     <h3>Слоты и динамит</h3><ul>
-    <li>Днём каждые 8–12 ходов крутится слот-машина: инфляция, налог на лидера, революция, флип-шторм, цветовой замок, кровопускание, выплата или зеркальный мир.</li>
+    <li>Днём каждые 8–12 ходов крутится слот-машина: инфляция, налог на лидера, революция, пересменка, цветовой замок, кровопускание, выплата или зеркальный мир.</li>
     <li>Ночью с каждым ходом горит скрытый фитиль. Когда догорит, тот, чей ход, берёт 3. На столе видно, когда он вот-вот рванёт.</li></ul>
     <h3>Комнаты</h3><ul>
     <li>До 6 игроков, без аккаунтов. Хозяин может добавить ботов. Матч ведёт сервер, поэтому у всех один и тот же стол.</li>
     <li>Если связь пропала, у вас 60 секунд, чтобы вернуться на своё место. Отошедших пропускают через 15 секунд.</li></ul>`;
-STR.en.lede = 'An after-hours UNO den under a casino. Day on the floor, night in the back room. Play online with friends, no accounts.';
-STR.ru.lede = 'Подпольный УНО-притон под казино. Днём — зал, ночью — подсобка. Играйте онлайн с друзьями, без аккаунтов.';
+STR.en.lede = 'An after-hours card den under a casino. Day on the floor, night in the back room. Play online with friends, no accounts.';
+STR.ru.lede = 'Подпольный карточный притон под казино. Днём — зал, ночью — подсобка. Играйте онлайн с друзьями, без аккаунтов.';
 
 Object.assign(STR.en, { settings: 'Settings', setSound: 'Sound', setVolume: 'Effects volume', setAmbient: 'Ambient', setAmbVol: 'Ambient volume', setYt: 'YouTube link', ambHouse: 'The den', setShake: 'Screen shake', setBg: 'Background', bgMoving: 'Moving', bgStill: 'Still', setTips: 'Card tooltips', fxFull: 'Full', fxLite: 'Lite' });
 Object.assign(STR.ru, { settings: 'Настройки', setSound: 'Звук', setVolume: 'Громкость эффектов', setAmbient: 'Эмбиент', setAmbVol: 'Громкость эмбиента', setYt: 'Ссылка YouTube', ambHouse: 'Притон', setShake: 'Тряска экрана', setBg: 'Фон', bgMoving: 'Движется', bgStill: 'Стоит', setTips: 'Подсказки к картам', fxFull: 'Все', fxLite: 'Лёгкие' });
 Object.assign(CARD_TXT.en, { mult3: 'triple' }); Object.assign(CARD_TXT.ru, { mult3: 'трипл' });
 
 Object.assign(STR.en, { setAmbient: 'Music' }); Object.assign(STR.ru, { setAmbient: 'Музыка' });
+
+// ================= LAST DEAL =================
+Object.assign(STR.en, { lastCallIn: k => `Last call in ${k}`, lastCallNow: 'Last call', tLastCall: 'LAST CALL', tUno: 'LAST CARD',
+  presets: 'Table', presetClassic: 'Classic', presetClassicD: 'Plain cards, stacking, no house tricks', presetDen: 'Back room', presetDenD: 'The house table: everything balanced', presetMayhem: 'No limits', presetMayhemD: 'Every rule and every card on', presetCustom: 'Custom', fineTune: 'Fine-tune the rules', });
+Object.assign(STR.ru, { lastCallIn: k => `Последний звонок через ${k}`, lastCallNow: 'Последний звонок', tLastCall: 'ПОСЛЕДНИЙ ЗВОНОК', tUno: 'ОДНА!',
+  presets: 'Стол', presetClassic: 'Классика', presetClassicD: 'Обычные карты и стопки, без фокусов дома', presetDen: 'Подсобка', presetDenD: 'Стол дома: всё в балансе', presetMayhem: 'Беспредел', presetMayhemD: 'Включено каждое правило и каждая карта', presetCustom: 'Свой', fineTune: 'Тонкая настройка', });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -2657,17 +2456,17 @@ const ASSETS = (() => {
       cards.add(k); rules.push(`.${cls(k)}{background-image:url("assets/cards/${encodeURIComponent(file)}")}`);
     }
     if (cards.size) rules.push(`.card.spr{background-color:transparent;background-position:center;background-size:100% 100%;background-repeat:no-repeat;border:0;border-radius:${cfg.cardRadius ?? 0}px;box-shadow:none${cfg.pixelated ? ';image-rendering:pixelated' : ''}}`,
-      `.card.spr .oval,.card.spr .cor{display:none}`);
+      `.card.spr .oval,.card.spr .cor,.card.spr .suit,.card.spr::before,.card.spr::after{display:none}`);
     // fonts: assets/font/ui.* replaces all text, assets/font/display.* replaces titles, numbers, buttons and toasts
     const F = man.font || {};
     if (F.ui) rules.push(`@font-face{font-family:'PackUI';src:url("assets/font/${encodeURIComponent(F.ui)}");font-display:swap}`,
-      `:root{--f-ui:'PackUI',system-ui,sans-serif;--f-mono:'PackUI',ui-monospace,monospace}body,button,input,select,.label,.mono,#log{font-family:'PackUI',system-ui,sans-serif}`);
+      `:root{--f-ui:'PackUI',system-ui,sans-serif;--f-type:'PackUI',ui-monospace,monospace;--f-chalk:'PackUI',system-ui,sans-serif}`);
     if (F.display || F.ui) rules.push(`@font-face{font-family:'PackDisplay';src:url("assets/font/${encodeURIComponent(F.display || F.ui)}");font-display:swap}`,
-      `:root{--f-px:'PackDisplay',system-ui,sans-serif}.title,#toast,.stack,.btn,.opp .cnt,.me .cnt,.code,#banner,.card .mid,.card .cor,.slottitle,.slotname,.reels b,.chaosline,.float{font-family:'PackDisplay',system-ui,sans-serif}`);
+      `:root{--f-stamp:'PackDisplay',system-ui,sans-serif;--f-card:'PackDisplay',system-ui,sans-serif}`);
     if (cfg.pixelated && (F.ui || F.display)) rules.push(`*{-webkit-font-smoothing:none;font-synthesis:none}`);
     // background: assets/bg.png (or .jpg/.webp/.gif) replaces the animated swirl
-    if (man.bg) rules.push(`#bg{display:none!important}html{background:#07070a url("assets/${encodeURIComponent(man.bg)}") center/cover fixed${cfg.pixelated ? ';image-rendering:pixelated' : ''}}`);
-    if (cfg.crt === false) rules.push(`#crt,#grain{display:none!important}`);
+    if (man.bg) rules.push(`#bg{display:none}html{background:#07070a url("assets/${encodeURIComponent(man.bg)}") center/cover fixed${cfg.pixelated ? ';image-rendering:pixelated' : ''}}`);
+    if (cfg.crt === false) rules.push(`#crt,#grain{display:none}`);
     if (rules.length) css(rules.join('\n'));
     // sounds: assets/sounds/<name>.ogg; play-2.ogg, play-3.ogg ... are variants picked at random
     Object.assign(sounds, man.sounds || {});
@@ -2708,7 +2507,7 @@ const ASSETS = (() => {
   return { load, cardClass, playSound, get manifest() { return man; } };
 })();
 
-// ===== JUICE: shader background, CRT, particles, shake, glitch, card tilt, chaos slot machine =====
+// ===== JUICE: shader background, ash and embers, shake, lamp dropout, card tilt, chaos slot machine =====
 const JUICE = (() => {
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const state = { side: 0, sideT: 0, heat: 0, heatT: 0, gl: null };
@@ -2794,15 +2593,27 @@ const JUICE = (() => {
     })(t0);
   }
 
-  // ---- particles (pixel squares) ----
+  // ---- particles: no confetti in this room. Ash and dust drift down, a few embers rise and die. ----
+  // Callers may still pass colours; only their brightness matters (bright = more embers).
+  const ASH = ['#6d665c', '#8a8274', '#4e4942', '#a59c8b', '#3a3632'], EMBER = ['#c2531c', '#8e2a12', '#e07a2e'];
   let pc, px, parts = [];
   function burst(x, y, n, colors, power = 1) {
     if (!full()) return;
     if (!pc) { pc = document.getElementById('fxc'); px = pc.getContext('2d'); const fit = () => { pc.width = innerWidth; pc.height = innerHeight; }; fit(); addEventListener('resize', fit); loop(); }
+    n = Math.round(n * 0.6);
+    const hot = Math.min(0.35, 0.08 + power * 0.08);
     for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2, s = (2 + Math.random() * 6) * power;
-      parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 3 * power, life: 40 + Math.random() * 30, c: colors[i % colors.length], sz: 3 + Math.random() * 5 });
+      const ember = Math.random() < hot, a = Math.random() * Math.PI * 2, s = (0.6 + Math.random() * 2.6) * Math.sqrt(power);
+      parts.push(ember
+        ? { x, y, vx: Math.cos(a) * s * 0.7, vy: -1 - Math.random() * 2.2 * power, g: -0.015, drag: 0.97, life: 50 + Math.random() * 50, c: EMBER[i % 3], sz: 1 + Math.random() * 2, ember: true, ph: Math.random() * 6 }
+        : { x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1.2 * power, g: 0.045, drag: 0.94, life: 60 + Math.random() * 60, c: ASH[i % ASH.length], sz: 1 + Math.random() * 3, ph: Math.random() * 6 });
     }
+  }
+  // a few sparks off a smouldering number
+  function sparks(el, k = 3) {
+    if (!full() || !el || !el.isConnected) return;
+    const r = el.getBoundingClientRect(); if (!r.width) return;
+    burst(r.left + r.width * (0.2 + Math.random() * 0.6), r.top + r.height * 0.4, k * 2, null, 2.5);
   }
   function loop() {
     requestAnimationFrame(loop);
@@ -2810,9 +2621,10 @@ const JUICE = (() => {
     px.clearRect(0, 0, pc.width, pc.height);
     parts = parts.filter(p => p.life-- > 0);
     for (const p of parts) {
-      p.vy += 0.32; p.vx *= 0.98; p.x += p.vx; p.y += p.vy;
-      px.globalAlpha = Math.min(1, p.life / 20); px.fillStyle = p.c;
-      px.fillRect(Math.round(p.x), Math.round(p.y), p.sz, p.sz);
+      p.ph += 0.08; p.vy += p.g; p.vx = p.vx * p.drag + Math.sin(p.ph) * 0.05; p.vy *= p.drag; p.x += p.vx; p.y += p.vy;
+      px.globalAlpha = Math.min(p.ember ? 1 : 0.75, p.life / 30) * (p.ember ? 0.6 + 0.4 * Math.sin(p.ph * 3) : 1);
+      px.fillStyle = p.c;
+      px.fillRect(Math.round(p.x), Math.round(p.y), p.sz, p.ember ? p.sz : p.sz * 0.7);
     }
     px.globalAlpha = 1;
     if (!parts.length) px.clearRect(0, 0, pc.width, pc.height);
@@ -2845,7 +2657,7 @@ const JUICE = (() => {
   function untilt(el) { el.style.rotate = ''; }
 
   // ---- chaos slot machine ----
-  const GLYPH = { inflation: '×2', tax: 'TAX', revolution: 'REV', storm: 'FLIP', lock: 'LOCK', bleed: '−1', jackpot: '777', mirrorworld: 'MIR' };
+  const GLYPH = { inflation: '×2', tax: 'TAX', revolution: 'REV', storm: '☾☀', lock: 'LOCK', bleed: '−1', jackpot: '$$$', mirrorworld: 'MIR' };
   let slotBusy = null;
   function slot(ev) {
     const el = document.getElementById('slot'); if (!el) return;
@@ -2863,7 +2675,7 @@ const JUICE = (() => {
         else if (r.classList.contains('spin')) { r.classList.remove('spin'); r.textContent = GLYPH[ev] || '?'; r.classList.add('stop'); SFX.play('reel', k); }
       });
       if (spinning) { if (Math.random() < 0.5) SFX.play('tick'); requestAnimationFrame(tickR); }
-      else { el.classList.add('done'); SFX.play('chaos'); shake(3); glitch(); burst(innerWidth / 2, innerHeight / 2, 60, ['#ff2d55', '#ffd23f', '#22d3ee', '#fff'], 1.4); slotBusy = setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.classList.add('hidden'), 220); }, 1700); }
+      else { el.classList.add('done'); SFX.play('chaos'); shake(3); glitch(); burst(innerWidth / 2, innerHeight / 2, 40, null, 1); slotBusy = setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.classList.add('hidden'), 220); }, 1700); }
     };
     requestAnimationFrame(tickR);
   }
@@ -2872,98 +2684,32 @@ const JUICE = (() => {
   // where the table sits on screen (centre and half-size in CSS px)
   function setTable(rc) { if (rc) state.table = rc; }
   function setHeat(h) { state.heatT = Math.max(0, Math.min(1, h)); }
-  // ---- Balatro flame on the multiplier: the stack counter (+N) and an armed ×N burn, hotter as they grow ----
-  // Flame shader ported from "Balatro original flame shader" by stryck33 on godotshaders.com (CC0).
-  const FLAME_FS = `precision mediump float;
-    uniform vec2 res; uniform float t, amount, id; uniform vec3 c1, c2;
-    void main(){
-      float intensity=min(10.,amount);
-      if(intensity<.1){gl_FragColor=vec4(0.);return;}
-      vec2 uv=vec2(gl_FragCoord.x/res.x,1.-gl_FragCoord.y/res.y)-.5;
-      vec2 fu=floor(uv*60.)/60.;
-      vec2 usc=fu+fu*.01*(sin(-1.123*fu.x+.2*t)*cos(5.3332*fu.y+t*.931));
-      vec2 up=vec2(0.,mod(4.*t,10000.)-5000.+mod(1.781*id,1000.));
-      float sf=7.5+3./(2.+2.*intensity);
-      vec2 sv=usc*sf+up;
-      float speed=mod(20.781*id,100.)+sin(t+id)*cos(t*.151+id);
-      vec2 sv2=vec2(0.);
-      for(int i=0;i<5;i++){
-        sv2+=sv+.05*sv2.yx+.3*(cos(length(sv)*.411)+.3344*sin(length(sv))-.23*cos(length(sv)));
-        sv+=.5*vec2(cos(cos(sv2.y)+speed*.0812)*sin(3.22+sv2.x-speed*.1531),sin(-sv2.x*1.21222+.113785*speed)*cos(sv2.y*.91213-.13582*speed));
-      }
-      float sr=max(0.,(length((sv-up)/sf*5.)+.1*(length(usc)-.5))*(2./(2.+intensity*.2)));
-      sr+=max(0.,2.-.3*intensity)*max(0.,2.*(usc.y-.5)*(usc.y-.5));
-      if(abs(uv.x)>.4) sr+=10.*(abs(uv.x)-.4);
-      float hole=length((uv-vec2(0.,.1))*vec2(.19,1.));
-      if(hole<min(.1,intensity*.5)&&sr>1.) sr+=min(8.5,intensity*10.)*(hole-.1);
-      if(sr>1.){gl_FragColor=vec4(0.);return;}
-      vec3 col=c1;
-      if(uv.y<.12){float y=.12-uv.y;col=col*(1.-.5*y)+2.5*y*c2;col+=col*(-2.+.5*intensity*sr)*y;}
-      gl_FragColor=vec4(clamp(col,0.,1.),1.);
-    }`;
-  const FLAME_VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-  const flames = {};
-  function makeFlame(key, c1, c2, id) {
-    const cv = document.createElement('canvas'); cv.className = 'flame';
-    const gl = cv.getContext('webgl', { premultipliedAlpha: false, alpha: true, antialias: false });
-    const F = { key, cv, gl, amount: 0, burst: 0, el: null, run: false, c1, c2, id };
-    if (!gl) return F;
-    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
-    const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, FLAME_VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FLAME_FS)); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { F.gl = null; return F; }
-    gl.useProgram(pr);
-    const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    F.U = Object.fromEntries(['res', 't', 'amount', 'id', 'c1', 'c2'].map(n => [n, gl.getUniformLocation(pr, n)]));
-    return F;
-  }
-  const T0 = performance.now();
-  function frameFlame(F) {
-    F.burst = Math.max(0, F.burst - 0.025);
-    const amt = F.amount + F.burst;
-    const el = F.el && F.el.isConnected ? F.el : null;
-    if (!el || amt < 0.1 || !F.gl) { F.cv.style.opacity = 0; F.run = false; return; }
-    const host = el.offsetParent || document.body;
-    if (F.cv.parentElement !== host) host.appendChild(F.cv);
-    const r = el.getBoundingClientRect(), h = host.getBoundingClientRect();
-    const arm = F.key === 'arm' || F.key === 'combo', W = arm ? r.width * 1.25 : Math.max(70, r.width * 1.5), H = arm ? r.height * 1.7 : Math.max(90, r.height * 3); // the multiplier's flame stays on its own line
-    Object.assign(F.cv.style, { left: (r.left - h.left + host.scrollLeft + r.width / 2 - W / 2) + 'px', top: (r.top - h.top + host.scrollTop + r.height * (arm ? 1.25 : 1.15) - H) + 'px', width: W + 'px', height: H + 'px', opacity: 1 });
-    const w = Math.max(16, Math.round(W / 2)), hh = Math.max(16, Math.round(H / 2));
-    if (F.cv.width !== w || F.cv.height !== hh) { F.cv.width = w; F.cv.height = hh; }
-    const gl = F.gl; gl.viewport(0, 0, w, hh);
-    gl.uniform2f(F.U.res, w, hh); gl.uniform1f(F.U.t, (performance.now() - T0) / 1000); gl.uniform1f(F.U.amount, amt); gl.uniform1f(F.U.id, F.id);
-    gl.uniform3fv(F.U.c1, F.c1); gl.uniform3fv(F.U.c2, F.c2);
-    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    requestAnimationFrame(() => frameFlame(F));
-  }
-  function kickFlame(F) { if (!F.run) { F.run = true; requestAnimationFrame(() => frameFlame(F)); } }
-  function getFlame(key) {
-    if (!flames[key]) flames[key] = key === 'stack' || key === 'combo' ? makeFlame(key, [0.996, 0.373, 0.333], [1.0, 0.85, 0.35], key === 'combo' ? 5.3 : 3.1) : makeFlame(key, [0.0, 0.58, 1.0], [0.75, 0.95, 1.0], 7.7);
-    return flames[key];
-  }
-  // called on every render: the stack counter burns from +8, the armed multiplier always burns
+  // ---- embers: the stack counter and an armed multiplier smoulder, hotter as they grow ----
+  // (CSS does the glow from --emb; this only sets the level and throws the odd spark.)
+  const EMB = { stack: 0, arm: 0, burstT: 0 };
+  function setEmber(el, v) { if (!el) return; el.classList.toggle('ember', v > 0.05); el.style.setProperty('--emb', Math.min(1, v).toFixed(2)); }
   function fireLevel(pending, multNext) {
-    if (document.body.classList.contains('lite')) { Object.values(flames).forEach(F => { F.amount = 0; F.burst = 0; }); return; }
-    const S = getFlame('stack'); S.el = document.querySelector('#hud .stack');
-    S.amount = pending >= 8 ? Math.min(7, 0.6 + (pending - 8) / 8) : 0;
-    if (S.amount + S.burst > 0.1) kickFlame(S);
-    const A = getFlame('arm'); A.el = document.querySelector('#hud .multchip');
-    A.amount = multNext > 1 ? Math.min(5, 0.6 + Math.log2(multNext) * 0.8) : 0;
-    if (A.amount + A.burst > 0.1) kickFlame(A);
+    const lite = document.body.classList.contains('lite');
+    EMB.stack = lite ? 0 : (pending >= 8 ? Math.min(1, 0.25 + (pending - 8) / 30) : 0);
+    EMB.arm = lite ? 0 : (multNext > 1 ? Math.min(1, 0.3 + Math.log2(multNext) * 0.25) : 0);
+    setEmber(document.querySelector('#hud .stack'), Math.max(EMB.stack, EMB.burstT > performance.now() ? 1 : 0));
+    setEmber(document.querySelector('#hud .multchip'), EMB.arm);
   }
-  // the combo panel's mult box burns for a moment
+  setInterval(() => {
+    if (document.hidden) return;
+    if (EMB.stack > 0 && Math.random() < EMB.stack) sparks(document.querySelector('#hud .stack'), 1 + Math.round(EMB.stack * 2));
+    if (EMB.arm > 0 && Math.random() < EMB.arm * 0.6) sparks(document.querySelector('#hud .multchip'), 1);
+  }, 700);
   function comboFlame(el, amount, ms) {
     if (document.body.classList.contains('lite') || !el) return;
-    const C = getFlame('combo'); C.el = el; C.amount = amount; kickFlame(C);
-    clearTimeout(C.timer); C.timer = setTimeout(() => { C.amount = 0; }, ms);
+    setEmber(el, Math.min(1, amount / 4)); sparks(el, 3);
+    setTimeout(() => setEmber(el, 0), ms);
   }
-  // a flare for big moments: multipliers, 666, huge stacks and drops
   function ignite(power = 1) {
     if (document.body.classList.contains('lite')) return;
-    const S = getFlame('stack'); S.burst = Math.max(S.burst, 1.5 + 3 * power);
-    if (S.el && S.el.isConnected) { const r = S.el.getBoundingClientRect(); burst(r.left + r.width / 2, r.top, 30, ['#ffeb78', '#fe5f55', '#ff9a3c', '#fff'], 1.3); }
-    kickFlame(S);
-    const A = getFlame('arm'); if (A.amount > 0) { A.burst = Math.max(A.burst, 3); kickFlame(A); }
+    EMB.burstT = performance.now() + 900;
+    const el = document.querySelector('#hud .stack');
+    if (el) { setEmber(el, 1); sparks(el, 3 + Math.round(power * 3)); setTimeout(() => setEmber(el, EMB.stack), 900); }
   }
   return { startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame, setTable };
 })();
@@ -2986,7 +2732,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 const cleanName = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 
 function loadSettings() {
-  const d = { vol: 0.8, ambient: 'on', ambVol: 0.35, ytUrl: '', shake: true, bgMotion: true, tips: true, name: 'Player', sound: true, fx: (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'lite' : 'full', lang: LANG, rules: { flip: true, stacking: true, multi: true, drawUntil: true, seven: true, zero: true, jumpIn: true, uno: true }, cards: Object.fromEntries(EXTRA_CARDS.map(k => [k, true])) };
+  const d = { vol: 0.8, ambient: 'on', ambVol: 0.35, ytUrl: '', shake: true, bgMotion: true, tips: true, name: 'Player', sound: true, fx: (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'lite' : 'full', lang: LANG, rules: Object.assign({}, PRESETS.den.rules), cards: Object.assign({}, PRESETS.den.cards) };
   try {
     const s = JSON.parse(localStorage.getItem('unoFlipNoMercy') || 'null');
     if (s) {
@@ -3103,6 +2849,7 @@ const SFX = {
         case 'skip': this.rustle(t, 0.18, 600, 2600, 0.8, 0.2); this.clank(t + 0.03, 1.6, 0.12); break;
         case 'swap': this.rustle(t, 0.25, 400, 2200, 0.8, 0.2); this.rustle(t + 0.2, 0.25, 2200, 400, 0.8, 0.2); break;
         case 'turn': this.bell(t, 1); break;
+        case 'lastcall': [0, 0.5, 1.0].forEach(d => this.bell(t + d, 0.55)); this.thump(t, 40, 0.6, 0.5); break;
         case 'ko': this.gun(t, 0.8); this.strike(t + 0.2, 98, 1.6, 0.16, [1, 2.4]); break;
         case 'win': // a slow, ugly chord and the machine coughing up coins
           [110, 131, 165].forEach((f, i) => this.strike(t + i * 0.12, f, 2.2, 0.16, [1, 2, 3.01])); for (let i = 0; i < 10; i++) this.coin(t + 0.5 + i * 0.07, 0.8 + (i % 4) * 0.1); break;
@@ -3225,10 +2972,32 @@ function seg(el, opts, key, fmt, after) {
     el.appendChild(b);
   }
 }
+// presets: one tap sets the whole table; the fine-tune list stays folded away
+function presetOf(rules, cards) {
+  for (const k of ['classic', 'den', 'mayhem']) {
+    const P = PRESETS[k];
+    if (RULE_ALL.every(r => !!rules[r] === P.rules[r]) && EXTRA_CARDS.every(c => (cards[c] !== false) === P.cards[c])) return k;
+  }
+  return 'custom';
+}
+const PRESET_T = { classic: ['presetClassic', 'presetClassicD'], den: ['presetDen', 'presetDenD'], mayhem: ['presetMayhem', 'presetMayhemD'] };
+function drawPresets() {
+  const cur = presetOf(S.rules, S.cards);
+  $('lbPresets').innerHTML = Object.keys(PRESET_T).map(k => `<button class="preset ${cur === k ? 'on' : ''}" data-preset="${k}"><b>${t(PRESET_T[k][0])}</b><span>${t(PRESET_T[k][1])}</span></button>`).join('');
+  $('lbFineSum').textContent = t('fineTune') + (cur === 'custom' ? ' · ' + t('presetCustom') : '');
+}
+$('lbPresets').addEventListener('click', e => {
+  const b = e.target.closest('[data-preset]'); if (!b) return;
+  const P = PRESETS[b.dataset.preset];
+  S.rules = Object.assign({}, S.rules, P.rules); S.cards = Object.assign({}, S.cards, P.cards);
+  SFX.play('click'); saveSettings(); drawToggles();
+  if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards });
+});
 function drawToggles(dis) {
   const rules = RULES_L().map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-rule="${k}" ${S.rules[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
   const cards = EXTRA_L().map(([k, t, d]) => `<label class="opt"><input type="checkbox" data-card="${k}" ${S.cards[k] ? 'checked' : ''}><div><b>${t}</b><span>${d}</span></div></label>`).join('');
   $('lbRules').innerHTML = rules; $('lbCards').innerHTML = cards;
+  drawPresets();
 }
 drawToggles();
 function onToggle(e) {
@@ -3236,7 +3005,7 @@ function onToggle(e) {
   if (t.dataset.rule) { S.rules[t.dataset.rule] = t.checked; hit = true; }
   if (t.dataset.card) { S.cards[t.dataset.card] = t.checked; hit = true; }
   if (!hit) return;
-  saveSettings();
+  saveSettings(); drawPresets();
   if (isHost) conn.send({ t: 'settings', rules: S.rules, cards: S.cards });
 }
 for (const id of ['lbRules', 'lbCards']) $(id).addEventListener('change', onToggle);
@@ -3321,7 +3090,9 @@ function renderLobby(l) {
     $('lbWait').textContent = online < 2 ? t('needMore') : t('ready', Math.min(online, 6));
   } else {
     const row = (name, on) => `<div class="rv ${on ? '' : 'off'}"><span>${esc(name)}</span><span class="mono">${on ? t('on') : t('off')}</span></div>`;
-    $('lbRulesView').innerHTML = RULES_L().map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_L().map(([k, t]) => row(t, l.cards[k] !== false)).join('');
+    const pk = presetOf(l.rules, l.cards);
+    $('lbRulesView').innerHTML = `<div class="rv"><span>${t('presets')}</span><span class="mono">${pk === 'custom' ? t('presetCustom') : t(PRESET_T[pk][0])}</span></div>`
+      + `<details class="fine"><summary>${t('fineTune')}</summary>` + RULES_L().map(([k, t]) => row(t, !!l.rules[k])).join('') + EXTRA_L().map(([k, t]) => row(t, l.cards[k] !== false)).join('') + `</details>`;
     $('lbWait').textContent = l.live ? t('inProgress') : t('waitHost');
   }
 }
@@ -3550,6 +3321,10 @@ const SYM = {
   d6: [ICON.d6, 'd6'], pill: [ICON.pill, 'pill', 'sm'], tower: [ICON.tower, 'tower'], glitch: [ICON.glitch, 'glitch'], brim: [ICON.brim, 'brim'], foot: [ICON.foot, 'foot'], maze: [ICON.maze, 'maze'], deal: [ICON.deal, 'deal'], monstro: [ICON.monstro, 'monstro']
 };
 const CORNER = { skip: ICON.skip, rev: ICON.rev, d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: ICON.flip, dflip: ICON.dflip, discall: 'A', skipall: ICON.skipall, mirror: ICON.mirror, shield: ICON.shield, wild: 'W', wd2: '+2', wd4: '+4', wrd4: '+4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '+8', wdc: '+?', roul: '?', duel: ICON.duel, bhole: ICON.bhole, mul2: '×2', mul3: '×3', lucky: ICON.lucky, glass: ICON.glass, devil: '6', spin: '7', loan: '$', gift: ICON.gift, echo: ICON.echo, freeze: ICON.freeze, interest: '%', sacrifice: ICON.sacrifice, wheel: ICON.wheel, bomb: ICON.bomb, d6: ICON.d6, pill: ICON.pill, tower: ICON.tower, glitch: ICON.glitch, brim: ICON.brim, foot: ICON.foot, maze: ICON.maze, deal: ICON.deal, monstro: ICON.monstro };
+// every colour also has a shape, so a card never depends on colour alone
+const SUIT_PATH = { r: 'M5 1L9.5 9H.5z', y: 'M5 .8a4.2 4.2 0 1 0 0 8.4A4.2 4.2 0 1 0 5 .8z', g: 'M1.3 1.3h7.4v7.4H1.3z', b: 'M5 .3L9.7 5 5 9.7.3 5z',
+  p: 'M3.6 .8h2.8v2.8h2.8v2.8H6.4v2.8H3.6V6.4H.8V3.6h2.8z', t: 'M5 .6a4.4 4.4 0 1 0 0 8.8A4.4 4.4 0 1 0 5 .6zm0 2.5a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 1 1 0-3.8z', o: 'M1 .8h8L5 5zM1 9.2h8L5 5z', v: 'M6.3.6A4.4 4.4 0 1 0 9.4 7.3 3.5 3.5 0 1 1 6.3.6z' };
+const suitSVG = (c, cls = '') => SUIT_PATH[c] ? `<svg class="suit ${cls}" viewBox="0 0 10 10" aria-hidden="true"><path fill-rule="evenodd" d="${SUIT_PATH[c]}"/></svg>` : '';
 function faceHTML(f, side, cls = '', id = '') {
   // a drawn sprite from the asset pack wins; otherwise the built-in card
   const spr = ASSETS.cardClass(f, side);
@@ -3559,7 +3334,7 @@ function faceHTML(f, side, cls = '', id = '') {
   const [m, subKey, sz] = SYM[f.v] || [esc(f.v)];
   const sub = subKey ? CARD_TXT[LANG][subKey] : '';
   const cor = CORNER[f.v] || esc(f.v);
-  return `<div class="card s-${side} c-${esc(f.c)}${stain} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span></div>`;
+  return `<div class="card s-${side} c-${esc(f.c)}${stain} ${cls}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}><span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
 function sortedHand(h) {
@@ -3627,7 +3402,7 @@ function render() {
       ${G.rules.mercy ? `<div class="bar ${pct >= 80 ? 'hot' : ''}"><div style="width:${pct}%"></div></div>` : ''}${timer}
       ${p.vulnerable && n === 1 && G.rules.uno && me && !me.out ? `<button class="btn catch" data-catch="${i}">${t('catchBtn')}</button>` : ''}</div>`;
   }).join(arrow) + arrow;
-  // piles: the draw pile shows the back of the next card, as in UNO Flip
+  // piles: the draw pile shows the back of the next card (its other side)
   const nb = G.next && G.next[ob] ? G.next[ob] : { c: 'w', v: 'wild' };
   const back = faceHTML(nb, ob);
   $('drawpile').innerHTML = back + back + back;
@@ -3637,12 +3412,14 @@ function render() {
   $('drawpile').classList.toggle('can', canDraw && (owe || myDebt || G.pending > 0 || G.playable(ME).length === 0));
   $('discard').innerHTML = discardHTML();
   // hud
+  const lcLeft = G.lastCallLeft ? G.lastCallLeft() : null;
   $('hud').innerHTML = `<span class="phase ${G.side === 'L' ? 'day' : 'night'}"><b>${G.side === 'L' ? '☀' : '☾'}</b>${G.side === 'L' ? t('lightSide') : t('darkSide')}</span>
     <span class="phaserules">${G.side === 'L' ? t('phaseDayRules') : t('phaseNightRules')}</span>
-    <span class="row"><span class="chip"></span><span>${G.roulette !== null ? t('colorPending') : colorName(G.color)}</span></span>
+    <span class="row"><span class="chip">${suitSVG(G.color)}</span><span>${G.roulette !== null ? t('colorPending') : colorName(G.color)}</span></span>
     <span class="row dirtxt">${G.dir === 1 ? t('cw') : t('ccw')}</span>
     ${G.rules.chaos ? (G.side === 'L' || G.inflate || G.lock ? `<span class="chaosline ${G.inflate || G.lock || G.chaosIn <= 2 ? 'warn' : ''}">${G.inflate ? t('inflated', G.inflate) : G.lock ? t('locked', G.lock) : t('chaosIn', G.chaosIn)}</span>` : `<span class="chaosline dim">${t('slotsClosed')}</span>`) : ''}
     ${G.potatoState && G.side === 'D' ? `<span class="chaosline ${G.potatoState === 2 ? 'warn potato hot' : 'potato'}">${t(G.potatoState === 2 ? 'potatoHot' : 'potatoOn')}</span>` : ''}
+    ${lcLeft !== null && lcLeft <= 30 && G.winner === null ? `<span class="chaosline warn lastcall">${lcLeft ? t('lastCallIn', lcLeft) : t('lastCallNow')}</span>` : ''}
     ${G.maze > 0 ? `<span class="chaosline warn">${t('mazeLeft', G.maze)}</span>` : ''}
     ${G.multNext > 1 ? `<span class="chaosline warn multchip">${t('multNext', G.multNext)}</span>` : ''}
     ${G.pending > 0 ? `<span class="label" style="margin-top:8px">${t('stack')}</span><span class="stack${G.pending >= 8 ? ' burning' : ''}" style="--heat:${Math.min(1, G.pending / 20).toFixed(2)}">+${G.pending}</span>` : ''}`;
@@ -3651,7 +3428,7 @@ function render() {
     const tr = $('table').getBoundingClientRect(), hr = $('bottom').getBoundingClientRect(), orr = $('opps').getBoundingClientRect();
     const top = orr.top + orr.height * 0.55, bottom = hr.bottom - 6;
     JUICE.setTable({ x: tr.left + tr.width / 2, y: (top + bottom) / 2, w: tr.width / 2 - 8, h: (bottom - top) / 2 });
-  } JUICE.setHeat(G.pending / 22); JUICE.fireLevel(G.pending, G.multNext || 1);
+  } JUICE.setHeat(Math.max(G.pending / 22, lcLeft !== null && lcLeft <= 30 ? (30 - lcLeft) / 45 : 0)); JUICE.fireLevel(G.pending, G.multNext || 1);
   // banner
   const ban = $('banner');
   let txt, you = false;
@@ -3756,7 +3533,7 @@ function youify(m) {
 }
 
 // ================= EVENTS → FEEDBACK =================
-const TOAST_PRI = { overload: 10, gamble: 10, finisher: 9, revenge: 9, potato: 9, snitch: 8, deal: 9, maze: 9, brim: 8, monstro: 8, foot: 8, tower: 8, d6: 7, glitch: 7, pill: 7, bomb: 8, wheel: 7, gift: 6, echo: 6, interest: 6, sacrifice: 6, fire: 8, mult: 7, devil: 7, glass: 6, lucky: 5, loan: 5, multi: 5, win: 9, flip: 8, ko: 7, bhole: 7, took: 6, mirror: 6, shield: 6, duel: 5, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, jump: 3, reverse: 2 };
+const TOAST_PRI = { lastcall: 10, gamble: 10, finisher: 9, revenge: 9, potato: 9, snitch: 8, deal: 9, maze: 9, brim: 8, monstro: 8, foot: 8, tower: 8, d6: 7, glitch: 7, pill: 7, bomb: 8, wheel: 7, gift: 6, echo: 6, interest: 6, sacrifice: 6, fire: 8, mult: 7, devil: 7, glass: 6, lucky: 5, loan: 5, multi: 5, win: 9, flip: 8, ko: 7, bhole: 7, took: 6, mirror: 6, shield: 6, duel: 5, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, jump: 3, reverse: 2 };
 function seatRect(pi) { return pi === ME ? rectOf($('hand')) : rectOf($('opp' + pi)); }
 function nm(pi) { return pi === ME ? (LANG === 'ru' ? 'Вы' : 'You') : (G.players[pi] ? G.players[pi].name : ''); }
 function processEvents() {
@@ -3826,7 +3603,7 @@ function processEvents() {
       case 'multi': bump(TOAST_PRI.multi, t('tMulti', e.k)); break;
       case 'combo': showCombo(e); break;
       case 'gamble': SFX.play('spin'); setTimeout(() => { SFX.play(e.ok ? 'click2' : 'bang'); if (!e.ok) { JUICE.shake(8); JUICE.glitch(); JUICE.ignite(1); } }, 380); setTimeout(() => bump(TOAST_PRI.gamble, e.ok ? t('tClick') : t('tBang', e.k)), 380); break;
-      case 'overload': SFX.play('devil'); JUICE.shake(9); JUICE.glitch(); { const r = seatRect(e.pi) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 120, ['#fff', '#ffd23f', '#ff7814', '#ff2d55', '#222'], 2.4); } bump(TOAST_PRI.overload, t('tOverload')); break;
+      case 'lastcall': SFX.play('lastcall'); JUICE.shake(4); JUICE.glitch(); bump(TOAST_PRI.lastcall, t('tLastCall')); break;
       case 'finisher': SFX.play('bad'); JUICE.shake(4); bump(TOAST_PRI.finisher, t('tFinisher', e.k)); break;
       case 'revengeOn': SFX.play('stack', 3); floatText(e.pi, t('tagRevenge')); break;
       case 'revenge': SFX.play('mult', 3); JUICE.glitch(); JUICE.ignite(1); bump(TOAST_PRI.revenge, t('tRevenge', e.k)); break;
@@ -3867,7 +3644,7 @@ function closeModal() { $('modal').classList.add('hidden'); }
 const ON_COLOR = { y: 'var(--ink)', t: 'var(--ink)', o: 'var(--ink)' };
 function pickColor(title, sub, side) {
   return new Promise(res => {
-    openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p><div class="colors">${SIDE_COLORS[side].map(c => `<button data-c="${c}" style="background:${CVAR[c]};color:${ON_COLOR[c] || '#fff'}">${colorName(c)}</button>`).join('')}</div>`);
+    openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p><div class="colors">${SIDE_COLORS[side].map(c => `<button data-c="${c}" style="background:${CVAR[c]};color:${ON_COLOR[c] || '#fff'}">${suitSVG(c)}${colorName(c)}</button>`).join('')}</div>`);
     $('modalBody').querySelectorAll('[data-c]').forEach(b => b.onclick = () => { SFX.play('click'); closeModal(); res(b.dataset.c); });
   });
 }

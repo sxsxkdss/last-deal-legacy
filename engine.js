@@ -38,6 +38,18 @@ function comboOf(faces) {
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'bomb', 'd6', 'pill', 'foot', 'maze', 'deal', 'monstro'];
+const LAST_CALL = 250;
+// Lobby presets. Every rule key the server knows, every house card.
+const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'revenge', 'snitch', 'finisher', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'chaos'];
+const PRESETS = (() => {
+  const on = (keys, all) => Object.fromEntries(all.map(k => [k, keys.includes(k)]));
+  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'seven', 'zero', 'jumpIn', 'uno', 'lastCall'];
+  return {
+    classic: { rules: on(base, RULE_ALL), cards: on([], EXTRA_CARDS) },
+    den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'revenge', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['monstro', 'deal', 'interest', 'wd15'].includes(k)), EXTRA_CARDS) },
+    mayhem: { rules: on(RULE_ALL, RULE_ALL), cards: on(EXTRA_CARDS, EXTRA_CARDS) }
+  };
+})();
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
@@ -72,7 +84,7 @@ class Game {
     rules = Object.assign({}, rules);
     if ('sevenZero' in rules && !('seven' in rules)) { rules.seven = rules.zero = rules.sevenZero; }
     delete rules.sevenZero;
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, overload: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -144,17 +156,6 @@ class Game {
     return got;
   }
   mercyCheck() {
-    if (!this.rules.mercy && this.rules.overload !== false) for (const p of this.players) {
-      if (!p.out && p.hand.length >= 100) {
-        const pi = this.players.indexOf(p), others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
-        if (!others.length) break;
-        for (let i = p.hand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p.hand[i], p.hand[j]] = [p.hand[j], p.hand[i]]; }
-        const burnt = p.hand.splice(50).length;
-        for (const i of others) this.players[i].oweN = (this.players[i].oweN || 0) + 2;
-        this.addLog(`OVERLOAD: ${p.name}'s hand explodes. ${burnt} cards burn, everyone else catches 2.`, 'bad', 'overload', { n: p.name, k: burnt });
-        this.ev('overload', { pi, k: burnt });
-      }
-    }
     if (this.rules.mercy) for (const p of this.players) {
       if (!p.out && p.hand.length >= this.rules.mercy) {
         p.out = true; p.elim = true;
@@ -169,8 +170,24 @@ class Game {
       this.ev('win', { pi: this.winner });
     }
     if (this.winner === null && this.players[this.turn].out) this.turn = this.nextIdx(this.turn, 1);
+    this.lastCallCheck();
     if (this.roulette !== null && this.players[this.roulette].out) { this.roulette = null; }
     if (this.debt && this.players[this.debt.pi].out) this.debt = null;
+  }
+  // Last Call: after LAST_CALL handovers the house closes. Fewest cards wins; a tie goes to whoever sits soonest in turn order.
+  lastCallLeft() { return this.rules.lastCall === false ? null : Math.max(0, LAST_CALL - (this.turnNo || 0)); }
+  lastCallCheck() {
+    if (this.winner !== null || this.rules.lastCall === false || (this.turnNo || 0) < LAST_CALL) return;
+    if (this.pending > 0 || this.debt || this.roulette !== null) return; // let the stack land first
+    let best = -1, i = this.turn;
+    for (let k = 0; k < this.players.length; k++, i = (i + this.dir + this.players.length) % this.players.length) {
+      const p = this.players[i]; if (p.out) continue;
+      if (best < 0 || p.hand.length + (p.oweN || 0) < this.players[best].hand.length + (this.players[best].oweN || 0)) best = i;
+    }
+    if (best < 0) return;
+    this.winner = best;
+    this.addLog(`Last call. The house closes the table: ${this.players[best].name} holds the fewest cards and wins.`, 'win', 'lastCall', { n: this.players[best].name, k: this.players[best].hand.length });
+    this.ev('lastcall', { pi: best }); this.ev('win', { pi: best });
   }
   play(pi, cardId, opts = {}) {
     const p = this.players[pi];
@@ -675,7 +692,7 @@ class Game {
     this.addLog(`${this.players[pi].name} passes.`, '', 'pass', { n: this.players[pi].name });
     this.drewBy = -1; this.drawRun = 0; this.seq++;
     this.turn = this.nextIdx(pi, 1);
-    this.checkFlipBack();
+    this.checkFlipBack(); this.lastCallCheck();
     return true;
   }
   resolveRoulette(color) {
@@ -955,7 +972,7 @@ function serialize(g, viewer = -1, logN = 8) {
     p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
       (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0]),
-    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
     ev: g.events.slice(-12), es: g.evSeq
@@ -973,7 +990,7 @@ function deserialize(st) {
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
       out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0 };
   });
-  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
+  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
   g.roulette = st.o < 0 ? null : st.o; g.drewBy = st.w; g.winner = st.x < 0 ? null : st.x; g.seq = st.s;
@@ -982,4 +999,10 @@ function deserialize(st) {
   return g;
 }
 
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf };
+// every handover of the turn ticks the Last Call clock
+Object.defineProperty(Game.prototype, 'turn', {
+  get() { return this._turn; },
+  set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
+  configurable: true
+});
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL };
