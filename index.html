@@ -337,15 +337,10 @@ body:not(.lite) #hand .card:not(:hover):not(.new):not(.flipin):not(.nope):not(.l
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 .card::after { content: ''; position: absolute; inset: calc(var(--cw) * .045); z-index: 4; pointer-events: none; border: 1px solid rgba(216, 206, 180, .28); border-radius: calc(var(--cw) * .03); mix-blend-mode: screen;
   background:
-    /* ash: grey flakes left sitting in the burn */
-    radial-gradient(circle at calc(var(--bx, 80%) - 1.5%) calc(var(--by, 85%) - 1%), rgba(175, 170, 160, calc(var(--bo, 0) * .85)) 0 2.4%, transparent 3.2%),
-    radial-gradient(circle at calc(var(--bx, 80%) + 2%) calc(var(--by, 85%) + .8%), rgba(140, 136, 128, calc(var(--bo, 0) * .8)) 0 1.7%, transparent 2.4%),
-    radial-gradient(circle at calc(var(--bx, 80%) + var(--bj, 1%)) calc(var(--by, 85%) - 2%), rgba(195, 190, 180, calc(var(--bo, 0) * .75)) 0 1.2%, transparent 1.8%),
-    radial-gradient(circle at calc(var(--bx, 80%) - .5%) calc(var(--by, 85%) + 2.4%), rgba(120, 116, 110, calc(var(--bo, 0) * .8)) 0 1.4%, transparent 2%),
     radial-gradient(ellipse calc(var(--ws, 20%) * 1.05) calc(var(--ws, 20%) * var(--wh, 1) * 1.05) at calc(var(--wx, 40%) - 0%) calc(var(--wy, 40%) + 0%), rgba(225, 215, 190, calc(var(--wo, 0) * .16)), rgba(225, 215, 190, calc(var(--wo, 0) * .07)) 70%, transparent 86%),
     radial-gradient(ellipse calc(var(--vs, 12%) * 1.05) calc(var(--vs, 12%) * .84) at var(--vx, 60%) var(--vy, 60%), rgba(225, 215, 190, calc(var(--vo, 0) * .14)), transparent 82%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='180' stroke='%23e8dcc0' stroke-opacity='.3' stroke-width='.5' fill='none'><path d='M10 20 60 32M80 10 112 70M20 120 50 170M70 140 116 110M5 80 30 76M90 160 100 120M40 60 44 100M15 150l30-8M100 30l8 40M55 90l20-6'/></svg>") var(--sx2, 50%) var(--sy2, 50%) / var(--ss, 120%) auto;
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  background-repeat: no-repeat, no-repeat, repeat;
   opacity: calc(.3 + var(--so, .1)); }
 /* the face: stencil marks straight on the colour */
 .card .oval { position: absolute; left: 50%; top: 50%; width: 86%; height: 70%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
@@ -709,6 +704,16 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 .card.peek { outline: none; border-color: #ff5a4d; border-style: dashed; }
 .pick .card.lead, .draftpick .card.lead { outline: none; border-color: var(--stamp); }
 .card.uniq { border-color: #a8913f; }
+
+/* ash sitting in a burn: its own layer, above the grime, so it stays grey */
+.card .ash { position: absolute; z-index: 6; pointer-events: none; width: calc(var(--bs, 12%) * 1.1); aspect-ratio: 1; left: var(--bx, 80%); top: var(--by, 85%); transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 38% 42%, rgba(178, 172, 162, .95) 0 11%, transparent 15%),
+    radial-gradient(circle at 62% 55%, rgba(132, 128, 120, .9) 0 8%, transparent 12%),
+    radial-gradient(circle at 52% 30%, rgba(205, 200, 190, .85) 0 5%, transparent 8%),
+    radial-gradient(circle at 44% 66%, rgba(110, 106, 100, .9) 0 6%, transparent 9%),
+    radial-gradient(circle at 30% 58%, rgba(160, 155, 146, .8) 0 4%, transparent 6.5%),
+    radial-gradient(circle at 68% 36%, rgba(150, 146, 138, .75) 0 3.5%, transparent 6%); }
 
 </style>
 </head>
@@ -4129,7 +4134,7 @@ const WEAR = (() => {
       '--sx2': pc(r()), '--sy2': pc(r()), '--ss': (90 + r() * 120).toFixed(0) + '%', '--so': (r() * 0.25).toFixed(2),
       '--mx': (r() * 90).toFixed(0) + 'px', '--my': (r() * 90).toFixed(0) + 'px', '--ms': (60 + r() * 80).toFixed(0) + 'px'
     };
-    return { cls: 'tear' + Math.floor(r() * N), style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
+    return { cls: 'tear' + Math.floor(r() * N), burn: v['--bo'] === '1', style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
   };
 })();
 function faceHTML(f, side, cls = '', id = '') {
@@ -4144,7 +4149,7 @@ function faceHTML(f, side, cls = '', id = '') {
   const uniq = f.v === 'swind' || f.v === 'sacr' || /\buniq\b/.test(cls) ? ' uniq' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];
   const chains = /\blocked\b/.test(cls) ? `<i class="chainov"></i>${chainN ? `<b class="chainn">${chainN}</b>` : ''}` : '';
-  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
+  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${W.burn ? '<i class="ash"></i>' : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
 function sortedHand(h) {
