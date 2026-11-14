@@ -2576,10 +2576,13 @@ const ASSETS = (() => {
   // fades in from the top while the current one fades out, so there is no hard cut or gap at the seam.
   // Turning music off/on fades too. Played through Web Audio so the room can listen to it (see JUICE).
   const XFADE = 4, FADE_IN = 2.5, FADE_TOGGLE = 1.2;
-  let an = null, fbuf = null, bus = null, decks = [], cur = 0, playing = false;
+  // night in the back room: the tape runs slow (pitch drops with it) and the sound gets muffled behind the door
+  const NIGHT_RATE = 0.84, NIGHT_LP = 2600, DAY_LP = 20000;
+  let an = null, fbuf = null, bus = null, lp = null, decks = [], cur = 0, playing = false, rate = 1;
   const musicVol = () => Math.min(1, S.ambVol ?? cfg.musicVolume ?? 0.35);
   function makeDeck(url) {
     const el = new Audio(url); el.preload = 'auto'; el.crossOrigin = 'anonymous';
+    el.preservesPitch = el.mozPreservesPitch = el.webkitPreservesPitch = false; el.playbackRate = rate;
     const g = SFX.ctx.createGain(); g.gain.value = 0;
     SFX.ctx.createMediaElementSource(el).connect(g); g.connect(bus);
     return { el, g };
@@ -2604,7 +2607,10 @@ const ASSETS = (() => {
         const url = 'assets/sounds/' + encodeURIComponent(sounds.music[0]);
         bus = SFX.ctx.createGain(); bus.gain.value = musicVol();
         an = SFX.ctx.createAnalyser(); an.fftSize = 1024; an.smoothingTimeConstant = 0.6; fbuf = new Uint8Array(an.frequencyBinCount);
-        bus.connect(an); an.connect(SFX.ctx.destination);
+        lp = SFX.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.5;
+        lp.frequency.value = document.body.classList.contains('dark') ? NIGHT_LP : DAY_LP;
+        rate = document.body.classList.contains('dark') ? NIGHT_RATE : 1;
+        bus.connect(lp); lp.connect(an); an.connect(SFX.ctx.destination);
         decks = [makeDeck(url), makeDeck(url)];
         cur = 0; startDeck(decks[0], FADE_IN); playing = true;
       } catch (e) { decks = []; an = null; }
@@ -2613,6 +2619,12 @@ const ASSETS = (() => {
     setInterval(() => {
       if (!decks.length) { if (want()) go(); return; }
       ramp(bus.gain, musicVol(), 0.3);
+      // ease the tape speed and the muffling toward day or night over a couple of seconds
+      const night = document.body.classList.contains('dark');
+      const tr = night ? NIGHT_RATE : 1;
+      if (Math.abs(rate - tr) > 0.002) { rate += (tr - rate) * 0.06; if (Math.abs(rate - tr) < 0.004) rate = tr; decks.forEach(d => { d.el.playbackRate = rate; }); }
+      const tf = night ? NIGHT_LP : DAY_LP;
+      if (lp && Math.abs(lp.frequency.value - tf) > 1) lp.frequency.setTargetAtTime(tf, SFX.ctx.currentTime, 0.8);
       const on = want();
       if (!on && playing) { playing = false; ramp(bus.gain, 0, FADE_TOGGLE); setTimeout(() => { if (!playing) decks.forEach(d => d.el.pause()); }, FADE_TOGGLE * 1000 + 50); return; }
       if (on && !playing) { playing = true; decks.forEach(d => { if (d.started && d.el.currentTime > 0 && !d.el.ended) d.el.play().catch(() => {}); }); bus.gain.value = 0; ramp(bus.gain, musicVol(), FADE_TOGGLE); return; }
