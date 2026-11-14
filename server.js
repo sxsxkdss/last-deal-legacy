@@ -218,7 +218,8 @@ function startGame(room) {
     room.M = { names, limit: room.limit, round: 0, phase: 'play', debt: Array(n).fill(0), chips: Array(n).fill(0), tokens: names.map(() => []),
       col: Array(n).fill(false), colUsed: Array(n).fill(false), setup: Array(n).fill(0), offers: names.map(() => []), done: Array(n).fill(false),
       pass: names.map(() => null), last: null, champ: null, deadline: 0,
-      ds: names.map(() => ({ angel: 0, demon: 0, deal: null, dealLight: false, dealDark: false, fallen: false, markT: null })) };
+      ds: names.map(() => ({ angel: 0, demon: 0, deal: null, dealLight: false, dealDark: false, fallen: false, markT: null })),
+      carry: names.map(() => []), hist: names.map(() => [0]) };
     newDeal(room);
     return null;
   }
@@ -235,7 +236,8 @@ function matchFor(room, seat) {
   const M = room.M; if (!M) return null;
   return { round: M.round, limit: M.limit, phase: M.phase, left: Math.max(0, M.deadline - Date.now()), debt: M.debt, chips: M.chips, tokens: M.tokens,
     col: M.col, colUsed: seat !== null ? M.colUsed[seat] : true, setup: M.setup, offers: seat !== null ? M.offers[seat] : [], done: M.done,
-    passed: seat !== null && !!M.pass[seat], last: M.last, champ: M.champ, limits: M.ds.map(d => d.limitAdj || M.limit) };
+    passed: seat !== null && !!M.pass[seat], last: M.last, champ: M.champ, limits: M.ds.map(d => d.limitAdj || M.limit), hist: M.hist,
+    hope: seat !== null && M.ds[seat] ? [M.ds[seat].angel || 0, M.ds[seat].demon || 0, !!M.ds[seat].fallen || !!M.ds[seat].dealLight, !!M.ds[seat].dealDark] : null };
 }
 function phaseTimer(room, ms, fn) {
   clearTimeout(room.phaseTimer);
@@ -252,6 +254,8 @@ function newDeal(room) {
     const p = G.players[i];
     if (M.col[i]) { p.hand = []; p.out = true; p.elim = true; p.collector = true; continue; }
     for (let k = 0; k < M.setup[i]; k++) p.hand.push(G.newCard());
+    for (const v of M.carry[i] || []) { const c = G.newCard(); c.L = { c: 'w', v }; c.D = { c: 'w', v }; c.uniq = true; p.hand.push(c); }
+    M.carry[i] = [];
   }
   M.setup = Array(n).fill(0);
   if (G.players[G.turn].out) G.turn = G.nextIdx(G.turn, 1);
@@ -291,9 +295,10 @@ function settle(room) {
   for (const i of live) {
     const p = G.players[i];
     turnD[i] = Math.max(0, (p.debt || 0) - M.debt[i]);
-    let vals = p.hand.map(c => debtValue(G.f(c)));
+    M.carry[i] = p.hand.filter(c => c.uniq).map(c => G.f(c).v);
+    let vals = p.hand.filter(c => !c.uniq).map(c => debtValue(G.f(c)));
     if (p.deal === 'grace') vals = vals.sort((a, b) => b - a).slice(3);
-    paid[i] = i === G.winner || p.broke ? 0 : vals.reduce((a, b) => a + b, 0);
+    paid[i] = i === G.winner ? 0 : vals.reduce((a, b) => a + b, 0);
     if (p.deal === 'rosary') paid[i] = Math.round(paid[i] * 0.85);
   }
   const total = paid.reduce((a, b) => a + b, 0);
@@ -303,9 +308,10 @@ function settle(room) {
     if (i === G.winner) chips += 5 + Math.round(total * 0.1);
     M.chips[i] += chips; M.debt[i] = (p.debt || 0) + paid[i];
     M.ds[i] = { angel: p.angel, demon: p.demon, deal: p.deal, dealLight: p.dealLight, dealDark: p.dealDark, fallen: p.fallen, markT: p.markT, limitAdj: p.deal === 'bail' ? p.limit : 0 };
-    rows.push({ i, cards: p.hand.length, paid: paid[i], turn: turnD[i], chips, broke: !!p.broke });
+    rows.push({ i, cards: p.hand.length, paid: paid[i], turn: turnD[i], chips });
+    M.hist[i].push(M.debt[i]);
   }
-  const out = live.filter(i => G.players[i].broke || M.debt[i] > (M.ds[i].limitAdj || M.limit));
+  const out = live.filter(i => M.debt[i] > (M.ds[i].limitAdj || M.limit));
   for (const i of out) M.col[i] = true;
   M.last = { round: M.round, winner: G.winner, rows, out };
   afterChange(room, () => openShop(room));
@@ -340,6 +346,14 @@ function buy(M, i, a) {
   if (a.k === 'pay') {
     if (M.chips[i] < PRICES.pay || M.debt[i] <= 0) return false;
     M.chips[i] -= PRICES.pay; M.debt[i] = Math.max(0, M.debt[i] - PRICES.payAmount); return true;
+  }
+  if (a.k === 'candle') {
+    const d = M.ds[i]; if (M.chips[i] < PRICES.candle || d.fallen || d.dealLight) return false;
+    M.chips[i] -= PRICES.candle; d.angel = Math.min(100, (d.angel || 0) + 5); return true;
+  }
+  if (a.k === 'blood') {
+    const d = M.ds[i]; if (M.chips[i] < PRICES.blood || d.dealDark) return false;
+    M.chips[i] -= PRICES.blood; d.demon = (d.demon || 0) + 10; return true;
   }
   if (a.k === 'setup' || a.k === 'interest') {
     const t = a.target;

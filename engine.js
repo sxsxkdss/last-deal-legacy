@@ -52,11 +52,11 @@ function debtValue(f) {
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
 const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
 // per-turn debt: at the start of your turn you pay for every card past the free ones
-const DEBT_TURN = { free: 7, rate: 1 };
+const DEBT_TURN = { free: 10, rate: 1 };
 const ANGEL_STEP = 2.5, DEMON_BASE = 20, DEMON_STEP = 3, DEMON_MIN = 10;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
-const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25 };
+const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25, candle: 10, blood: 10 };
 const DEBT_LIMITS = [250, 500, 1000];
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
@@ -275,7 +275,7 @@ class Game {
   // per-turn debt for pi's hand right now
   turnDebt(pi) {
     const p = this.players[pi];
-    const counted = p.deal === 'clean' ? p.hand.filter(c => { const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length : p.hand.length;
+    const counted = p.hand.filter(c => { if (c.uniq) return false; if (p.deal !== 'clean') return true; const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length;
     let d = Math.max(0, counted - DEBT_TURN.free) * DEBT_TURN.rate;
     if (this.players.some((q, i) => i !== pi && !q.out && q.deal === 'usury')) d *= 1.5;
     if (p.deal === 'blood') d *= 1.25;
@@ -301,13 +301,7 @@ class Game {
     if (p.limit > 0) {
       const d = this.turnDebt(pi);
       if (d) this.payDebt(pi, d, 'turn');
-      if (p.debt > p.limit) {
-        p.broke = true;
-        this.addLog(`${p.name} is over the limit (${p.debt}/${p.limit}). The house takes the seat.`, 'bad', 'broke', { n: p.name, d: p.debt, l: p.limit });
-        this.ev('broke', { pi });
-        this.removePlayer(pi, 'broke');
-        return true;
-      }
+      if (p.debt > p.limit && !p.overWarned) { p.overWarned = true; this.ev('overLimit', { pi, d: p.debt, l: p.limit }); }
     }
     // the demon's chains on an opponent's hand, for this turn
     if (this.players.some((q, i) => i !== pi && !q.out && q.deal === 'chains') && p.hand.length > 1) {

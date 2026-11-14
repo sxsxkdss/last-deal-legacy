@@ -649,6 +649,47 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 .card.uniq.c-w .mid .ico { width: calc(var(--cw) * .56); height: calc(var(--cw) * .56); }
 .card.uniq .cor, .card.uniq .suit { color: #f2d98a; }
 
+/* ---------- deal glyphs: bigger, the cut-outs take the colour of what they sit on ---------- */
+.dico { width: 16px; height: 16px; }
+.dealb.light { --cut: #efe6cc; } .dealb.dark { --cut: #2a0d0a; }
+.chance .dico { width: 15px; height: 15px; --cut: rgba(0, 0, 0, .8); }
+.contract .cHead .dico { width: 44px; height: 44px; }
+.contract.light { --cut: #eee5cf; } .contract.dark { --cut: #1b0b07; }
+.light .clause { --cut: #fbf5e3; } .dark .clause { --cut: #120705; }
+.clause .dico { width: 40px; height: 40px; }
+.btn.ab { --cut: #2a0d0a; }
+.btn.ab .dico { width: 20px; height: 20px; }
+.light .clause .dico { color: #8a6a18; } .dark .clause .dico { color: #d23a2c; }
+/* signing and tearing */
+.clause.signed { transform: scale(1.03) rotate(-1deg); }
+.clause .sig { position: absolute; right: 10px; bottom: 10px; padding: 0 6px; font: 700 18px/1.2 var(--f-stamp); font-style: normal; letter-spacing: .08em; border: 3px solid currentColor; rotate: -12deg; animation: stamp .3s cubic-bezier(.2, 1.8, .4, 1); }
+.light .clause .sig { color: #a8862a; } .dark .clause .sig { color: #ff3b2b; }
+.contract.burning { animation: burnup .9s ease-in forwards; }
+.contract.burning::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 70% 90%, rgba(255, 150, 40, .9), rgba(255, 60, 0, .5) 20%, transparent 45%); mix-blend-mode: screen; animation: flare .9s ease-in forwards; }
+@keyframes burnup { 0% { filter: none; } 40% { filter: brightness(1.3) sepia(.6); } 100% { filter: brightness(.2) sepia(1); opacity: 0; transform: scale(.94) rotate(2deg);
+  -webkit-mask-image: radial-gradient(circle at 70% 90%, transparent 70%, #000 72%); mask-image: radial-gradient(circle at 70% 90%, transparent 70%, #000 72%); } }
+@keyframes flare { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 1; transform: scale(2.4); } }
+/* visitors at the table */
+#visit { position: fixed; inset: 0; z-index: 89; pointer-events: none; opacity: 0; }
+#visit.angel { background: radial-gradient(ellipse 60% 70% at 50% -10%, rgba(255, 236, 190, .55), rgba(255, 220, 150, .18) 45%, transparent 70%); animation: visitA 2.6s ease-out forwards; }
+#visit.demon { background: radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(120, 0, 0, .55) 75%, rgba(20, 0, 0, .9) 100%); animation: visitD 2.6s ease-out forwards; }
+@keyframes visitA { 0% { opacity: 0; } 18% { opacity: 1; } 30% { opacity: .75; } 42% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes visitD { 0% { opacity: 0; } 12% { opacity: 1; } 20% { opacity: .4; } 28% { opacity: 1; } 70% { opacity: .9; } 100% { opacity: 0; } }
+/* shop goods and the debt line */
+.goods { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+.btn.good { height: auto; min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 8px 10px; text-align: left; white-space: normal; font-size: 12px; line-height: 15px; }
+.btn.good .dico { width: 26px; height: 26px; }
+.btn.good i { margin-left: auto; font: 700 14px var(--f-stamp); font-style: normal; }
+.btn.good.light { background-color: #efe6cc; color: #3d2f12; --cut: #efe6cc; }
+.btn.good.dark { background-color: #2a0d0a; color: #ff8a73; --cut: #2a0d0a; }
+.spark { width: 84px; height: 22px; margin-right: 8px; vertical-align: middle; overflow: visible; }
+.spark polyline { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.spark circle { fill: var(--ink); }
+.spark .lim { stroke: var(--stamp); stroke-width: 1; stroke-dasharray: 3 2; }
+@media (max-width: 520px) { .goods { grid-template-columns: 1fr; } .spark { width: 60px; } }
+.settle .li > span:first-child { display: flex; align-items: center; gap: 4px; flex: none; }
+.settle .li > span.mono { text-align: right; }
+
 </style>
 </head>
 <body>
@@ -799,11 +840,11 @@ function debtValue(f) {
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
 const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
 // per-turn debt: at the start of your turn you pay for every card past the free ones
-const DEBT_TURN = { free: 7, rate: 1 };
+const DEBT_TURN = { free: 10, rate: 1 };
 const ANGEL_STEP = 2.5, DEMON_BASE = 20, DEMON_STEP = 3, DEMON_MIN = 10;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
-const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25 };
+const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25, candle: 10, blood: 10 };
 const DEBT_LIMITS = [250, 500, 1000];
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
@@ -1022,7 +1063,7 @@ class Game {
   // per-turn debt for pi's hand right now
   turnDebt(pi) {
     const p = this.players[pi];
-    const counted = p.deal === 'clean' ? p.hand.filter(c => { const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length : p.hand.length;
+    const counted = p.hand.filter(c => { if (c.uniq) return false; if (p.deal !== 'clean') return true; const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length;
     let d = Math.max(0, counted - DEBT_TURN.free) * DEBT_TURN.rate;
     if (this.players.some((q, i) => i !== pi && !q.out && q.deal === 'usury')) d *= 1.5;
     if (p.deal === 'blood') d *= 1.25;
@@ -1048,13 +1089,7 @@ class Game {
     if (p.limit > 0) {
       const d = this.turnDebt(pi);
       if (d) this.payDebt(pi, d, 'turn');
-      if (p.debt > p.limit) {
-        p.broke = true;
-        this.addLog(`${p.name} is over the limit (${p.debt}/${p.limit}). The house takes the seat.`, 'bad', 'broke', { n: p.name, d: p.debt, l: p.limit });
-        this.ev('broke', { pi });
-        this.removePlayer(pi, 'broke');
-        return true;
-      }
+      if (p.debt > p.limit && !p.overWarned) { p.overWarned = true; this.ev('overLimit', { pi, d: p.debt, l: p.limit }); }
     }
     // the demon's chains on an opponent's hand, for this turn
     if (this.players.some((q, i) => i !== pi && !q.out && q.deal === 'chains') && p.hand.length > 1) {
@@ -2963,6 +2998,8 @@ RULES_HTML.ru = RULES_HTML.ru.replace('<h3>Матч на долг</h3>', `<h3>Д
     <li><b>Атака</b> — любая карта, из-за которой кто-то другой берёт карты.</li>
     <li>Одна сделка одновременно, за матч — одна светлая и одна тёмная. Подписали тёмную при активной светлой — светлая сгорает, путь к ангелу закрывается навсегда, а в руке остаётся <b>Жертва</b>: джокер, после которого выбранный игрок берёт 10 карт, скованных на 2 его хода. Защиты нет.</li>
     <li>Скованные карты нельзя разыграть или сбросить, но долг за них идёт.</li></ul><h3>Матч на долг</h3>`);
+Object.assign(STR.en, { shopVisitors: 'Call on a visitor', buyCandle: p => `Light a candle: angel +5% (${p}¢)`, buyBlood: p => `Spill some blood: demon +10% (${p}¢)`, signed: 'SIGNED', blessed: 'BLESSED', tOverLimit: 'OVER THE LIMIT' });
+Object.assign(STR.ru, { shopVisitors: 'Позвать гостя', buyCandle: p => `Зажечь свечу: ангел +5% (${p}¢)`, buyBlood: p => `Пролить кровь: демон +10% (${p}¢)`, signed: 'ПОДПИСАНО', blessed: 'БЛАГОСЛОВЛЕНО', tOverLimit: 'ЗА ЛИМИТОМ' });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -3334,7 +3371,15 @@ const JUICE = (() => {
     const el = document.querySelector('#hud .stack');
     if (el) { setEmber(el, 1); sparks(el, 3 + Math.round(power * 3)); setTimeout(() => setEmber(el, EMB.stack), 900); }
   }
-  return { startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame, setTable };
+  // ---- a visitor at the table: warm light pours in for the angel, the room goes red and close for the demon ----
+  function visit(kind) {
+    let el = document.getElementById('visit');
+    if (!el) { el = document.createElement('div'); el.id = 'visit'; document.body.appendChild(el); }
+    el.className = ''; void el.offsetWidth; el.className = kind === 'dark' ? 'demon' : 'angel';
+    if (kind === 'dark') { shake(5); glitch(); }
+    if (full()) burst(innerWidth / 2, innerHeight * 0.35, kind === 'dark' ? 40 : 24, null, kind === 'dark' ? 2 : 0.6);
+  }
+  return { visit, startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame, setTable };
 })();
 
 // ===== CLIENT: talks to the game server; the server runs every match =====
@@ -3965,19 +4010,32 @@ const ICON = (() => {
 })();
 // deals: small stencil glyphs, one per deal
 const DEAL_ICON = (() => {
-  const s = inner => `<svg class="dico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true">${inner}</svg>`;
+  // 32×32 stencil glyphs: a solid body (fill) with cut-out detail (stroke in the paper colour), drawn for this game
+  const s = inner => `<svg class="dico" viewBox="0 0 32 32" aria-hidden="true"><g fill="currentColor" stroke="none">${inner}</g></svg>`;
+  const cut = d => `<path d="${d}" fill="none" stroke="var(--cut, #000)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>`;
   return {
-    angel: s('<circle cx="12" cy="5" r="2.6"/><path d="M12 9v12M6 12l6-3 6 3M8 21h8"/>'), demon: s('<path d="M12 3 4.5 20h15z"/><path d="M12 9v6M9 13h6"/>'),
-    rosary: s('<circle cx="12" cy="9" r="5.5"/><path d="M12 14.5v7M9 18h6"/>'), candle: s('<path d="M9 10h6v11H9zM12 3.5c2 2.2 2 4 0 5-2-1-2-2.8 0-5z"/>'),
-    wind: s('<path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h6"/>'), halo: s('<ellipse cx="12" cy="6" rx="7.5" ry="2.6"/><path d="M8 21v-6a4 4 0 0 1 8 0v6"/>'),
-    confess: s('<path d="M4 3h16v18H4zM12 3v18M4 9h16M4 15h16"/>'), alms: s('<path d="M3 12h18a9 6 0 0 1-18 0zM12 3v5M9 5.5h6"/>'),
-    clean: s('<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/>'), grace: s('<path d="M20 4C9 4 5 11 4 20M20 4c0 9-6 13-14 13M9 13l5-1"/>'),
-    guardian: s('<path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/><path d="M9 12l2.5 2.5L15.5 10"/>'), penance: s('<path d="M7 7a5 5 0 0 1 10 0v4M5 11h14v10H5z"/><path d="M12 15v2"/>'),
-    double: s('<path d="M5 20 15 4M9 20 19 4M4 15h6M8 15h6"/>'), usury: s('<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/>'),
-    chains: s('<rect x="2.5" y="8" width="9" height="6" rx="3"/><rect x="12.5" y="10" width="9" height="6" rx="3"/>'), blood: s('<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/><path d="M9 15h6"/>'),
-    bail: s('<circle cx="8" cy="12" r="4.5"/><path d="M12.5 12H21M18 12v4M21 12v3"/>'), devour: s('<path d="M3 8l3 4 3-4 3 4 3-4 3 4 3-4M3 16l3-3 3 3 3-3 3 3 3-3 3 3"/>'),
-    mark: s('<circle cx="12" cy="12" r="7"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/>'), drum: s('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.5" r="1.8"/><circle cx="16" cy="13.5" r="1.8"/><circle cx="8" cy="13.5" r="1.8"/>'),
-    puppet: s('<path d="M4 4h16M8 4v9M16 4v5M12 4v3"/><circle cx="12" cy="11" r="2.5"/><path d="M12 13.5V19M9 21l3-2 3 2M8 15h8"/>'), sharp: s('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>')
+    angel: s('<circle cx="16" cy="6" r="3.4"/><path d="M16 11c-3 0-4.5 2.2-4.5 5.2V28h9V16.2C20.5 13.2 19 11 16 11z"/><path d="M11.5 15C6 14 3 17 2 21c4 0 7-1 9.5-3zM20.5 15c5.5-1 8.5 2 9.5 6-4 0-7-1-9.5-3z"/>' + cut('M14 20h4M16 18v6')),
+    demon: s('<path d="M16 4 4 28h24z"/><path d="M8 7c-1 3 0 5 2 6M24 7c1 3 0 5-2 6" stroke="currentColor" stroke-width="2.4" fill="none"/>' + cut('M12.5 20.5l2 1.5M19.5 20.5l-2 1.5M13 25h6')),
+    rosary: s('<circle cx="16" cy="4" r="1.8"/><circle cx="21.5" cy="5.8" r="1.8"/><circle cx="25" cy="10.5" r="1.8"/><circle cx="25" cy="16" r="1.8"/><circle cx="10.5" cy="5.8" r="1.8"/><circle cx="7" cy="10.5" r="1.8"/><circle cx="7" cy="16" r="1.8"/><circle cx="10.5" cy="20.5" r="1.8"/><circle cx="21.5" cy="20.5" r="1.8"/><path d="M14.6 22h2.8v3h3v2.6h-3V31h-2.8v-3.4h-3V25h3z"/>'),
+    candle: s('<path d="M16 2c3 3.4 3.4 6.2 0 8.4-3.4-2.2-3-5 0-8.4z"/><rect x="11.5" y="12" width="9" height="15" rx="1"/><path d="M8 27h16v3H8z"/>' + cut('M14 16v7M18 14c0 2-1 2-1 4')),
+    wind: s('<path d="M3 10h14a4 4 0 1 0-4-4h-3a7 7 0 1 1 7 7H3zM3 16h20a4.5 4.5 0 1 1-4.5 4.5h3a1.5 1.5 0 1 0 1.5-1.5H3zM3 22h9v3H3z"/>'),
+    halo: s('<path d="M16 3c7 0 12 1.8 12 4.2S23 11.4 16 11.4 4 9.6 4 7.2 9 3 16 3zm0 2.6c-5 0-8.4 1-8.4 1.6S11 8.8 16 8.8s8.4-1 8.4-1.6S21 5.6 16 5.6z" fill-rule="evenodd"/><path d="M16 14c-4 0-6.5 3-6.5 7v9h13v-9c0-4-2.5-7-6.5-7z"/>' + cut('M13 22h6')),
+    confess: s('<path d="M5 3h22v26H5z"/>' + cut('M16 3v26M5 11h22M5 19h22M9 7h3M20 7h3') + '<circle cx="16" cy="30" r="1.2"/>'),
+    alms: s('<path d="M3 15h26c0 6.5-5.8 11-13 11S3 21.5 3 15z"/><circle cx="16" cy="9" r="4.5"/><circle cx="23" cy="11" r="2.5"/>' + cut('M14.5 9h3M16 7.5v3M8 19c2 2.6 5 3.6 8 3.6')),
+    clean: s('<path d="M16 2c6 7 9 11.5 9 16a9 9 0 0 1-18 0c0-4.5 3-9 9-16z"/>' + cut('M12 19c0 2.6 1.8 4.4 4 4.8')),
+    grace: s('<path d="M27 3C14 3 6.5 10 5 25l2.5 2C9.5 18 15 12 21 10c-4 3.5-6.5 7.5-7.5 12.5 7-1.5 12-7.5 13.5-19.5z"/>' + cut('M10 22l7-8')),
+    guardian: s('<path d="M16 2 4.5 6.5V15c0 7 4.7 12.3 11.5 15 6.8-2.7 11.5-8 11.5-15V6.5z"/>' + cut('M10.5 15.5l4 4 7.5-8')),
+    penance: s('<path d="M9 13V9a7 7 0 0 1 14 0v4h-3V9a4 4 0 0 0-8 0v4z"/><rect x="6" y="13" width="20" height="16" rx="1.5"/>' + cut('M16 18v5M13 27h6')),
+    double: s('<path d="M7 29 22 5l3 2L10 31zM12 29 27 5l3 2L15 31z" opacity=".95"/><path d="M4 22h9v3H4zM9 22h9v3H9z"/>'),
+    usury: s('<ellipse cx="16" cy="7" rx="10" ry="3.5"/><path d="M6 7v4.5c0 1.9 4.5 3.5 10 3.5s10-1.6 10-3.5V7c0 1.9-4.5 3.5-10 3.5S6 8.9 6 7zM6 13.5V18c0 1.9 4.5 3.5 10 3.5s10-1.6 10-3.5v-4.5c0 1.9-4.5 3.5-10 3.5s-10-1.6-10-3.5zM6 20v4.5C6 26.4 10.5 28 16 28s10-1.6 10-3.5V20c0 1.9-4.5 3.5-10 3.5S6 21.9 6 20z"/>'),
+    chains: s('<path d="M3 13a5 5 0 0 1 5-5h6a5 5 0 0 1 0 10H8a5 5 0 0 1-5-5zm5-2.2a2.2 2.2 0 0 0 0 4.4h6a2.2 2.2 0 0 0 0-4.4z" fill-rule="evenodd"/><path d="M13 19a5 5 0 0 1 5-5h6a5 5 0 0 1 0 10h-6a5 5 0 0 1-5-5zm5-2.2a2.2 2.2 0 0 0 0 4.4h6a2.2 2.2 0 0 0 0-4.4z" fill-rule="evenodd"/>'),
+    blood: s('<path d="M16 2c6.5 7.5 9.5 12 9.5 16.5a9.5 9.5 0 0 1-19 0C6.5 14 9.5 9.5 16 2z"/><circle cx="25" cy="27" r="2.5"/><circle cx="6" cy="29" r="1.6"/>' + cut('M11.5 18.5c0 2.6 1.8 4.6 4.5 5')),
+    bail: s('<circle cx="10" cy="16" r="7"/><path d="M15 14.5h14v3h-3v4h-3v-4h-2v3h-3v-3h-3z"/>' + cut('M10 16m-2.4 0a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0')),
+    devour: s('<path d="M3 6h26v8c0 3-2 5-5 5H8c-3 0-5-2-5-5z"/><path d="M5 21h22v3c0 3-2.5 5-5.5 5h-11C7.5 29 5 27 5 24z"/>' + cut('M7 6l2.5 6L12 6l2.5 6L17 6l2.5 6L22 6l2.5 6L27 6M8 29l2-5 2 5 2-5 2 5 2-5 2 5 2-5 2 5')),
+    mark: s('<path d="M16 2a14 14 0 1 0 0 28 14 14 0 0 0 0-28zm0 4.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19z" fill-rule="evenodd"/><circle cx="16" cy="16" r="3"/><path d="M14.8 0h2.4v8h-2.4zM14.8 24h2.4v8h-2.4zM0 14.8h8v2.4H0zM24 14.8h8v2.4h-8z"/>'),
+    drum: s('<path d="M16 3a13 13 0 1 0 0 26 13 13 0 0 0 0-26z"/>' + cut('M16 9.2m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M22.2 13.8m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M9.8 13.8m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M19.8 21.4m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M12.2 21.4m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0') + '<circle cx="16" cy="16" r="1.4"/>'),
+    puppet: s('<path d="M4 3h24v3H4z"/><path d="M9 6h1v9H9zM22 6h1v7h-1zM15.5 6h1v5h-1z"/><circle cx="16" cy="14" r="3.2"/><path d="M12.5 18.5h7l1.5 6h-3v6h-1.5v-5h-1v5H14v-6h-3z"/><path d="M8.5 15h2l2 4-1.6.8zM21.5 13h2l-2.5 6.5-1.6-.8z"/>'),
+    sharp: s('<path d="M2 16S7.5 6 16 6s14 10 14 10-5.5 10-14 10S2 16 2 16z"/>' + cut('M16 16m-4.6 0a4.6 4.6 0 1 0 9.2 0 4.6 4.6 0 1 0-9.2 0') + '<circle cx="16" cy="16" r="1.8" fill="var(--cut, #000)" opacity=".55"/>')
   };
 })();
 const isLightDeal = d => LIGHT_DEALS.includes(d);
@@ -4331,7 +4389,8 @@ function processEvents() {
       case 'colgive': SFX.play('bad'); floatText(e.t, '+2'); bump(5, t('tColGive', nm(e.t))); break;
       case 'pad': case 'halo': SFX.play('click'); floatText(e.pi, '½'); break;
       case 'debt': if (e.k) floatText(e.pi, (e.k > 0 ? '+' : '−') + Math.abs(e.k) + '$'); break;
-      case 'offer': if (e.pi !== ME) bump(4, e.kind === 'dark' ? t('tDemonCame', nm(e.pi)) : t('tAngelCame', nm(e.pi))); break;
+      case 'offer': JUICE.visit(e.kind); if (e.pi !== ME) bump(4, e.kind === 'dark' ? t('tDemonCame', nm(e.pi)) : t('tAngelCame', nm(e.pi))); break;
+      case 'overLimit': if (e.pi === ME) bump(7, t('tOverLimit')); break;
       case 'dealTaken': SFX.play(e.kind === 'dark' ? 'devil' : 'win'); JUICE.glitch(); bump(6, t('tDealTaken', nm(e.pi), t('deal_' + e.d))); break;
       case 'fall': SFX.play('devil'); JUICE.shake(6); bump(8, t('tFall', nm(e.pi))); break;
       case 'guardian': SFX.play('swap'); bump(6, t('tGuardian', nm(e.pi))); break;
@@ -4480,12 +4539,22 @@ function dealOffer() {
     <div class="clauses">${o.opts.map(clause).join('')}</div>
     ${dark ? `<button class="btn wide tear" id="dealNo">${t('tearUp')}</button>` : `<p class="mono small">${t('angelMust')}</p>`}</div>`);
   SFX.play(dark ? 'devil' : 'chaos');
+  let done = false;
   $('modalBody').querySelectorAll('[data-deal]').forEach(b => b.onclick = async () => {
+    if (done) return; done = true;
     const id = b.dataset.deal; let target = null;
+    // the chosen clause gets signed (dark) or blessed (light) before the paper goes away
+    b.classList.add('signed'); b.insertAdjacentHTML('beforeend', `<em class="sig">${dark ? t('signed') : t('blessed')}</em>`);
+    SFX.play(dark ? 'bad' : 'win'); await new Promise(r => setTimeout(r, 650));
     if (id === 'mark') { closeModal(); target = await pickTarget(t('markQ'), t('markSub')); }
-    closeModal(); offerKey = ''; SFX.play(dark ? 'bad' : 'win'); act('deal', { id, target });
+    closeModal(); offerKey = ''; act('deal', { id, target });
   });
-  if ($('dealNo')) $('dealNo').onclick = () => { closeModal(); offerKey = ''; SFX.play('click'); act('deal', { id: null }); };
+  if ($('dealNo')) $('dealNo').onclick = async () => {
+    if (done) return; done = true;
+    $('modalBody').querySelector('.contract').classList.add('burning'); SFX.play('flip');
+    await new Promise(r => setTimeout(r, 900));
+    closeModal(); offerKey = ''; act('deal', { id: null });
+  };
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-ab]'); if (!b || b.disabled || !G) return;
@@ -4509,7 +4578,7 @@ function matchOverlay() {
   if (rulesOpen) return;
   if (M.phase === 'play') { if (overlayKey) { overlayKey = ''; closeModal(); } return; }
   // re-render only when something the dialog shows has changed
-  const key = JSON.stringify([M.phase, M.round, M.passed, M.chips, M.debt, M.done, M.setup, G.players[ME].hand.length, [...draftSel]]);
+  const key = JSON.stringify([M.phase, M.round, M.passed, M.chips, M.debt, M.done, M.setup, M.hope, G.players[ME].hand.length, [...draftSel]]);
   if (key === overlayKey) return; overlayKey = key;
   if (M.phase === 'draft') return drawDraft(M);
   if (M.phase === 'shop') return drawShop(M);
@@ -4531,23 +4600,33 @@ function drawDraft(M) {
   });
   $('draftGo').onclick = () => { const cards = hand.filter(c => draftSel.has(c.id)).map(cardCode); draftSel.clear(); SFX.play('play'); conn.send({ t: 'draft', cards }); };
 }
+// a small line of a player's debt after each deal, with the limit drawn across the top
+function debtSpark(M, i) {
+  const h = (M.hist || [])[i] || [0], lim = ((M.limits || [])[i] || M.limit), W = 84, H = 22;
+  const top = Math.max(lim, ...h) * 1.05, x = k => h.length < 2 ? W : (k / (h.length - 1)) * W, y = v => H - (v / top) * H;
+  const pts = h.map((v, k) => `${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="-2 -2 ${W + 4} ${H + 4}" aria-hidden="true"><line x1="0" x2="${W}" y1="${y(lim).toFixed(1)}" y2="${y(lim).toFixed(1)}" class="lim"/><polyline points="${pts}"/>${h.map((v, k) => `<circle cx="${x(k).toFixed(1)}" cy="${y(v).toFixed(1)}" r="1.6"/>`).join('')}</svg>`;
+}
 function settleTable(M) {
   const L = M.last; if (!L) return '';
   return `<div class="list settle">${L.rows.slice().sort((a, b) => M.debt[a.i] - M.debt[b.i]).map(r => `<div class="li ${L.out.includes(r.i) ? 'outrow' : ''}">
-    <span>${esc(G.players[r.i].name)}${r.i === L.winner ? ` <b class="stampmini">${t('dealWon')}</b>` : ''}${L.out.includes(r.i) ? ` <b class="stampmini">${t('outCollector')}</b>` : ''}</span>
-    <span class="mono">${r.broke ? t('brokeRow') : (r.i === L.winner ? '—' : t('cardsN', r.cards)) + ` · ${t('turnDebt', r.turn || 0)} · ${t('handDebt', r.paid)}`} · ${t('debtTot', M.debt[r.i], (M.limits || [])[r.i] || M.limit)} · +${r.chips}¢</span></div>`).join('')}</div>`;
+    <span>${debtSpark(M, r.i)}${esc(G.players[r.i].name)}${r.i === L.winner ? ` <b class="stampmini">${t('dealWon')}</b>` : ''}${L.out.includes(r.i) ? ` <b class="stampmini">${t('outCollector')}</b>` : ''}</span>
+    <span class="mono">${(r.i === L.winner ? '—' : t('cardsN', r.cards)) + ` · ${t('turnDebt', r.turn || 0)} · ${t('handDebt', r.paid)}`} · ${t('debtTot', M.debt[r.i], (M.limits || [])[r.i] || M.limit)} · +${r.chips}¢</span></div>`).join('')}</div>`;
 }
 function drawShop(M) {
   const L = M.last, won = L && L.winner === ME;
   const head = `<h2>${t('shopTitle', M.round)}</h2>${settleTable(M)}`;
   if (M.col[ME]) return openModal(head + `<p>${t('youCollector')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
   if (M.done[ME]) return openModal(head + `<p>${t('shopWait')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
-  const chips = M.chips[ME], P = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25 };
+  const chips = M.chips[ME], P = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25, candle: 10, blood: 10 };
   const rivals = G.players.map((p, i) => i).filter(i => i !== ME && !M.col[i]);
   const mine = M.tokens[ME].map(id => `<div class="tok own"><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span></div>`).join('');
   const offers = M.offers.map(id => `<button class="tok" data-tok="${id}" ${chips < P.token || M.tokens[ME].length >= 3 ? 'disabled' : ''}><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span><i>${P.token}¢</i></button>`).join('');
   openModal(head + `
     <div class="wallet"><span>${t('walletChips', chips)}</span><span>${t('walletDebt', M.debt[ME], M.limit)}</span></div>
+    ${M.hope ? `<span class="label sublabel">${t('shopVisitors')}</span><div class="goods">
+      <button class="btn good light" id="buyCandle" ${chips < P.candle || M.hope[2] ? 'disabled' : ''}>${DEAL_ICON.candle}<span>${t('buyCandle', P.candle)}</span><i>${M.hope[2] ? '—' : Math.round(M.hope[0]) + '%'}</i></button>
+      <button class="btn good dark" id="buyBlood" ${chips < P.blood || M.hope[3] ? 'disabled' : ''}>${DEAL_ICON.blood}<span>${t('buyBlood', P.blood)}</span><i>${M.hope[3] ? '—' : Math.min(100, M.hope[1]) + '%'}</i></button></div>` : ''}
     <span class="label sublabel">${t('shopPay')}</span>
     <button class="btn" id="shopPay" ${chips < P.pay || M.debt[ME] <= 0 ? 'disabled' : ''}>${t('payBtn', P.pay, P.payAmount)}</button>
     <span class="label sublabel">${t('shopTricks')}</span>
@@ -4558,6 +4637,8 @@ function drawShop(M) {
     <p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
   $('modalBody').querySelectorAll('[data-tok]').forEach(b => b.onclick = () => { SFX.play('coin'); conn.send({ t: 'shop', a: { k: 'token', id: b.dataset.tok } }); });
   $('shopPay').onclick = () => { SFX.play('coin'); conn.send({ t: 'shop', a: { k: 'pay' } }); };
+  if ($('buyCandle')) $('buyCandle').onclick = () => { SFX.play('coin'); conn.send({ t: 'shop', a: { k: 'candle' } }); };
+  if ($('buyBlood')) $('buyBlood').onclick = () => { SFX.play('devil'); conn.send({ t: 'shop', a: { k: 'blood' } }); };
   $('modalBody').querySelectorAll('[data-trick]').forEach(b => b.onclick = () => { SFX.play('bad'); conn.send({ t: 'shop', a: { k: b.dataset.trick, target: +b.dataset.t } }); });
   $('shopDone').onclick = () => { SFX.play('click'); conn.send({ t: 'shop', a: { k: 'done' } }); };
 }
