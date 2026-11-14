@@ -1510,11 +1510,11 @@ const STR = {
     lightSide: 'Light side', darkSide: 'Dark side', colorPending: 'Color pending', cw: '↻ Clockwise ›', ccw: '↺ Counter-clockwise ‹', stack: 'Stack',
     youWin: 'You win', wins: n => `${n} wins`, youLeft: 'You left this match. Watching the rest of it.',
     oweBanner: k => `Picking up ${k} ${cardsW(k)}…`,
-    myStackDebt: k => `Picking up the stack: ${k} left`, myColorDebt: (c, k) => `Drawing until ${c} shows up: ${k} so far`,
+    myStackDebt: k => `Picking up the stack: ${k} left`, myColorDebt: (c, k) => `Draw until ${c} shows up: ${k} so far`,
     otherDebtN: (n, k) => `${n} is picking up cards (${k} left)`, otherDebtC: (n, c) => `${n} is drawing until ${c}`,
     rouletteMe: 'Roulette: name a color', rouletteOther: n => `${n} is naming a color`,
     stackOrTake: (m, k) => `Stack +${m} or higher, mirror it, or take +${k}`, playOrPass: 'Play the card you drew, or pass', yourTurn: 'Your turn: tap or drag a card',
-    keepDrawing: c => `Drawing until ${c} or a wild shows up…`, drawOne: 'Nothing fits. Draw a card.', turnOf: (n, aw) => `${n}'s turn${aw ? ' (away, skipping soon)' : ''}`,
+    keepDrawing: c => `Nothing fits. Keep drawing until you hit ${c} or a wild.`, drawOne: 'Nothing fits. Draw a card.', turnOf: (n, aw) => `${n}'s turn${aw ? ' (away, skipping soon)' : ''}`,
     tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Up next', tagShield: 'Shield', tagWinner: 'Winner', tagUno: 'UNO', tagPlayer: 'Player',
     catchBtn: 'Catch: +2',
     tJump: 'Jump-in', tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Skip everyone', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands rotate',
@@ -1555,11 +1555,11 @@ const STR = {
     lightSide: 'Светлая сторона', darkSide: 'Тёмная сторона', colorPending: 'Цвет выбирается', cw: '↻ По часовой ›', ccw: '↺ Против часовой ‹', stack: 'Стопка',
     youWin: 'Вы победили', wins: n => `Победил(а) ${n}`, youLeft: 'Вы вышли из этой партии. Можно досмотреть.',
     oweBanner: k => `Берёте ${k} ${cardsAcc(k)}…`,
-    myStackDebt: k => `Берёте стопку: осталось ${k}`, myColorDebt: (c, k) => `Тянете, пока не выпадет «${c}»: уже ${k}`,
+    myStackDebt: k => `Берёте стопку: осталось ${k}`, myColorDebt: (c, k) => `Тяните, пока не выпадет «${c}»: уже ${k}`,
     otherDebtN: (n, k) => `${n} берёт карты (осталось ${k})`, otherDebtC: (n, c) => `${n} тянет до цвета «${c}»`,
     rouletteMe: 'Рулетка: назовите цвет', rouletteOther: n => `${n} выбирает цвет`,
     stackOrTake: (m, k) => `Положите +${m} или больше, отразите или возьмите +${k}`, playOrPass: 'Сыграйте взятую карту или пасуйте', yourTurn: 'Ваш ход: нажмите на карту или перетащите её',
-    keepDrawing: c => `Тянете, пока не выпадет «${c}» или джокер…`, drawOne: 'Ходить нечем. Возьмите карту.', turnOf: (n, aw) => `Ходит ${n}${aw ? ' (нет на месте, скоро пропуск)' : ''}`,
+    keepDrawing: c => `Ходить нечем. Тяните, пока не выпадет «${c}» или джокер.`, drawOne: 'Ходить нечем. Возьмите карту.', turnOf: (n, aw) => `Ходит ${n}${aw ? ' (нет на месте, скоро пропуск)' : ''}`,
     tagLeft: 'Вышел', tagAway: 'Нет', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Щит', tagWinner: 'Победитель', tagUno: 'УНО', tagPlayer: 'Игрок',
     catchBtn: 'Поймать: +2',
     tJump: 'Вмешался!', tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропуск всех', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
@@ -1799,7 +1799,7 @@ const RULES_HTML = {
     <li>The deck never runs out. Cards come from a mix of classic, Flip and No Mercy cards.</li>
     <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> UNO, <b>P</b> pass.</li>
     <li>The host switches each rule and each extra card on or off in the lobby.</li></ul>
-    <h3>Drawing</h3><ul><li>Cards you have to pick up come in automatically, one at a time: a stack you take, Color Roulette, Wild Draw Color, penalties. With nothing to play, tap Draw once and the cards keep coming until the current color or a wild shows up.</li>
+    <h3>Drawing</h3><ul><li>A stack you take and penalties come in automatically, one card at a time. Drawing until a color shows up (nothing to play, Color Roulette, Wild Draw Color) is by hand, one tap per card.</li>
     <li>While you owe cards, you can't play until they are picked up.</li></ul>
     <h3>Flip</h3><ul><li>Every card has a light side and a dark side. <b>Flip</b> turns every card over at once.</li>
     <li>You see the backs of other players' cards and of the next draw card, but not your own backs.</li>
@@ -1845,7 +1845,7 @@ const RULES_HTML = {
     <li>Колода бесконечная: карты из классики, Флипа и No Mercy.</li>
     <li>Нажмите на карту или перетащите её на сброс. Клавиши: <b>D</b> или <b>Пробел</b> — взять, <b>U</b> — УНО, <b>P</b> — пас.</li>
     <li>Хозяин включает и выключает каждое правило и каждую дополнительную карту в лобби.</li></ul>
-    <h3>Как брать карты</h3><ul><li>Карты, которые нужно взять, приходят сами, по одной: взятая стопка, «Цветная рулетка», «Тяни цвет», штрафы. Если ходить нечем, нажмите «Взять» один раз, и карты пойдут сами, пока не выпадет текущий цвет или джокер.</li>
+    <h3>Как брать карты</h3><ul><li>Взятая стопка и штрафы приходят сами, по одной карте. А тянуть до нужного цвета (если ходить нечем, «Цветная рулетка», «Тяни цвет») — руками, по одному нажатию на карту.</li>
     <li>Пока вы должны карты, ходить нельзя.</li></ul>
     <h3>Флип</h3><ul><li>У каждой карты есть светлая и тёмная сторона. <b>Флип</b> переворачивает все карты разом.</li>
     <li>Вы видите обороты чужих карт и следующей карты колоды, но не своих.</li>

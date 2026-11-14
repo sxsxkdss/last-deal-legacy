@@ -162,14 +162,11 @@ function nextBotJob(room) {
       if (catcher >= 0) return { wait: rnd(1500, 2600), run: () => G.catchUno(catcher, i) };
     }
   }
-  // cards anyone owes are drawn automatically, one at a time, so everybody sees each card land
-  // (stack pickups, penalties, roulette and draw-color runs, and a draw-until-color run once started)
-  const pace = got => Math.max(120, 340 - (got || 0) * 14);
+  // cards anyone owes are drawn automatically and quickly, one at a time, so everybody sees each card land
+  // (stack pickups and penalties). Drawing until a color shows up stays by hand.
+  const pace = got => Math.max(70, 170 - (got || 0) * 8);
   for (let i = 0; i < G.players.length; i++) if (!isBot(i) && G.owes(i)) return { wait: pace(0), run: () => G.draw(i) };
-  if (G.debt && !isBot(G.debt.pi) && G.roulette === null) { const v = G.debt.pi, got = G.debt.got; return { wait: pace(got), run: () => G.draw(v) }; }
-  if (G.rules.drawUntil && G.roulette === null && !G.debt && G.pending === 0 && !isBot(G.turn) && G.drawRunPi === G.turn && (G.drawRun || 0) > 0 && G.drewBy !== G.turn && !G.owes(G.turn)) {
-    const v = G.turn, got = G.drawRun; return { wait: pace(got), run: () => { if (G.drawRunPi === v && G.drawRun > 0 && G.drewBy !== v && G.turn === v) G.draw(v); } };
-  }
+  if (G.debt && G.debt.n && !isBot(G.debt.pi) && G.roulette === null) { const v = G.debt.pi, got = G.debt.got; return { wait: pace(got), run: () => G.draw(v) }; }
   // owed cards first (UNO penalty, chaos tax, lost duel)
   for (let i = 0; i < G.players.length; i++) if (isBot(i) && G.owes(i)) return { wait: rnd(160, 260), run: () => G.draw(i) };
   if (G.roulette !== null && isBot(G.roulette)) { const v = G.roulette; return { wait: rnd(700, 1100), run: () => G.resolveRoulette(Bot.bestColor(G, G.players[v].hand, G.side)) }; }
