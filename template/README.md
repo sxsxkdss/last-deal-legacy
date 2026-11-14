@@ -42,6 +42,10 @@ assets/
 | `mirror` | Mirror | `spin` | Jackpot (wild) |
 | `shield` | Shield | `lucky` | Lucky |
 | `glass` | Glass | `loan` | Loan |
+| `gift` | Gift | `echo` | Echo (wild) |
+| `freeze` | Freeze (dark) | `interest` | Interest (dark) |
+| `sacrifice` | Sacrifice (dark wild) | `wheel` | Wheel (wild) |
+| `bomb` | Bomb (dark) | | |
 
 Which colors and sides each value exists on: just look at the file names in `template/cards/`.
 

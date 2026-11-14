@@ -7,16 +7,17 @@ const VALUE_NAME = {
   wrd4: 'Wild Reverse Draw 4', wd6: 'Wild Draw 6', wd10: 'Wild Draw 10', wrd8: 'Wild Reverse Draw 8',
   wdc: 'Wild Draw Color', roul: 'Wild Color Roulette',
   mirror: 'Mirror', shield: 'Shield', dflip: 'Double Flip', duel: 'Wild Duel', wd15: 'Wild Draw 15', bhole: 'Black Hole',
-  mul2: 'Mult ×2', mul3: 'Mult ×3', lucky: 'Lucky', glass: 'Glass', devil: '666', spin: 'Spin', loan: 'Loan'
+  mul2: 'Mult ×2', mul3: 'Mult ×3', lucky: 'Lucky', glass: 'Glass', devil: '666', spin: 'Spin', loan: 'Loan',
+  gift: 'Gift', echo: 'Wild Echo', freeze: 'Freeze', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Bomb'
 };
-const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan'];
+const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'bhole', 'mul2', 'mul3', 'lucky', 'glass', 'devil', 'spin', 'loan', 'gift', 'echo', 'freeze', 'interest', 'sacrifice', 'wheel', 'bomb'];
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
-  L: { colored: { '0': 1, '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1 },
-       wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2 } },
-  D: { colored: { '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1 },
-       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1, mul3: 1, devil: 1 } }
+  L: { colored: { '0': 1, '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1 },
+       wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, wheel: 2 } },
+  D: { colored: { '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, interest: 1 },
+       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, bhole: 1, mul3: 1, devil: 1, sacrifice: 1 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
@@ -89,7 +90,7 @@ class Game {
   canPlay(card) {
     if (this.roulette !== null || this.debt || card.hidden || this.owes(this.turn)) return false;
     const f = this.f(card), t = this.f(this.top);
-    if (this.pending > 0) return f.v === 'mirror' || f.v === 'mul2' || f.v === 'mul3' || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
+    if (this.pending > 0) return f.v === 'mirror' || f.v === 'mul2' || f.v === 'mul3' || (f.v === 'echo' && (DRAW_VAL[this.f(this.top).v] || 0) >= this.stackMin) || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
     if (this.lock > 0) return f.c === 'w' || f.c === this.color;
     return f.c === 'w' || f.c === this.color || f.v === t.v;
   }
@@ -157,6 +158,7 @@ class Game {
       this.ev('loanDue', { pi });
     }
     const last = chain[k - 1];
+    const prevFace = this.top ? this.f(this.top) : null; // what Echo copies
     this.top = last;
     for (const c of chain) { this.pile.push(cardCode(c)); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
@@ -276,6 +278,72 @@ class Game {
         p.oweN = (p.oweN || 0) + k;
         this.addLog(`${p.name} plays 666: everyone else picks up ${2 * k}, ${p.name} pays ${k}.`, 'bad', 'devil', { n: p.name, a: 2 * k, b: k });
         this.ev('devil', { pi });
+        break;
+      }
+      case 'gift': {
+        // give 2 random cards per Gift to a chosen player (never your last card)
+        const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
+        let given = 0;
+        for (let r = 0; r < 2 * k && p.hand.length > 1; r++) { const c = p.hand.splice(Math.floor(Math.random() * p.hand.length), 1)[0]; this.players[tgt].hand.push(c); given++; }
+        if (given) this.players[tgt].vulnerable = false;
+        this.addLog(`${p.name} gives ${this.players[tgt].name} ${given} cards.`, 'swap', 'gift', { n: p.name, t: this.players[tgt].name, g: given });
+        this.ev('gift', { a: pi, b: tgt, g: given });
+        break;
+      }
+      case 'echo': {
+        // repeats the card it was played on: draw cards, skips and reverses
+        const pv = prevFace ? prevFace.v : null;
+        if (pv && DRAW_VAL[pv]) {
+          this.pending += DRAW_VAL[pv] * k * (this.inflate > 0 ? 2 : 1) * this.multNext; this.multNext = 1; this.stackMin = DRAW_VAL[pv]; this.stackFrom = pi;
+          if (pv === 'wrd4' || pv === 'wrd8') { if (k % 2) { this.dir *= -1; this.ev('reverse', { dir: this.dir }); } }
+        } else if (pv === 'skip' || pv === 'freeze') { steps = 1 + k * (pv === 'freeze' ? 2 : 1); for (let s = 1; s < steps; s++) this.ev('skip', { pi: this.nextIdx(pi, s) }); }
+        else if (pv === 'skipall') { steps = 0; this.ev('skipall', { pi }); }
+        else if (pv === 'rev') { if (k % 2) { this.dir *= -1; steps = n === 2 ? 2 : 1; this.ev('reverse', { dir: this.dir }); } }
+        const copied = pv && (DRAW_VAL[pv] || ['skip', 'freeze', 'skipall', 'rev'].includes(pv));
+        this.addLog(copied ? `${p.name}'s echo repeats ${faceName(prevFace)}.` : `${p.name}'s echo fades: nothing to repeat.`, copied ? 'stack' : '', copied ? 'echo' : 'echoNone', { n: p.name, f: prevFace });
+        this.ev('echo', { pi, ok: copied ? 1 : 0 });
+        break;
+      }
+      case 'freeze':
+        // skips the next two players per card
+        steps = Math.min(n, 1 + 2 * k);
+        for (let s = 1; s < steps; s++) this.ev('skip', { pi: this.nextIdx(pi, s) });
+        this.addLog(`${p.name} freezes the next ${steps - 1} players.`, 'flip', 'freeze', { n: p.name, k: steps - 1 });
+        break;
+      case 'interest': {
+        // everyone sitting on 8+ cards pays 2, you included
+        const hit = this.players.filter(q => !q.out && q.hand.length >= 8);
+        for (const q of hit) q.oweN = (q.oweN || 0) + 2 * k;
+        this.addLog(hit.length ? `Interest: ${hit.map(q => q.name).join(', ')} pick up ${2 * k}.` : 'Interest: nobody has 8 cards yet.', 'bad', 'interest', { l: hit.map(q => q.name), a: 2 * k });
+        this.ev('interest', { pis: hit.map(q => this.players.indexOf(q)) });
+        break;
+      }
+      case 'sacrifice': {
+        // burn 3 random cards per card; everyone else picks up 1
+        let burnt = 0;
+        for (let r = 0; r < 3 * k && p.hand.length > 1; r++) { p.hand.splice(Math.floor(Math.random() * p.hand.length), 1); burnt++; }
+        this.players.forEach((q, i) => { if (i !== pi && !q.out) q.oweN = (q.oweN || 0) + k; });
+        this.addLog(`${p.name} sacrifices ${burnt} cards. Everyone else picks up ${k}.`, 'bad', 'sacrifice', { n: p.name, b: burnt, a: k });
+        this.ev('sacrifice', { pi, b: burnt });
+        break;
+      }
+      case 'wheel': {
+        // spins on a random other player: they pick up 4
+        const others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
+        const tgt = others[Math.floor(Math.random() * others.length)];
+        if (tgt != null) this.players[tgt].oweN = (this.players[tgt].oweN || 0) + 4 * k;
+        this.addLog(`${p.name} spins the wheel: it lands on ${this.players[tgt].name}, +${4 * k}.`, 'bad', 'wheel', { n: p.name, t: this.players[tgt].name, a: 4 * k });
+        this.ev('wheel', { pi, t: tgt });
+        break;
+      }
+      case 'bomb': {
+        // the next player takes the blast (+3), both of their neighbours catch shrapnel (+1), you included
+        const v = this.nextIdx(pi, 1), after = this.nextIdx(v, 1);
+        this.players[v].oweN = (this.players[v].oweN || 0) + 3 * k;
+        const shr = [...new Set([pi, after])].filter(i => i !== v);
+        for (const i of shr) this.players[i].oweN = (this.players[i].oweN || 0) + k;
+        this.addLog(`${p.name}'s bomb goes off on ${this.players[v].name}: +${3 * k}; ${shr.map(i => this.players[i].name).join(' and ')} +${k}.`, 'bad', 'bomb', { n: p.name, t: this.players[v].name, a: 3 * k, l: shr.map(i => this.players[i].name), b: k });
+        this.ev('bomb', { pi, v });
         break;
       }
       case 'spin': {
@@ -602,6 +670,7 @@ const Bot = {
       if (g.pending > 0) {
         if (f.v === 'mirror') s += g.pending >= 4 ? 30 : -2;
         else if (f.v === 'mul2' || f.v === 'mul3') s += g.pending >= 4 ? 18 : 4;
+        else if (f.v === 'echo') s += 6;
         else { s -= DRAW_VAL[f.v]; if (f.c === 'w') s -= 3; }
       }
       else {
@@ -620,6 +689,13 @@ const Bot = {
         if (f.v === 'devil') s += minOther.q.hand.length <= 3 ? 20 : 8;
         if (f.v === 'spin') s += 2;
         if (f.v === 'loan') s += p.loan ? -10 : (p.hand.length >= 6 ? 6 : -2);
+        if (f.v === 'gift') s += p.hand.length >= 4 ? 10 : 2;
+        if (f.v === 'echo') { const tv = g.top ? g.f(g.top).v : null; s += DRAW_VAL[tv] ? 9 : (['skip', 'skipall'].includes(tv) ? 5 : -4); }
+        if (f.v === 'freeze') s += nl <= 3 ? 12 : 5;
+        if (f.v === 'interest') s += p.hand.length >= 8 ? -8 : (others.some(o => o.q.hand.length >= 8) ? 9 : -2);
+        if (f.v === 'sacrifice') s += p.hand.length >= 5 ? 10 : 1;
+        if (f.v === 'wheel') s += 6;
+        if (f.v === 'bomb') s += nl <= 3 ? 14 : 6;
         if (f.v === 'bhole') { const avg = others.reduce((a, o) => a + o.q.hand.length, p.hand.length) / (others.length + 1); s += (p.hand.length - 1 - avg) * 3; }
         if (f.v === 'dflip') s += nl <= 3 ? 8 : 1;
         if (f.v === 'flip') {
@@ -646,7 +722,7 @@ const Bot = {
       cardId: best.id, extra: extra.map(c => c.id),
       color: bf.c === 'w' ? this.bestColor(g, rest, g.side) : null,
       flipColor: (bf.v === 'flip' || bf.v === 'dflip') ? this.bestColor(g, rest, other(g.side)) : null,
-      target: bf.v === 'duel' ? minOther.i : (bf.v === '7' && g.rules.seven && swapGain >= 2 ? minOther.i : null)
+      target: bf.v === 'duel' || bf.v === 'gift' ? minOther.i : (bf.v === '7' && g.rules.seven && swapGain >= 2 ? minOther.i : null)
     };
   },
   jumpCandidate(g) {
