@@ -1049,7 +1049,7 @@ body.lite #crash:not(.on) { display: none; }
 
 /* ---------- whose turn it is, at a glance ---------- */
 .opp { position: relative; }
-.opp.turn { transform: translateY(6px) scale(1.06); box-shadow: 0 0 0 3px #ff5a36, 0 0 22px rgba(255, 90, 54, .55), var(--grime-in); }
+.opp.turn { transform: translateY(6px) scale(1.06); box-shadow: 0 0 0 3px var(--stamp-hi), 0 0 22px rgba(200, 30, 20, .55), var(--grime-in); }
 .opp .turnflag { position: absolute; left: 50%; bottom: -12px; translate: -50% 0; z-index: 3; padding: 1px 8px; background: #b3261e; color: #fff2e6; font: 700 11px/16px var(--f-stamp); letter-spacing: .14em; text-transform: uppercase; rotate: -2deg; white-space: nowrap; }
 #bottom.myturn .me { background: linear-gradient(90deg, rgba(255, 210, 120, .16), rgba(255, 210, 120, .03) 70%, transparent); box-shadow: inset 3px 0 0 #ffd27a; }
 #bottom.myturn #meName { color: #ffe2a0; }
@@ -1060,6 +1060,16 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 #hand .card.sel { transform: translateY(calc(var(--dy, 0px) - 38px)) rotate(var(--rot, 0deg)); border-color: #fff;
   box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px #ff5a36, inset 0 0 22px rgba(255, 255, 255, .35); filter: brightness(1.12) saturate(1.05); }
 #hand .card.sel:hover { transform: translateY(calc(var(--dy, 0px) - 42px)) rotate(0deg) scale(1.04) var(--tilt, rotate(0deg)); }
+/* your strip stays one compact, centred block on wide screens */
+#bottom .me { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; justify-content: center; column-gap: 24px; }
+#bottom .me .who { justify-content: center; }
+#bottom .me .actions, #bottom .me .abbar, #bottom .me .invbar { flex: 0 1 auto; }
+@media (max-width: 820px) {
+  #bottom .me { width: 100%; }
+  #bottom .me .actions { flex: 1 1 100%; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; }
+  #bottom .me .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 1.6fr 1.2fr 1fr 1fr 1fr 1fr; }
+  #btnSelect { font-size: 11px; padding: 0 4px; white-space: normal; line-height: 12px; }
+}
 
 </style>
 </head>
@@ -1236,7 +1246,7 @@ function debtValue(f) {
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
 const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
 // per-turn debt: at the start of your turn you pay for every card past the free ones
-const DEBT_TURN = { free: 13, rate: 0.5, cap: 4 };
+const DEBT_TURN = { free: 10, rate: 0.5, cap: 4 };
 const ANGEL_STEP = 1.25, DEMON_BASE = 10, DEMON_STEP = 1.5, DEMON_MIN = 10;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
@@ -3631,7 +3641,7 @@ Object.assign(STR.ru, {
   tSacr: n => `${n}: ЖЕРТВА`, tSwind: n => `${n}: второе дыхание`, tBroke: n => `${n} разорён`, tChained: k => `${k} в цепях`, tPuppet: n => `${n} на нитях`
 });
 RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>Debt</h3><ul>
-    <li>At the start of each of your turns you pay <b>½ debt for every card past 13</b> in your hand, <b>4 at most</b> per turn. When a deal ends, everyone who still holds cards pays for them too: numbers at face value, action cards 12, big draws 20, wilds 25, wild draws and house cards 35.</li>
+    <li>At the start of each of your turns you pay <b>½ debt for every card past 10</b> in your hand, <b>4 at most</b> per turn. When a deal ends, everyone who still holds cards pays for them too: numbers at face value, action cards 12, big draws 20, wilds 25, wild draws and house cards 35.</li>
     <li>Go over your <b>debt limit</b> and the house takes your seat: you become a <b>collector</b>.</li></ul>
   <h3>The angel and the demon</h3><ul>
     <li><b>The angel</b> (by day): every peaceful turn you take by day (no attack card played) adds <b>1.25%</b> to the chance the angel comes at the start of your turn. Any attack resets it to 0. The angel offers 2 light deals; you must take one.</li>
@@ -3640,7 +3650,7 @@ RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>Debt</h3><ul>
     <li>Deals stack: you can hold up to <b>2 light</b> and up to <b>3 dark</b> at once, for the whole match, each one different. <b>One deal per hand dealt</b>: after you sign, the visitors wait for the next deal. Signing a dark deal while you hold light ones burns them all, closes the way to the angel for good and leaves a <b>Sacrifice</b> in your hand: a wild that makes a chosen player take 10 cards, chained for 2 of their turns. Nothing blocks it.</li>
     <li>Chained cards can’t be played or thrown away, but they still cost debt.</li></ul><h3>Debt match</h3>`);
 RULES_HTML.ru = RULES_HTML.ru.replace('<h3>Матч на долг</h3>', `<h3>Долг</h3><ul>
-    <li>В начале каждого своего хода вы платите <b>½ долга за каждую карту сверх 13</b>, но <b>не больше 4</b> за ход. Когда раздача заканчивается, все, у кого остались карты, платят и за них: цифры по номиналу, карты действия 12, большие «Возьми» 20, джокеры 25, джокеры «Возьми» и карты дома 35.</li>
+    <li>В начале каждого своего хода вы платите <b>½ долга за каждую карту сверх 10</b>, но <b>не больше 4</b> за ход. Когда раздача заканчивается, все, у кого остались карты, платят и за них: цифры по номиналу, карты действия 12, большие «Возьми» 20, джокеры 25, джокеры «Возьми» и карты дома 35.</li>
     <li>Перевалили за <b>лимит долга</b> — дом забирает ваше место, и вы становитесь <b>коллектором</b>.</li></ul>
   <h3>Ангел и демон</h3><ul>
     <li><b>Ангел</b> (днём): каждый ваш мирный дневной ход (без атакующих карт) добавляет <b>1,25%</b> к шансу, что в начале хода придёт ангел. Любая атака обнуляет шанс. Ангел предлагает 2 светлые сделки, и одну нужно взять.</li>
@@ -3751,6 +3761,7 @@ Object.assign(STR.ru, {
 Object.assign(STR.en, { refTitle: 'Poker hands', refNote: 'straights and flushes are one colour · a plain Wild = any number · by day: extras leave your hand, debt forgiven; by night: the next player takes the extras', refAll: n => `all +${n}`, refDebt: n => `debt −${n}`, refStraightToss: '−1 per card past 2', refStraightDebt: 'debt −3 each' });
 Object.assign(STR.ru, { refTitle: 'Покерные комбинации', refNote: 'стрит и флеш — одного цвета · простой Джокер = любая цифра · днём лишние карты уходят и долг прощается, ночью лишние берёт следующий', refAll: n => `всем +${n}`, refDebt: n => `долг −${n}`, refStraightToss: '−1 за каждую сверх 2', refStraightDebt: 'долг −3 за каждую' });
 Object.assign(STR.en, { tagTurn: 'their turn', yourTurnStamp: 'YOUR TURN' }); Object.assign(STR.ru, { tagTurn: 'ходит', yourTurnStamp: 'ВАШ ХОД' });
+Object.assign(STR.en, { selectShort: 'Pick', selectOnShort: 'Pick ✓' }); Object.assign(STR.ru, { selectShort: 'Выбор', selectOnShort: 'Выбор ✓' });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -5361,7 +5372,7 @@ function render() {
   dealOffer();
   drawHorse();
   $('btnSort').textContent = t('sort', sortMode);
-  $('btnSelect').textContent = selMode ? t('selectOn') : t('selectOff'); $('btnSelect').classList.toggle('on', selMode); $('btnSelect').classList.toggle('hidden', !G.rules.multi);
+  $('btnSelect').textContent = innerWidth <= 820 ? (selMode ? t('selectOnShort') : t('selectShort')) : (selMode ? t('selectOn') : t('selectOff')); $('btnSelect').classList.toggle('on', selMode); $('btnSelect').classList.toggle('hidden', !G.rules.multi);
   $('btnQuit').textContent = t('leave');
   // hand (left alone while a card is being dragged)
   if (!dragging) {

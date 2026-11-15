@@ -73,7 +73,7 @@ function debtValue(f) {
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
 const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
 // per-turn debt: at the start of your turn you pay for every card past the free ones
-const DEBT_TURN = { free: 13, rate: 0.5, cap: 4 };
+const DEBT_TURN = { free: 10, rate: 0.5, cap: 4 };
 const ANGEL_STEP = 1.25, DEMON_BASE = 10, DEMON_STEP = 1.5, DEMON_MIN = 10;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
