@@ -6007,10 +6007,8 @@ function showCombo(e) {
   const pay = [e.d ? t('comboToss', e.d) : '', e.slap >= 0 && e.sd ? t('comboNightSlap', nm(e.slap), e.sd) : '', e.m ? t('comboHit', e.m) : '', e.r ? t('comboRelief', e.r) : ''].filter(Boolean).join(' · ');
   el.innerHTML = `<span class="cwho">${esc(nm(e.pi))}</span><b class="cname">${t('combo_' + e.key)}</b><div class="cscore"><span class="chips">${e.chips}</span><i>×</i><span class="mult">${e.mult}</span></div>${pay ? `<span class="cpay">${esc(pay)}</span>` : ''}`;
   // sits on the top edge of the pile area, never over the day/night panel next to it
-  // shows up by whoever played it: under a rival's tag, or just above your own strip
-  { el.style.maxWidth = '';
-    if (e.pi === ME) { const r = $('bottom').querySelector('.me').getBoundingClientRect(); el.style.left = (r.left + Math.min(r.width, 640) / 2) + 'px'; el.style.top = Math.max(8, r.top - 92) + 'px'; }
-    else { const o = $('opp' + e.pi); if (o) { const r = o.getBoundingClientRect(); el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = (r.bottom + 10) + 'px'; } } }
+  // over the draw pile and the discard, no wider than them, so it never covers the day/night panel
+  { const pr = document.querySelector('.piles'); if (pr) { const r = pr.getBoundingClientRect(); el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = Math.max(8, r.top + 8) + 'px'; el.style.maxWidth = Math.max(220, r.width - 16) + 'px'; } }
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   const big = e.m > 0 || e.mult >= 3;
   SFX.play('mult', Math.min(4, e.mult)); setTimeout(() => SFX.play('lucky'), 180);
