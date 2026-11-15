@@ -45,6 +45,8 @@ function servePage(req, res) {
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
   if (url === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok'); return; }
+  // how many people are connected right now (the auto-updater waits for 0 before restarting)
+  if (url === '/busy') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end(String(wss ? wss.clients.size : 0)); return; }
   if (url === '/' || url === '/index.html') { servePage(req, res); return; }
   if (url.startsWith('/assets/')) { serveAsset(url, res, req); return; }
   res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found');
