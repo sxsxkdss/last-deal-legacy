@@ -18,7 +18,7 @@ const ROOM_TTL_MS = 30 * 60 * 1000; // empty rooms are removed after this
 const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the match (others play on)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
-const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
+const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'chaos'];
 const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
 
 const clean = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
@@ -199,19 +199,12 @@ function armBots(room) {
 function nextBotJob(room) {
   const G = room.G, isBot = i => { const m = room.members.get(room.seats[i]); return !!(m && m.bot) && !G.players[i].out; };
   const rnd = (a, b) => a + Math.random() * (b - a);
-  // bots catch humans who forgot to call UNO
-  for (let i = 0; i < G.players.length; i++) {
-    if (!isBot(i) && G.players[i].vulnerable && G.players[i].hand.length === 1) {
-      const catcher = G.players.findIndex((p, k) => isBot(k));
-      if (catcher >= 0) return { wait: rnd(1500, 2600), run: () => G.catchUno(catcher, i) };
-    }
-  }
   // cards anyone owes are drawn automatically and quickly, one at a time, so everybody sees each card land
   // (stack pickups and penalties). Drawing until a color shows up stays by hand.
   const pace = got => Math.max(70, 170 - (got || 0) * 8);
   for (let i = 0; i < G.players.length; i++) if (!isBot(i) && G.owes(i)) return { wait: pace(0), run: () => G.draw(i) };
   if (G.debt && G.debt.n && !isBot(G.debt.pi) && G.roulette === null) { const v = G.debt.pi, got = G.debt.got; return { wait: pace(got), run: () => G.draw(v) }; }
-  // owed cards first (UNO penalty, chaos tax, lost duel)
+  // owed cards first (chaos tax, lost duel)
   for (let i = 0; i < G.players.length; i++) if (isBot(i) && G.owes(i)) return { wait: rnd(160, 260), run: () => G.draw(i) };
   if (G.roulette !== null && isBot(G.roulette)) { const v = G.roulette; return { wait: rnd(700, 1100), run: () => G.resolveRoulette(Bot.bestColor(G, G.players[v].hand, G.side)) }; }
   if (G.debt && isBot(G.debt.pi)) { const v = G.debt.pi; return { wait: rnd(140, 240), run: () => G.draw(v) }; }
@@ -228,8 +221,8 @@ function nextBotJob(room) {
   }
   return { wait: rnd(650, 1150), run: () => {
     const it = Bot.item(G, pi); if (it && G.useItem(pi, it)) return;
-    const p = G.players[pi], m = Bot.choose(G, pi);
-    if (m) { if (p.hand.length - 1 - (m.extra || []).length <= 1 && Math.random() < 0.85) G.callUno(pi); G.play(pi, m.cardId, m); return; }
+    const m = Bot.choose(G, pi);
+    if (m) { G.play(pi, m.cardId, m); return; }
     if (G.drewBy === pi) { G.pass(pi); return; }
     if (G.canGamble(pi) && Math.random() < 0.4) { G.gamble(pi); return; }
     G.draw(pi);
@@ -456,8 +449,6 @@ function applyAct(G, pi, a) {
     case 'draw': G.draw(pi); break;
     case 'pass': G.pass(pi); break;
     case 'gamble': G.gamble(pi); break;
-    case 'uno': G.callUno(pi); break;
-    case 'catch': if (target !== null) G.catchUno(pi, target); break;
     case 'roul': if (G.roulette === pi) G.resolveRoulette(col); break;
     case 'deal': if (G.offer && G.offer.pi === pi) G.resolveDeal(pi, typeof a.id === 'string' ? a.id : null, target); break;
     case 'item': G.useItem(pi, String(a.id || '')); break;

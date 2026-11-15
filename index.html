@@ -114,8 +114,6 @@ body.lite #grain { display: none; }
 .btn.quiet { background: transparent; box-shadow: none; color: var(--chalk); }
 .btn.gamble { background: #111; color: #f2e6cf; outline: 2px dashed var(--stamp); outline-offset: -4px; }
 .btn.gamble:hover:not(:disabled) { background: #1d0908; }
-.btn.uno.ready { background-color: var(--stamp); color: #f2e6cf; animation: throb .7s ease-in-out infinite; }
-.btn.uno.called { opacity: .55; }
 @keyframes throb { 50% { transform: scale(1.06) } }
 .actions .btn:nth-child(odd) { rotate: -.6deg; }
 .actions .btn:nth-child(even) { rotate: .5deg; }
@@ -201,7 +199,6 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 .bar.hot > div { background: var(--stamp); }
 .timer { height: 2px; margin-top: 8px; background: var(--ink); transform-origin: left; animation: timer linear forwards; }
 @keyframes timer { to { transform: scaleX(0) } }
-.catch { margin-top: 8px; width: 100%; height: 28px; font-size: 12px; }
 .sep { align-self: center; padding: 0 2px; font: 500 20px/1 var(--f-type); color: var(--chalk-2); }
 
 /* ---------- the felt: chalk and piles ---------- */
@@ -1066,8 +1063,8 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 #bottom .me .actions, #bottom .me .abbar, #bottom .me .invbar { flex: 0 1 auto; }
 @media (max-width: 820px) {
   #bottom .me { width: 100%; }
-  #bottom .me .actions { flex: 1 1 100%; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; }
-  #bottom .me .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 1.6fr 1.2fr 1fr 1fr 1fr 1fr; }
+  #bottom .me .actions { flex: 1 1 100%; grid-template-columns: 1.6fr 1fr 1fr 1fr; }
+  #bottom .me .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 1.6fr 1.2fr 1fr 1fr 1fr; }
   #btnSelect { font-size: 11px; padding: 0 4px; white-space: normal; line-height: 12px; }
 }
 
@@ -1148,7 +1145,6 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
         <button class="btn primary" id="btnDraw" data-i18n="draw"></button>
         <button class="btn" id="btnPass" data-i18n="pass"></button>
         <button class="btn gamble hidden" id="btnGamble"></button>
-        <button class="btn uno" id="btnUno" data-i18n="uno"></button>
         <button class="btn quiet" id="btnSelect"></button>
         <button class="btn quiet desk" id="btnSort">Sort</button>
         <button class="btn quiet desk" data-rules data-i18n="rules"></button>
@@ -1262,10 +1258,10 @@ const CURSES = ['dark', 'fever', 'mirror', 'static'];
 const HORSE_TURNS = 10, HORSE_AT = 0.7, HORSE_AGAIN = 0.05, WAR_SECS = 4;
 const ATTACK_VALS = { L: ['d1', 'd2', 'd4'], D: ['d5'] };
 // Lobby presets. Every rule key the server knows, every house card.
-const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
+const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'chaos'];
 const PRESETS = (() => {
   const on = (keys, all) => Object.fromEntries(all.map(k => [k, keys.includes(k)]));
-  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'uno', 'lastCall'];
+  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'lastCall'];
   return {
     classic: { rules: on(base, RULE_ALL), cards: on([], EXTRA_CARDS) },
     den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['deal', 'wd15'].includes(k)), EXTRA_CARDS) },
@@ -1315,9 +1311,9 @@ function faceName(f) { return f.c === 'w' ? VALUE_NAME[f.v] : COLOR_NAME[f.c] + 
 class Game {
   constructor(names, humans, rules) {
     rules = Object.assign({}, rules);
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
-    // cut from the game: 7 swap, 0 rotate, jump-in, revenge, snitch, finisher
-    Object.assign(this.rules, { jumpIn: false, revenge: false, snitch: false, finisher: false });
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, flip: true, chaos: true }, rules);
+    // cut from the game: 7 swap, 0 rotate, jump-in, revenge, finisher
+    Object.assign(this.rules, { jumpIn: false, revenge: false, finisher: false });
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -1325,7 +1321,7 @@ class Game {
     this.gid = Math.random().toString(36).slice(2, 8);
     this.side = 'L';
     this.next = this.newCard();
-    this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, unoCalled: false, vulnerable: false, shield: false, oweN: 0, owed: [], av: '', peer: '' }));
+    this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, shield: false, oweN: 0, owed: [], av: '', peer: '' }));
     for (const p of this.players) for (let i = 0; i < this.rules.handSize; i++) p.hand.push(this.newCard());
     // debt match: house tokens bought in the shop (seat -> ids) and the chips earned this deal
     this.perks = rules.perks || {};
@@ -1402,7 +1398,6 @@ class Game {
       if (this.rules.mercy && p.hand.length >= this.rules.mercy) break;
       if (got.length > 300) break;
     }
-    if (p.hand.length !== 1) p.vulnerable = false;
     if (got.length) this.ev('draw', { pi, k: got.length });
     return got;
   }
@@ -1874,9 +1869,6 @@ class Game {
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
     this.drewBy = -1;
-    if (p.hand.length === 1) { p.vulnerable = this.rules.uno && !p.unoCalled; if (p.unoCalled) { this.addLog(`${p.name} calls UNO.`, 'uno', 'uno', { n: p.name }); this.ev('uno', { pi }); } }
-    else p.vulnerable = false;
-    p.unoCalled = false;
     if (p.hand.length === 0) {
       this.winner = pi; p.out = true;
       this.addLog(`${p.name} empties their hand and wins.`, 'win', 'win', { n: p.name });
@@ -1987,7 +1979,6 @@ class Game {
         let given = 0;
         for (let r = 0; r < 2 * k && p.hand.length > 1; r++) { const free = p.hand.filter(c => !c.lock); if (!free.length) break; const c = free[Math.floor(Math.random() * free.length)]; p.hand.splice(p.hand.indexOf(c), 1); this.players[tgt].hand.push(c); given++; }
         if (given && hasDeal(p, 'alms')) this.payDebt(pi, -10, 'alms');
-        if (given) this.players[tgt].vulnerable = false;
         this.addLog(`${p.name} gives ${this.players[tgt].name} ${given} cards.`, 'swap', 'gift', { n: p.name, t: this.players[tgt].name, g: given });
         this.ev('gift', { a: pi, b: tgt, g: given });
         break;
@@ -2057,7 +2048,6 @@ class Game {
         // reroll: your whole hand is replaced by the same number of fresh cards
         const keep = p.hand.filter(c => c.lock || c.chain), cnt = p.hand.length - keep.length;
         p.hand = keep; for (let r = 0; r < cnt; r++) p.hand.push(this.newCard());
-        p.vulnerable = false;
         this.addLog(`${p.name} rolls the D6: a fresh hand of ${cnt}.`, 'flip', 'd6', { n: p.name, k: cnt });
         this.ev('d6', { pi, k: cnt });
         break;
@@ -2141,7 +2131,6 @@ class Game {
         const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
         const t = this.players[tgt];
         for (let r = 0; r < 10; r++) { const c = this.next; this.next = this.newCard(); c.chain = 2; t.hand.push(c); }
-        t.vulnerable = false;
         this.addLog(`${p.name} offers a sacrifice: ${t.name} takes 10 chained cards.`, 'bad', 'sacr', { n: p.name, t: t.name });
         this.ev('sacr', { pi, t: tgt }); this.ev('draw', { pi: tgt, k: 10 });
         if (this.chipsWon && hasDeal(p, 'blood')) this.chipsWon[pi] += 10;
@@ -2183,7 +2172,6 @@ class Game {
           for (let k = 0; k < act.length; k++) { order.push(i); i = this.nextIdx(i, 1); }
           for (const j of act) this.players[j].hand = [];
           all.forEach((c, k) => this.players[order[k % order.length]].hand.push(c));
-          for (const q of this.players) q.vulnerable = false;
           this.addLog(`Black hole. Every hand is pooled and dealt back out: ${act.map(j => this.players[j].name + ' ' + this.players[j].hand.length).join(', ')}.`, 'swap', 'bhole', { l: act.map(j => [this.players[j].name, this.players[j].hand.length]) });
           this.ev('bhole', {});
         }
@@ -2268,7 +2256,7 @@ class Game {
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
     }
   }
-  // Every draw is one card by hand. Owed cards (UNO penalty, a lost duel) can be paid any time;
+  // Every draw is one card by hand. Owed cards (a lost duel, chaos tax) can be paid any time;
   // a debt (a taken stack, roulette, draw-color) has to be paid before play moves on.
   draw(pi) {
     const p = this.players[pi];
@@ -2277,7 +2265,6 @@ class Game {
       let got;
       if (p.owed && p.owed.length) { const c = p.owed.shift(); p.hand.push(c); got = [c]; this.ev('draw', { pi, k: 1 }); }
       else { got = this.give(pi, 1); p.oweN--; }
-      if (p.hand.length !== 1) p.vulnerable = false;
       this.seq++; this.mercyCheck();
       return got;
     }
@@ -2354,13 +2341,6 @@ class Game {
     this.debt = { pi: vi, until: color, got: 0, kind: 'roulette' };
     return [];
   }
-  callUno(pi) {
-    const p = this.players[pi];
-    if (p.out) return false;
-    if (p.hand.length === 1 && p.vulnerable) { p.vulnerable = false; this.addLog(`${p.name} calls UNO just in time`, 'uno', 'unoLate', { n: p.name }); this.ev('uno', { pi }); return true; }
-    if ((p.hand.length <= 2 || (this.rules.multi && this.unoReach(pi))) && !p.unoCalled) { p.unoCalled = true; this.ev('uno', { pi }); return true; }
-    return false;
-  }
   // ---- Chaos events ----
   rollChaos() {
     this.chaosIn = 8 + Math.floor(Math.random() * 5);
@@ -2406,7 +2386,7 @@ class Game {
   removePlayer(pi, why = 'left') {
     const p = this.players[pi];
     if (!p || p.out || this.winner !== null) return false;
-    p.out = true; p.left = why !== 'broke'; p.vulnerable = false; p.shield = false;
+    p.out = true; p.left = why !== 'broke'; p.shield = false;
     if (why !== 'broke') this.addLog(`${p.name} ${why === 'left' ? 'left the match' : 'was away too long and is out of the match'}. Everyone else plays on.`, 'bad', 'left', { n: p.name, aw: why === 'left' ? 0 : 1 });
     if (this.offer && this.offer.pi === pi) this.offer = null;
     this.ev('ko', { pi });
@@ -2454,12 +2434,6 @@ class Game {
     this.applyShield(); this.checkFlipBack();
     return true;
   }
-  // can this player get down to one card in a single same-number drop?
-  unoReach(pi) {
-    const h = this.players[pi].hand, cnt = {};
-    for (const c of h) { const f = this.f(c); const key = (f.c === 'w' ? 'w:' : '') + f.v; cnt[key] = (cnt[key] || 0) + 1; }
-    return Object.values(cnt).some(n => n >= h.length - 1);
-  }
   // Russian roulette: facing a stack of +8 or more, pull the trigger instead of answering it.
   // Click: the stack is gone and the turn passes. Bang: you take it doubled.
   canGamble(pi) { return this.rules.gamble !== false && pi === this.turn && this.pending >= (this.side === 'D' ? 4 : 8) && !this.debt && this.roulette === null && !this.owes(pi) && this.winner === null; }
@@ -2480,21 +2454,6 @@ class Game {
     this.ev('gamble', { pi, ok: 0, k: this.pending });
     this.draw(pi);
     return false;
-  }
-  catchUno(catcher, target) {
-    const t = this.players[target];
-    if (!t || !t.vulnerable || t.hand.length !== 1 || t.out || catcher === target) return false;
-    t.vulnerable = false;
-    this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO. ${t.name} must draw 2.`, 'bad', 'caught', { n: this.players[catcher].name, t: t.name });
-    this.ev('caught', { pi: target, by: catcher });
-    t.oweN = (t.oweN || 0) + 2; this.seq++;
-    if (this.rules.snitch !== false) {
-      // the snitch also dumps two of their own cards on the victim
-      const c = this.players[catcher]; let given = 0;
-      for (let r = 0; r < 1 && c.hand.length > 1; r++) { t.hand.push(c.hand.splice(Math.floor(Math.random() * c.hand.length), 1)[0]); given++; }
-      if (given) { this.addLog(`Snitch: ${c.name} also dumps ${given} of their cards on ${t.name}.`, 'bad', 'snitch', { n: c.name, t: t.name, g: given }); this.ev('snitch', { a: catcher, b: target, g: given }); }
-    }
-    return true;
   }
 }
 
@@ -2634,7 +2593,7 @@ function serialize(g, viewer = -1, logN = 8) {
     gid: g.gid, ru: g.rules, sd: g.side,
     p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
-      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
+      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
       p.hand.map((c, k) => (c.lock || c.chain ? [k, c.chain || 0, c.lock ? 1 : 0] : null)).filter(Boolean),
       [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0) | (p.signedNow ? 32 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
       p.hand.map(c => (c.uniq ? 1 : 0)).join(''),
@@ -2659,7 +2618,7 @@ function deserialize(st) {
     if (hs[0] === '!') hand = [...hs.slice(1)].map(ch => { const c = { id: CARD_ID++, hidden: true }; c[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(ch)] || { c: 'w', v: 'wild' }); return c; });
     else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
-      out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
+      out: !!(a[4] & 1), elim: !!(a[4] & 2), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
       ...(() => { const d = Array.isArray(a[8]) ? a[8] : []; return { angel: d[0] || 0, demon: d[1] || 0, deals: String(d[2] || '').split('+').filter(Boolean), fallen: !!(d[3] & 4), broke: !!(d[3] & 8), skipNext: !!(d[3] & 16), signedNow: !!(d[3] & 32), debt: d[4] || 0, limit: d[5] || 0, markT: d[6] >= 0 ? d[6] : null, used: Object.fromEntries(String(d[7] || '').split(',').filter(Boolean).map(k => [k, true])) }; })(),
       ...(() => { const d = Array.isArray(a[10]) ? a[10] : []; return { inv: String(d[0] || '').split(',').filter(Boolean), fx: Object.fromEntries(String(d[1] || '').split(',').filter(Boolean).map(x => { const [k, v] = x.split(':'); return [k, v === undefined ? true : +v]; })), buff: d[2] || 0 }; })() };
   });
@@ -2689,7 +2648,6 @@ Object.defineProperty(Game.prototype, 'turn', {
   configurable: true
 });
 if (typeof module !== 'undefined') module.exports = { comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
-
 </script>
 <script>
 // ===== LANGUAGES: English + Russian =====
@@ -2747,7 +2705,7 @@ const STR = {
     connecting: 'Connecting…', connServer: 'Connecting to the game server…', enterCode: 'Enter the 4-character room code.', enterName: 'Enter your name, then Join.',
     rejoining: c => `Rejoining room ${c}…`, cantReach: 'Could not reach the game server.', reconnecting: 'Reconnecting…', connLost: 'Connection lost. Reconnecting…', otherTab: 'This room was opened in another tab.',
     room: c => `Room ${c}`, log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off',
-    draw: 'Draw', pass: 'Pass', uno: 'LAST', unoCalled: 'Called', sort: m => `Sort: ${({ color: 'color', value: 'number', none: 'off', manual: 'by hand' })[m]}`, leave: 'Leave', menu: 'Menu',
+    draw: 'Draw', pass: 'Pass', sort: m => `Sort: ${({ color: 'color', value: 'number', none: 'off', manual: 'by hand' })[m]}`, leave: 'Leave', menu: 'Menu',
     take: k => `Take +${k}`, pickUpLeft: k => `Pick up (${k} left)`, drawUntil: (c, k) => `Draw until ${c} (${k})`, penalty: k => `Pick up penalty (${k})`, drawAgain: k => `Draw again (${k})`,
     lightSide: 'Light side', darkSide: 'Dark side', colorPending: 'Color pending', cw: 'Clockwise', ccw: 'Counter-clockwise', stack: 'Stack',
     youWin: 'You win', wins: n => `${n} wins`, youLeft: 'You left this match. Watching the rest of it.',
@@ -2757,13 +2715,12 @@ const STR = {
     rouletteMe: 'Roulette: name a color', rouletteOther: n => `${n} is naming a color`,
     stackOrTake: (m, k) => `Stack +${m} or higher, mirror it, or take +${k}`, playOrPass: 'Play the card you drew, or pass', yourTurn: 'Your turn: tap or drag a card',
     keepDrawing: c => `Nothing fits. Keep drawing until you hit ${c} or a wild.`, drawOne: 'Nothing fits. Draw a card.', turnOf: (n, aw) => `${n}'s turn${aw ? ' (away, skipping soon)' : ''}`,
-    tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Up next', tagShield: 'Shield', tagWinner: 'Winner', tagUno: 'LAST', tagPlayer: 'Player',
-    catchBtn: 'Catch: +2',
+    tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Up next', tagShield: 'Shield', tagWinner: 'Winner', tagPlayer: 'Player',
     tJump: 'Jump-in', tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Skip everyone', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands rotate',
-    tRoulette: 'Roulette', tMulti: k => `${k} at once`, tCaught: 'Caught: +2', tMirror: n => `Mirrored to ${n}`, tShieldUp: 'Shield up', tShield: k => `Shield breaks +${k}`,
-    tBhole: 'Black hole', tMult: x => `×${x}`, tArm: x => `×${x} armed`, tLucky: 'Lucky!', tMiss: 'No luck', tGlass: 'Shatter!', tGlassHit: 'Glass!', tDevil: '666', tLoan: 'Loan', tDue: 'Payday', tFire: 'ON FIRE', gambleBtn: 'Roulette', tClick: 'click… you live', tBang: k => `BANG! +${k}`, tOverload: 'OVERLOAD', tFinisher: k => `Finisher: +${k}`, tRevenge: k => `REVENGE +${k}`, tagRevenge: 'Revenge', tPotato: n => `Potato → ${n}`, tSnitch: 'Snitch', potatoOn: 'Hot potato ticking', potatoHot: 'Hot potato: any second', pill_health: 'Full Health (−2 cards)', pill_badtrip: 'Bad Trip (+3)', pill_steel: 'Balls of Steel (shield)', pill_drowsy: "I'm Drowsy… (next player skipped)", pill_telepills: 'Telepills (hands swapped)', pill_wizard: 'R U A Wizard? (reverse)',
+    tRoulette: 'Roulette', tMulti: k => `${k} at once`, tMirror: n => `Mirrored to ${n}`, tShieldUp: 'Shield up', tShield: k => `Shield breaks +${k}`,
+    tBhole: 'Black hole', tMult: x => `×${x}`, tArm: x => `×${x} armed`, tLucky: 'Lucky!', tMiss: 'No luck', tGlass: 'Shatter!', tGlassHit: 'Glass!', tDevil: '666', tLoan: 'Loan', tDue: 'Payday', tFire: 'ON FIRE', gambleBtn: 'Roulette', tClick: 'click… you live', tBang: k => `BANG! +${k}`, tOverload: 'OVERLOAD', tFinisher: k => `Finisher: +${k}`, tRevenge: k => `REVENGE +${k}`, tagRevenge: 'Revenge', tPotato: n => `Potato → ${n}`, potatoOn: 'Hot potato ticking', potatoHot: 'Hot potato: any second', pill_health: 'Full Health (−2 cards)', pill_badtrip: 'Bad Trip (+3)', pill_steel: 'Balls of Steel (shield)', pill_drowsy: "I'm Drowsy… (next player skipped)", pill_telepills: 'Telepills (hands swapped)', pill_wizard: 'R U A Wizard? (reverse)',
     tD6: 'REROLL', tTower: 'THE TOWER', tBrim: 'BRIMSTONE', tFoot: n => `Mom's Foot → ${n}`, tMaze: 'CURSE OF THE MAZE', tDeal: 'DEVIL DEAL', tDealDue: k => `The devil collects: +${k}`, tMonstro: n => `Monstro → ${n}`, mazeLeft: k => `Maze: ${k}`, tagMarked: 'Marked', combo_pair: 'Pair', combo_twopair: 'Two Pair', combo_three: 'Three of a Kind', combo_straight: 'Straight', combo_flush: 'Flush', combo_fullhouse: 'Full House', combo_four: 'Four of a Kind', combo_straightflush: 'Straight Flush', combo_five: 'Five of a Kind',
-    comboToss: n => `−${n} ${n === 1 ? 'card' : 'cards'}`, comboHit: n => `everyone +${n}`, noCombo: 'Not a combo', comboQ: 'Play a combo?', comboSub: 'Pick number cards that make a poker hand: a pair, two pair, three or four of a kind, a straight (3+ in a row, one color), a flush (5 of one color), a full house. They go down left to right; drag to reorder, tap to switch off.', tGift: n => `Gift → ${n}`, tEcho: 'Echo', tEchoNone: 'Echo fades', tInterest: 'Interest', tSacrifice: 'Sacrifice', tWheel: n => `Wheel → ${n}`, tBomb: 'BOOM', giftQ: 'Who gets the gift?', giftSub: k => `${k} random cards from your hand go to them.`, tagLoan: n => `loan ${n}`, multNext: x => `next draw ×${x}`, tDark: 'Dark side', tLight: 'Light side', tOut: n => `${n} is out`, tUno: 'UNO',
+    comboToss: n => `−${n} ${n === 1 ? 'card' : 'cards'}`, comboHit: n => `everyone +${n}`, noCombo: 'Not a combo', comboQ: 'Play a combo?', comboSub: 'Pick number cards that make a poker hand: a pair, two pair, three or four of a kind, a straight (3+ in a row, one color), a flush (5 of one color), a full house. They go down left to right; drag to reorder, tap to switch off.', tGift: n => `Gift → ${n}`, tEcho: 'Echo', tEchoNone: 'Echo fades', tInterest: 'Interest', tSacrifice: 'Sacrifice', tWheel: n => `Wheel → ${n}`, tBomb: 'BOOM', giftQ: 'Who gets the gift?', giftSub: k => `${k} random cards from your hand go to them.`, tagLoan: n => `loan ${n}`, multNext: x => `next draw ×${x}`, tDark: 'Dark side', tLight: 'Light side', tOut: n => `${n} is out`,
     pickColor: 'Pick a color', rouletteTitle: 'Color roulette', rouletteSub: 'Name a color. You draw cards until it shows up and keep all of them.',
     flipWild: 'The flip lands on a wild', flipWildSub: n => `The back of this card is ${n}. Choose its color.`,
     swapQ: 'Swap hands?', swapSub: k => `You keep ${k} ${cardsAcc(k)} after this play. Trade with someone, or keep your hand.`, keepHand: 'Keep my hand',
@@ -2792,7 +2749,7 @@ const STR = {
     connecting: 'Подключение…', connServer: 'Подключаемся к игровому серверу…', enterCode: 'Введите код комнаты из 4 символов.', enterName: 'Введите имя и нажмите «Войти».',
     rejoining: c => `Возвращаемся в комнату ${c}…`, cantReach: 'Не удалось связаться с игровым сервером.', reconnecting: 'Переподключение…', connLost: 'Связь потеряна. Переподключаемся…', otherTab: 'Эта комната открыта в другой вкладке.',
     room: c => `Комната ${c}`, log: 'Журнал', soundOn: 'Звук вкл', soundOff: 'Звук выкл',
-    draw: 'Взять', pass: 'Пас', uno: 'ОДНА', unoCalled: 'Сказано', sort: m => `Сортировка: ${({ color: 'цвет', value: 'номер', none: 'выкл', manual: 'вручную' })[m]}`, leave: 'Выйти', menu: 'Меню',
+    draw: 'Взять', pass: 'Пас', sort: m => `Сортировка: ${({ color: 'цвет', value: 'номер', none: 'выкл', manual: 'вручную' })[m]}`, leave: 'Выйти', menu: 'Меню',
     take: k => `Взять +${k}`, pickUpLeft: k => `Брать (осталось ${k})`, drawUntil: (c, k) => `Тянуть до цвета «${c}» (${k})`, penalty: k => `Взять штраф (${k})`, drawAgain: k => `Тянуть ещё (${k})`,
     lightSide: 'Светлая сторона', darkSide: 'Тёмная сторона', colorPending: 'Цвет выбирается', cw: 'По часовой', ccw: 'Против часовой', stack: 'Стопка',
     youWin: 'Вы победили', wins: n => `Победил(а) ${n}`, youLeft: 'Вы вышли из этой партии. Можно досмотреть.',
@@ -2802,13 +2759,12 @@ const STR = {
     rouletteMe: 'Рулетка: назовите цвет', rouletteOther: n => `${n} выбирает цвет`,
     stackOrTake: (m, k) => `Положите +${m} или больше, отразите или возьмите +${k}`, playOrPass: 'Сыграйте взятую карту или пасуйте', yourTurn: 'Ваш ход: нажмите на карту или перетащите её',
     keepDrawing: c => `Ходить нечем. Тяните, пока не выпадет «${c}» или джокер.`, drawOne: 'Ходить нечем. Возьмите карту.', turnOf: (n, aw) => `Ходит ${n}${aw ? ' (нет на месте, скоро пропуск)' : ''}`,
-    tagLeft: 'Вышел', tagAway: 'Нет', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Щит', tagWinner: 'Победитель', tagUno: 'ОДНА', tagPlayer: 'Игрок',
-    catchBtn: 'Поймать: +2',
+    tagLeft: 'Вышел', tagAway: 'Нет', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Щит', tagWinner: 'Победитель', tagPlayer: 'Игрок',
     tJump: 'Вмешался!', tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропуск всех', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
-    tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tCaught: 'Пойман: +2', tMirror: n => `Отражено: ${n}`, tShieldUp: 'Щит поднят', tShield: k => `Щит отбил +${k}`,
-    tBhole: 'Чёрная дыра', tMult: x => `×${x}`, tArm: x => `×${x} заряжен`, tLucky: 'Повезло!', tMiss: 'Мимо', tGlass: 'Вдребезги!', tGlassHit: 'Стекло!', tDevil: '666', tLoan: 'Кредит', tDue: 'Расплата', tFire: 'В ОГНЕ', gambleBtn: 'Рулетка', tClick: 'щёлк… живой', tBang: k => `БАХ! +${k}`, tOverload: 'ПЕРЕГРУЗ', tFinisher: k => `Добивание: +${k}`, tRevenge: k => `МЕСТЬ +${k}`, tagRevenge: 'Месть', tPotato: n => `Картошка → ${n}`, tSnitch: 'Стукач', potatoOn: 'Горячая картошка тикает', potatoHot: 'Картошка вот-вот рванёт', pill_health: 'Полное здоровье (−2 карты)', pill_badtrip: 'Бэд трип (+3)', pill_steel: 'Стальные шары (щит)', pill_drowsy: 'Я сонный… (следующий пропускает)', pill_telepills: 'Телепилюли (обмен рукой)', pill_wizard: 'Ты волшебник? (разворот)',
+    tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tMirror: n => `Отражено: ${n}`, tShieldUp: 'Щит поднят', tShield: k => `Щит отбил +${k}`,
+    tBhole: 'Чёрная дыра', tMult: x => `×${x}`, tArm: x => `×${x} заряжен`, tLucky: 'Повезло!', tMiss: 'Мимо', tGlass: 'Вдребезги!', tGlassHit: 'Стекло!', tDevil: '666', tLoan: 'Кредит', tDue: 'Расплата', tFire: 'В ОГНЕ', gambleBtn: 'Рулетка', tClick: 'щёлк… живой', tBang: k => `БАХ! +${k}`, tOverload: 'ПЕРЕГРУЗ', tFinisher: k => `Добивание: +${k}`, tRevenge: k => `МЕСТЬ +${k}`, tagRevenge: 'Месть', tPotato: n => `Картошка → ${n}`, potatoOn: 'Горячая картошка тикает', potatoHot: 'Картошка вот-вот рванёт', pill_health: 'Полное здоровье (−2 карты)', pill_badtrip: 'Бэд трип (+3)', pill_steel: 'Стальные шары (щит)', pill_drowsy: 'Я сонный… (следующий пропускает)', pill_telepills: 'Телепилюли (обмен рукой)', pill_wizard: 'Ты волшебник? (разворот)',
     tD6: 'РЕРОЛЛ', tTower: 'БАШНЯ', tBrim: 'БРИМСТОУН', tFoot: n => `Нога мамы → ${n}`, tMaze: 'ПРОКЛЯТИЕ ЛАБИРИНТА', tDeal: 'СДЕЛКА С ДЬЯВОЛОМ', tDealDue: k => `Дьявол берёт своё: +${k}`, tMonstro: n => `Монстро → ${n}`, mazeLeft: k => `Лабиринт: ${k}`, tagMarked: 'Метка', combo_pair: 'Пара', combo_twopair: 'Две пары', combo_three: 'Сет', combo_straight: 'Стрит', combo_flush: 'Флеш', combo_fullhouse: 'Фулл-хаус', combo_four: 'Каре', combo_straightflush: 'Стрит-флеш', combo_five: 'Покер',
-    comboToss: n => `−${n} ${cardsAcc(n)}`, comboHit: n => `всем +${n}`, noCombo: 'Это не комбинация', comboQ: 'Сыграть комбинацию?', comboSub: 'Выберите числовые карты, которые складываются в покерную комбинацию: пара, две пары, сет, каре, стрит (3+ подряд одного цвета), флеш (5 одного цвета), фулл-хаус. Карты ложатся слева направо; перетаскивайте, чтобы поменять порядок, нажмите, чтобы выключить.', tGift: n => `Подарок → ${n}`, tEcho: 'Эхо', tEchoNone: 'Эхо затихло', tInterest: 'Проценты', tSacrifice: 'Жертва', tWheel: n => `Колесо → ${n}`, tBomb: 'БУМ', giftQ: 'Кому подарок?', giftSub: k => `${k} случайные карты из вашей руки уйдут ему.`, tagLoan: n => `кредит ${n}`, multNext: x => `след. «Возьми» ×${x}`, tDark: 'Тёмная сторона', tLight: 'Светлая сторона', tOut: n => `${n} выбыл(а)`, tUno: 'УНО',
+    comboToss: n => `−${n} ${cardsAcc(n)}`, comboHit: n => `всем +${n}`, noCombo: 'Это не комбинация', comboQ: 'Сыграть комбинацию?', comboSub: 'Выберите числовые карты, которые складываются в покерную комбинацию: пара, две пары, сет, каре, стрит (3+ подряд одного цвета), флеш (5 одного цвета), фулл-хаус. Карты ложатся слева направо; перетаскивайте, чтобы поменять порядок, нажмите, чтобы выключить.', tGift: n => `Подарок → ${n}`, tEcho: 'Эхо', tEchoNone: 'Эхо затихло', tInterest: 'Проценты', tSacrifice: 'Жертва', tWheel: n => `Колесо → ${n}`, tBomb: 'БУМ', giftQ: 'Кому подарок?', giftSub: k => `${k} случайные карты из вашей руки уйдут ему.`, tagLoan: n => `кредит ${n}`, multNext: x => `след. «Возьми» ×${x}`, tDark: 'Тёмная сторона', tLight: 'Светлая сторона', tOut: n => `${n} выбыл(а)`,
     pickColor: 'Выберите цвет', rouletteTitle: 'Цветная рулетка', rouletteSub: 'Назовите цвет. Вы тянете карты, пока он не выпадет, и забираете все.',
     flipWild: 'Смена открыла джокера', flipWildSub: n => `На обороте этой карты — ${n}. Выберите цвет.`,
     swapQ: 'Поменяться руками?', swapSub: k => `После хода у вас останется ${k} ${cardsW(k)}. Поменяйтесь с кем-нибудь или оставьте свою руку.`, keepHand: 'Оставить свою руку',
@@ -2832,13 +2788,11 @@ const RULES_I18N = {
     ['seven', '7 swaps hands', 'Playing a 7 lets you trade hands with any player, if you want to.'],
     ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
     ['jumpIn', 'Jump-in', 'Play an exact copy of the top card out of turn, wilds included.'],
-    ['uno', 'Last card call', 'Get caught on one card without calling "Last card": draw 2.'],
     ['chaos', 'Chaos', 'Every few plays a slot machine spins and hits the table with a random event.'],
     ['gamble', 'Russian roulette', 'Facing a stack of +8 or more, pull the trigger instead: 50% the stack is gone, 50% you take it doubled.'],
     ['lastCall', 'Last call', 'After 150 turns the house closes the table: fewest cards wins. Keeps every game finite.'],
     ['potato', 'Hot potato', 'A hidden fuse ticks with every play. When it runs out, whoever is up picks up 3.'],
     ['revenge', 'Revenge', 'Take a stack of 10+ and your next draw card counts double.'],
-    ['snitch', 'Snitch', 'Catch someone who didn’t call “Last card” and you also dump one of your cards on them.'],
     ['finisher', 'Finisher', 'A stack that lands on someone with 2 cards or fewer grows by +4.'],
     ['combos', 'Poker combos', 'Number cards can go down together as poker hands (pair, straight, flush, full house…). Bigger hands throw away extra cards; four and five of a kind and straight flushes hit everyone.']
   ],
@@ -2850,13 +2804,11 @@ const RULES_I18N = {
     ['seven', '7 — обмен руками', 'Сыграв 7, можно поменяться руками с любым игроком (по желанию).'],
     ['zero', '0 — руки по кругу', 'Сыграв 0, все передают руку следующему игроку.'],
     ['jumpIn', 'Вмешательство', 'Точную копию верхней карты, включая джокеров, можно сыграть вне очереди.'],
-    ['uno', 'Крик «Одна»', 'Поймали с одной картой без крика «Одна»: возьмите 2.'],
     ['chaos', 'Хаос', 'Каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.'],
     ['gamble', 'Русская рулетка', 'Перед стопкой +8 и больше можно нажать на спуск: 50% — стопка исчезает, 50% — берёте её вдвойне.'],
     ['lastCall', 'Последний звонок', 'Через 150 ходов дом закрывает стол: побеждает тот, у кого меньше карт. Ни одна партия не тянется вечно.'],
     ['potato', 'Горячая картошка', 'Скрытый фитиль тикает с каждым ходом. Когда догорит, тот, чей ход, берёт 3.'],
     ['revenge', 'Месть', 'Взяли стопку 10+ — ваша следующая карта «Возьми» считается вдвойне.'],
-    ['snitch', 'Стукач', 'Поймали кого-то без крика «Одна» — заодно скиньте ему одну свою карту.'],
     ['finisher', 'Добивание', 'Стопка, которая приходит к игроку с 2 картами или меньше, растёт на +4.'],
     ['combos', 'Покерные комбинации', 'Числовые карты можно класть вместе покерными комбинациями (пара, стрит, флеш, фулл-хаус…). Чем сильнее комбинация, тем больше лишних карт уходит из руки; каре, покер и стрит-флеш бьют по всем.']
   ]
@@ -2943,7 +2895,6 @@ function fmtLog(l, myName) {
     ko: () => `${N(a.n)} набрал(а) ${a.k} ${cardsAcc(a.k)} и выбывает.`,
     lastLeft: () => `${N(a.n)} остаётся последним и побеждает.`,
     play: () => `${N(a.n)} ${a.j ? 'вмешивается:' : 'играет'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? ` и сбрасывает ещё ${a.d} ${cardsAcc(a.d)}` : ''}.`,
-    uno: () => `${N(a.n)} говорит «Одна».`, unoLate: () => `${N(a.n)} успевает сказать «Одна».`,
     win: () => `${N(a.n)} избавляется от всех карт и побеждает.`,
     swap: () => `${N(a.n)} меняется руками с ${N(a.t)} (${a.a} ↔ ${a.b}).`,
     rotate: () => `Все передают руки ${a.cw ? 'по часовой' : 'против часовой'}!`,
@@ -2977,7 +2928,6 @@ function fmtLog(l, myName) {
     revenge: () => `МЕСТЬ: карта ${N(a.n)} считается вдвойне. Стопка +${a.k}.`,
     potato: () => `Динамит взрывается у ${N(a.n)}: +3.`,
     potatoLit: () => 'Под столом зажигают новый динамит.',
-    snitch: () => `Стукач: ${N(a.n)} скидывает игроку ${N(a.t)} ${a.g} ${cardsAcc(a.g)}.`,
     combo: () => `${N(a.n)}: ${STR.ru['combo_' + a.h] || a.h} ${a.c} × ${a.x}.${a.d ? ` Ещё ${a.d} ${cardsAcc(a.d)} из руки.` : ''}${a.m ? ` Все остальные берут ${a.m}.` : ''}`,
     gift: () => `${N(a.n)} оставляет чаевые игроку ${N(a.t)}: ${a.g} ${cardsAcc(a.g)}.`,
     echo: () => `Бис! ${N(a.n)} повторяет: ${cardName(a.f)}.`,
@@ -3004,7 +2954,7 @@ function fmtLog(l, myName) {
     stackGone: () => `Стопка +${a.k}, направленная на ${N(a.n)}, сброшена.`,
     awayColor: () => `${N(a.n)} нет на месте. Цвет выбран случайно.`, awayStack: () => `${N(a.n)} нет на месте, стопка забрана за него.`,
     chaos: () => `Хаос: ${(STR.ru.ev[a.e] || [a.e])[0]}${(a.w || []).length ? ' (' + a.w.join(', ') + ')' : ''}. ${(STR.ru.ev[a.e] || ['', ''])[1]}.`,
-    awaySkip: () => `${N(a.n)} нет на месте. Ход пропущен.`, caught: () => `${N(a.n)} ловит ${N(a.t)} без крика «Одна». ${N(a.t)} берёт 2.`
+    awaySkip: () => `${N(a.n)} нет на месте. Ход пропущен.`
   } : {
     lucky2: () => `${N(a.n)}'s horseshoe: ${a.w ? `−${a.w} debt` : ''}${a.w && a.h ? ', ' : ''}${a.h ? `${a.h} cards gone` : ''}.`, pill2: () => `${N(a.n)} scratches a ticket: ${({ wipe: '−10 debt', fine: '+10 debt', draw: 'pick up 2', toss: 'throw away 2', chips: '10 chips' })[a.p] || a.p}.`,
     loan2: () => `${N(a.n)} takes a loan: ${a.c}¢ now, ${a.d} debt after 3 plays.`, loanDue2: () => `${N(a.n)}'s loan comes due: +${a.d} debt.`, deal2: () => `${N(a.n)} signs a contract: ${a.g} cards burn. The demon takes notice.`,
@@ -3021,7 +2971,6 @@ function fmtLog(l, myName) {
     ko: () => `${N(a.n)} hit ${a.k} cards and is knocked out.`,
     lastLeft: () => `${N(a.n)} is the last player left and wins.`,
     play: () => `${N(a.n)} ${a.j ? 'jumps in with' : 'plays'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? ` and discards ${a.d} more ${cardsAcc(a.d)}` : ''}.`,
-    uno: () => `${N(a.n)} calls "Last card".`, unoLate: () => `${N(a.n)} calls "Last card" just in time.`,
     win: () => `${N(a.n)} empties their hand and wins.`,
     swap: () => `${N(a.n)} swaps hands with ${N(a.t)} (${a.a} ↔ ${a.b}).`,
     rotate: () => `Everyone passes their hand ${a.cw ? 'clockwise' : 'counter-clockwise'}!`,
@@ -3055,7 +3004,6 @@ function fmtLog(l, myName) {
     revenge: () => `REVENGE: ${N(a.n)}'s card counts double. The stack is +${a.k}.`,
     potato: () => `The dynamite goes off on ${N(a.n)}: +3.`,
     potatoLit: () => 'Someone lights new dynamite under the table.',
-    snitch: () => `Snitch: ${N(a.n)} also dumps ${a.g} card on ${N(a.t)}.`,
     combo: () => `${N(a.n)}: ${STR.en['combo_' + a.h] || a.h} ${a.c} × ${a.x}.${a.d ? ` ${a.d} more cards gone.` : ''}${a.m ? ` Everyone else picks up ${a.m}.` : ''}`,
     gift: () => `${N(a.n)} tips ${N(a.t)} ${a.g} cards.`,
     echo: () => `Encore! ${N(a.n)} repeats ${cardName(a.f)}.`,
@@ -3082,7 +3030,7 @@ function fmtLog(l, myName) {
     stackGone: () => `The +${a.k} stack aimed at ${N(a.n)} is discarded.`,
     awayColor: () => `${N(a.n)} is away. A random color is called for them.`, awayStack: () => `${N(a.n)} is away and takes the stack.`,
     chaos: () => `Chaos: ${(STR.en.ev[a.e] || [a.e])[0]}${(a.w || []).length ? ' (' + a.w.join(', ') + ')' : ''}. ${(STR.en.ev[a.e] || ['', ''])[1]}.`,
-    awaySkip: () => `${N(a.n)} is away. Turn skipped.`, caught: () => `${N(a.n)} catches ${N(a.t)} not calling "Last card". ${N(a.t)} must draw 2.`
+    awaySkip: () => `${N(a.n)} is away. Turn skipped.`
   };
   try { if (l.k && L[l.k]) return L[l.k](); } catch (e) {}
   return l.msg;
@@ -3091,7 +3039,7 @@ function fmtLog(l, myName) {
 const RULES_HTML = {
   en: `<h3>Basics</h3><ul><li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
     <li>The deck never runs out. Cards come from a mix of classic, Flip and No Mercy cards.</li>
-    <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>U</b> Last card, <b>P</b> pass.</li>
+    <li>Tap a card or drag it to the pile. Keys: <b>D</b> or <b>Space</b> draw, <b>P</b> pass.</li>
     <li>The host switches each rule and each extra card on or off in the lobby.</li></ul>
     <h3>Drawing</h3><ul><li>A stack you take and penalties come in automatically, one card at a time. Drawing until a color shows up (nothing to play, Color Roulette, Wild Draw Color) is by hand, one tap per card.</li>
     <li>While you owe cards, you can't play until they are picked up.</li></ul>
@@ -3104,8 +3052,7 @@ const RULES_HTML = {
     <li><b>Draw until color</b>: with nothing to play, draw one card at a time until you hit the current color or a wild.</li>
     <li><b>7</b> lets you swap hands with one player, or keep yours. <b>0</b> passes every hand along.</li>
     <li><b>Same-number drops</b>: play every card with the same number or symbol together, in the order you choose. Matching wilds go down together too (one color choice). Draw cards add up, skips skip that many players, and an even number of reverses or flips cancels out.</li>
-    <li><b>Jump-in</b>: play an exact copy of the top card out of turn, wilds included (a Wild +4 on a Wild +4). Outlined cards qualify.</li>
-    <li><b>Last card</b>: call it at two cards or right after dropping to one. If you're caught, you draw 2.</li></ul>
+    <li><b>Jump-in</b>: play an exact copy of the top card out of turn, wilds included (a Wild +4 on a Wild +4). Outlined cards qualify.</li></ul>
     <h3>Action cards</h3><ul>
     <li><b>Skip</b>, <b>Reverse</b>, <b>Skip Everyone</b> (you go again), <b>Discard All</b> (discard every card of that color).</li>
     <li><b>Color Roulette</b>: the next player names a color and draws until it appears.</li>
@@ -3132,7 +3079,7 @@ const RULES_HTML = {
     <li><b>Russian roulette</b>: facing a stack of +8 or more, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
     <li><b>Overload</b>: without the Mercy Rule, a hand of 100 explodes: it burns down to 50 and everyone else catches 2.</li>
     <li><b>Hot potato</b>: a hidden fuse ticks with every play; when it runs out, whoever is up picks up 3.</li>
-    <li><b>Revenge</b>: take a stack of 10+ and your next draw card counts double. <b>Snitch</b>: catching someone who didn’t call “Last card” also dumps one of your cards on them. <b>Finisher</b>: a stack reaching someone with 2 cards or fewer grows by +4.</li></ul>
+    <li><b>Revenge</b>: take a stack of 10+ and your next draw card counts double. <b>Finisher</b>: a stack reaching someone with 2 cards or fewer grows by +4.</li></ul>
     <h3>Poker combos</h3><ul><li>Number cards can go down together as poker hands. The first card must fit the pile; the last sets the color.</li>
     <li><b>Pair</b>: just the drop. <b>Two Pair</b>, <b>Three of a Kind</b>: throw away 1 more random card. <b>Straight</b> (3+ in a row, one color): throw away 1 more per card beyond 2. <b>Flush</b> (5 of one color), <b>Full House</b>: throw away 2 more.</li>
     <li><b>Four of a Kind</b>: everyone else picks up 1. <b>Five of a Kind</b>, <b>Straight Flush</b> (5+ in a row, one color): throw away 1 more and everyone else picks up 2.</li></ul>
@@ -3142,7 +3089,7 @@ const RULES_HTML = {
     <li>While a player is away, their turn is skipped after 15 seconds. Press Leave, or stay away longer than a minute, and you're out of that match; the last player left wins.</li></ul>`,
   ru: `<h3>Основы</h3><ul><li>Кладите карту того же цвета или символа, что и верхняя, или джокера. Избавьтесь от всех карт, чтобы победить.</li>
     <li>Колода бесконечная: карты из классики, Флипа и No Mercy.</li>
-    <li>Нажмите на карту или перетащите её на сброс. Клавиши: <b>D</b> или <b>Пробел</b> — взять, <b>U</b> — УНО, <b>P</b> — пас.</li>
+    <li>Нажмите на карту или перетащите её на сброс. Клавиши: <b>D</b> или <b>Пробел</b> — взять, <b>P</b> — пас.</li>
     <li>Хозяин включает и выключает каждое правило и каждую дополнительную карту в лобби.</li></ul>
     <h3>Как брать карты</h3><ul><li>Взятая стопка и штрафы приходят сами, по одной карте. А тянуть до нужного цвета (если ходить нечем, «Цветная рулетка», «Тяни цвет») — руками, по одному нажатию на карту.</li>
     <li>Пока вы должны карты, ходить нельзя.</li></ul>
@@ -3155,8 +3102,7 @@ const RULES_HTML = {
     <li><b>Тянуть до цвета</b>: если ходить нечем, тяните по одной, пока не выпадет текущий цвет или джокер.</li>
     <li><b>7</b> — можно поменяться руками с игроком или оставить свою. <b>0</b> — все передают руки по кругу.</li>
     <li><b>Сброс одинаковых</b>: сыграйте все карты с одним числом или символом в выбранном порядке. Одинаковые джокеры тоже идут вместе (цвет выбирается один раз). «Возьми» складываются, пропуски пропускают столько же игроков, чётное число разворотов или флипов гасит друг друга.</li>
-    <li><b>Вмешательство</b>: точную копию верхней карты, включая джокеров (Джокер +4 на Джокер +4), можно сыграть вне очереди. Такие карты обведены.</li>
-    <li><b>«Одна»</b>: крикните при двух картах или сразу после того, как осталась одна. Поймают — возьмёте 2.</li></ul>
+    <li><b>Вмешательство</b>: точную копию верхней карты, включая джокеров (Джокер +4 на Джокер +4), можно сыграть вне очереди. Такие карты обведены.</li></ul>
     <h3>Карты действий</h3><ul>
     <li><b>Пропуск</b>, <b>Разворот</b>, <b>Пропуск всех</b> (вы ходите снова), <b>Сброс цвета</b> (сбросьте все карты этого цвета).</li>
     <li><b>Цветная рулетка</b>: следующий игрок называет цвет и тянет, пока он не выпадет.</li>
@@ -3183,7 +3129,7 @@ const RULES_HTML = {
     <li><b>Русская рулетка</b>: перед стопкой +8 и больше нажмите «Рулетка»: 50% — стопка исчезает и ход переходит дальше, 50% — берёте её вдвойне.</li>
     <li><b>Перегруз</b>: без правила милосердия рука из 100 карт взрывается: сгорает до 50, остальные ловят по 2.</li>
     <li><b>Горячая картошка</b>: скрытый фитиль тикает с каждым ходом; когда догорит, тот, чей ход, берёт 3.</li>
-    <li><b>Месть</b>: взяли стопку 10+ — следующая ваша «Возьми» вдвойне. <b>Стукач</b>: поймали без крика «Одна» — заодно скиньте одну свою карту. <b>Добивание</b>: стопка, пришедшая к игроку с 2 картами или меньше, растёт на +4.</li></ul>
+    <li><b>Месть</b>: взяли стопку 10+ — следующая ваша «Возьми» вдвойне. <b>Добивание</b>: стопка, пришедшая к игроку с 2 картами или меньше, растёт на +4.</li></ul>
     <h3>Покерные комбинации</h3><ul><li>Числовые карты можно класть вместе покерными комбинациями. Первая карта должна подходить к сбросу, последняя задаёт цвет.</li>
     <li><b>Пара</b>: просто сброс. <b>Две пары</b>, <b>Сет</b>: ещё 1 случайная карта уходит из руки. <b>Стрит</b> (3+ подряд одного цвета): ещё по 1 карте за каждую сверх двух. <b>Флеш</b> (5 одного цвета), <b>Фулл-хаус</b>: ещё 2 карты.</li>
     <li><b>Каре</b>: все остальные берут 1. <b>Покер</b> (5 одинаковых), <b>Стрит-флеш</b> (5+ подряд одного цвета): ещё 1 карта уходит, все остальные берут 2.</li></ul>
@@ -3438,7 +3384,7 @@ for (const L of ['en', 'ru']) {
 RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The House deals one endless two-sided deck. By day you play on the floor; at night, in the back room.</p>
     <h3>Basics</h3><ul>
     <li>Match the top card by color or symbol, or play a wild. Empty your hand to win.</li>
-    <li>Tap a card or drag it to the pile. Drag cards sideways in your hand to reorder them. Hover (or long-press) a card to read it. Keys: <b>D</b>/<b>Space</b> draw, <b>U</b> Last card, <b>P</b> pass.</li>
+    <li>Tap a card or drag it to the pile. Drag cards sideways in your hand to reorder them. Hover (or long-press) a card to read it. Keys: <b>D</b>/<b>Space</b> draw, <b>P</b> pass.</li>
     <li>The host switches every rule and every House card on or off in the lobby.</li></ul>
     <h3>Day and night</h3><ul>
     <li>Every card has a day face and a night face. <b>Shift</b> turns the whole table: day becomes night, and the rules of the table change with it.</li>
@@ -3461,7 +3407,6 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
     <li>By day the extra cards leave your hand and the house forgives the debt; at night the next player picks up the extras and nothing is forgiven.</li></ul>
     <h3>Table rules</h3><ul>
     <li><b>Same-symbol drops</b>: play every card with the same symbol together.</li>
-    <li><b>Last card</b>: call it at two cards or right after dropping to one. Caught: you draw 2.</li>
     <li><b>Last call</b>: after 150 turns the house closes the table and whoever holds the fewest cards wins. The table counts down the last 10.</li></ul>
     <h3>The House's cards</h3><ul>
     <li><b>Luck</b>: Horseshoe (1 in 3: two cards leave your hand), Scratch Card (a random prize or loss), Jackpot (pull the slot lever now), Redeal (a fresh hand).</li>
@@ -3477,7 +3422,7 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
 RULES_HTML.ru = `<p class="rulestag">Подпольный карточный притон под казино. Дом сдаёт одну бесконечную двустороннюю колоду. Днём играют в зале, ночью — в подсобке.</p>
     <h3>Основы</h3><ul>
     <li>Кладите карту того же цвета или символа, или джокер. Избавьтесь от всех карт, чтобы выиграть.</li>
-    <li>Нажмите на карту или перетащите её на сброс. Тащите карты в руке вбок, чтобы поменять порядок. Наведите (или подержите палец) на карту, чтобы прочитать её. Клавиши: <b>D</b>/<b>Пробел</b> взять, <b>U</b> «Одна», <b>P</b> пас.</li>
+    <li>Нажмите на карту или перетащите её на сброс. Тащите карты в руке вбок, чтобы поменять порядок. Наведите (или подержите палец) на карту, чтобы прочитать её. Клавиши: <b>D</b>/<b>Пробел</b> взять, <b>P</b> пас.</li>
     <li>Хозяин комнаты включает и выключает в лобби каждое правило и каждую карту Дома.</li></ul>
     <h3>День и ночь</h3><ul>
     <li>У каждой карты есть дневная и ночная сторона. <b>Смена</b> переворачивает весь стол: день становится ночью, и вместе с ним меняются правила стола.</li>
@@ -3500,7 +3445,6 @@ RULES_HTML.ru = `<p class="rulestag">Подпольный карточный п�
     <li>Днём лишние карты уходят из руки и дом прощает долг; ночью лишние берёт следующий игрок, а долг не прощается.</li></ul>
     <h3>Правила стола</h3><ul>
     <li><b>Сброс одинаковых</b>: все карты с одним символом вместе.</li>
-    <li><b>«Одна»</b>: крикните на двух картах или сразу после того, как осталась одна. Поймали — берёте 2.</li>
     <li><b>Последний звонок</b>: через 150 ходов дом закрывает стол, и побеждает тот, у кого меньше всего карт. Последние 10 ходов стол отсчитывает вслух.</li></ul>
     <h3>Карты Дома</h3><ul>
     <li><b>Удача</b>: Подкова (1 к 3: две карты уходят), Лотерейка (случайный выигрыш или проигрыш), Джекпот (рычаг слотов сразу), Пересдача (новая рука).</li>
@@ -3523,9 +3467,9 @@ Object.assign(CARD_TXT.en, { mult3: 'triple' }); Object.assign(CARD_TXT.ru, { mu
 Object.assign(STR.en, { setAmbient: 'Music' }); Object.assign(STR.ru, { setAmbient: 'Музыка' });
 
 // ================= LAST DEAL =================
-Object.assign(STR.en, { lastCallIn: k => `Last call in ${k}`, lastCallNow: 'Last call', tLastCall: 'LAST CALL', tUno: 'LAST CARD',
+Object.assign(STR.en, { lastCallIn: k => `Last call in ${k}`, lastCallNow: 'Last call', tLastCall: 'LAST CALL',
   presets: 'Table', presetClassic: 'Classic', presetClassicD: 'Plain cards, stacking, no house tricks', presetDen: 'Back room', presetDenD: 'The house table: everything balanced', presetMayhem: 'No limits', presetMayhemD: 'Every rule and every card on', presetCustom: 'Custom', fineTune: 'Fine-tune the rules', });
-Object.assign(STR.ru, { lastCallIn: k => `Последний звонок через ${k}`, lastCallNow: 'Последний звонок', tLastCall: 'ПОСЛЕДНИЙ ЗВОНОК', tUno: 'ОДНА!',
+Object.assign(STR.ru, { lastCallIn: k => `Последний звонок через ${k}`, lastCallNow: 'Последний звонок', tLastCall: 'ПОСЛЕДНИЙ ЗВОНОК',
   presets: 'Стол', presetClassic: 'Классика', presetClassicD: 'Обычные карты и стопки, без фокусов дома', presetDen: 'Подсобка', presetDenD: 'Стол дома: всё в балансе', presetMayhem: 'Беспредел', presetMayhemD: 'Включено каждое правило и каждая карта', presetCustom: 'Свой', fineTune: 'Тонкая настройка', });
 Object.assign(STR.en, { setMusicFx: 'Room reacts to music' }); Object.assign(STR.ru, { setMusicFx: 'Комната под музыку' });
 // ================= DEBT MATCH =================
@@ -4388,7 +4332,6 @@ const SFX = {
         case 'shuffle': for (let i = 0; i < 16; i++) this.rustle(t + i * 0.03 + Math.random() * 0.01, 0.035, 2600, 1600, 2.2, 0.2); break;
         case 'stack': { const n = 2 + Math.min(6, Math.floor((k || 1) / 4)); for (let i = 0; i < n; i++) this.chip(t + i * 0.04, 0.7 + Math.random() * 0.25, 0.24); this.thump(t, 50 - Math.min(20, k), 0.4, 0.4); break; }
         case 'took': for (let i = 0; i < 8; i++) this.chip(t + i * 0.035, 0.6 + Math.random() * 0.3, 0.18); this.thump(t, 48, 0.5, 0.6); break;
-        case 'uno': this.clank(t, 1.4, 0.3); this.clank(t + 0.14, 1.9, 0.26); break;
         case 'skip': this.rustle(t, 0.18, 600, 2600, 0.8, 0.2); this.clank(t + 0.03, 1.6, 0.12); break;
         case 'swap': this.rustle(t, 0.25, 400, 2200, 0.8, 0.2); this.rustle(t + 0.2, 0.25, 2200, 400, 0.8, 0.2); break;
         case 'turn': this.bell(t, 1); break;
@@ -4895,7 +4838,6 @@ function attachCard(el, card) {
 $('btnDraw').onclick = () => { if (!busy && G && !$('btnDraw').disabled) act('draw'); };
 $('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
 $('btnGamble').onclick = () => { if (!busy && G && G.canGamble && G.canGamble(ME)) act('gamble'); };
-$('btnUno').onclick = () => { if (G && G.players[ME]) act('uno'); };
 $('drawpile').onclick = () => $('btnDraw').onclick();
 $('btnSelect').onclick = () => { selMode = !selMode; if (!selMode) selIds = []; SFX.play('click'); render(); };
 $('discard').addEventListener('click', () => { if (selIds.length) playSelection(); });
@@ -4926,11 +4868,9 @@ $('btnMenu').onclick = () => {
   $('mLeave').onclick = () => $('btnQuit').onclick();
   $('mClose').onclick = closeModal;
 };
-$('opps').addEventListener('click', e => { const b = e.target.closest('[data-catch]'); if (b && G) act('catch', { target: +b.dataset.catch }); });
 document.addEventListener('keydown', e => {
   if (!G || $('game').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
   if (e.key === 'd' || e.key === ' ') { e.preventDefault(); $('btnDraw').onclick(); }
-  else if (e.key === 'u') $('btnUno').onclick();
   else if (e.key === 'p') $('btnPass').onclick();
 });
 
@@ -5257,7 +5197,7 @@ function render() {
     const fan = p.hand.slice(-fanN).map((c, k) => { const bf = c[ob] || { c: 'w' }; return `<i class="${ob} ${bf.c === 'w' ? 'w' : ''}" style="left:${k * 9}px;${bf.c !== 'w' ? `background:${CVAR[bf.c]}` : ''}"></i>`; }).join('');
     const turn = (G.roulette !== null ? G.roulette === i : G.turn === i) && G.winner === null;
     const tags = [];
-    if (G.winner === i) tags.push(`<b>${t('tagWinner')}</b>`); else if (n === 1) tags.push(`<b>${t('tagUno')}</b>`);
+    if (G.winner === i) tags.push(`<b>${t('tagWinner')}</b>`);
     if (p.shield) tags.push(`<b>${t('tagShield')}</b>`);
     if (p.loan > 0) tags.push(`<b class="next">${t('tagLoan', p.loan)}</b>`);
     if (p.marked) tags.push(`<b class="next">${t('tagMarked')}</b>`);
@@ -5279,7 +5219,7 @@ function render() {
       <div class="fan">${fan}</div>
       <div class="meta"><span class="cnt">${n}</span><span class="tags">${tags.join(' · ')}</span></div>${dealRow}
       ${G.rules.mercy ? `<div class="bar ${pct >= 80 ? 'hot' : ''}"><div style="width:${pct}%"></div></div>` : ''}${timer}
-      ${p.vulnerable && n === 1 && G.rules.uno && me && !me.out ? `<button class="btn catch" data-catch="${i}">${t('catchBtn')}</button>` : ''}</div>`;
+</div>`;
   }).join(arrow) + arrow);
   // piles: the draw pile shows the back of the next card (its other side)
   const nb = G.next && G.next[ob] ? G.next[ob] : { c: 'w', v: 'wild' };
@@ -5340,11 +5280,6 @@ function render() {
   $('btnPass').disabled = !(myTurn && G.drewBy === ME && G.pending === 0);
   const gb = $('btnGamble'), canG = G.canGamble && G.canGamble(ME);
   gb.classList.toggle('hidden', !canG); gb.textContent = t('gambleBtn');
-  const ub = $('btnUno');
-  ub.disabled = !((me.hand.length <= 2 || (G.rules.multi && G.unoReach(ME))) && !me.out && G.winner === null) || !G.rules.uno;
-  ub.classList.toggle('called', me.unoCalled);
-  ub.classList.toggle('ready', !ub.disabled && !me.unoCalled);
-  ub.textContent = me.unoCalled ? t('unoCalled') : t('uno');
   // a collector works for the house: once per deal, slip someone two cards or pull the lever
   const isCol = !!(MATCH && MATCH.col[ME] && MATCH.phase === 'play' && G.winner === null);
   $('colBar').classList.toggle('hidden', !isCol);
@@ -5450,7 +5385,7 @@ function youify(m) {
 }
 
 // ================= EVENTS → FEEDBACK =================
-const TOAST_PRI = { lastcall: 10, gamble: 10, finisher: 9, revenge: 9, potato: 9, snitch: 8, deal: 9, maze: 9, brim: 8, monstro: 8, foot: 8, tower: 8, d6: 7, glitch: 7, pill: 7, bomb: 8, wheel: 7, gift: 6, echo: 6, interest: 6, sacrifice: 6, fire: 8, mult: 7, devil: 7, glass: 6, lucky: 5, loan: 5, multi: 5, win: 9, flip: 8, ko: 7, bhole: 7, took: 6, mirror: 6, shield: 6, duel: 5, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, jump: 3, reverse: 2 };
+const TOAST_PRI = { lastcall: 10, gamble: 10, finisher: 9, revenge: 9, potato: 9, deal: 9, maze: 9, brim: 8, monstro: 8, foot: 8, tower: 8, d6: 7, glitch: 7, pill: 7, bomb: 8, wheel: 7, gift: 6, echo: 6, interest: 6, sacrifice: 6, fire: 8, mult: 7, devil: 7, glass: 6, lucky: 5, loan: 5, multi: 5, win: 9, flip: 8, ko: 7, bhole: 7, took: 6, mirror: 6, shield: 6, duel: 5, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, jump: 3, reverse: 2 };
 function seatRect(pi) { return pi === ME ? rectOf($('hand')) : rectOf($('opp' + pi)); }
 function nm(pi) { return pi === ME ? (LANG === 'ru' ? 'Вы' : 'You') : (G.players[pi] ? G.players[pi].name : ''); }
 function processEvents() {
@@ -5516,7 +5451,6 @@ function processEvents() {
       case 'swap': SFX.play('swap'); bump(TOAST_PRI.swap, t('tSwap')); break;
       case 'rotate': SFX.play('swap'); bump(TOAST_PRI.rotate, t('tRotate')); break;
       case 'roulette': SFX.play('stack', 3); bump(TOAST_PRI.roulette, t('tRoulette')); break;
-      case 'uno': SFX.play('uno'); floatText(e.pi, t('tUno')); break;
       case 'multi': bump(TOAST_PRI.multi, t('tMulti', e.k)); break;
       case 'combo': showCombo(e); break;
       case 'gamble': SFX.play('spin'); setTimeout(() => { SFX.play(e.ok ? 'click2' : 'bang'); if (!e.ok) { JUICE.shake(8); JUICE.ignite(1); } }, 380); setTimeout(() => bump(TOAST_PRI.gamble, e.ok ? t('tClick') : t('tBang', e.k)), 380); break;
@@ -5526,7 +5460,6 @@ function processEvents() {
       case 'revenge': SFX.play('mult', 3); JUICE.ignite(1); bump(TOAST_PRI.revenge, t('tRevenge', e.k)); break;
       case 'potato': SFX.play('devil'); JUICE.shake(6); { const r = seatRect(e.pi) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 70, ['#c9a227', '#7a5230', '#ff7814', '#fff'], 1.8); } floatText(e.pi, '+3'); bump(TOAST_PRI.potato, t('tPotato', nm(e.pi))); break;
       case 'potatoLit': SFX.play('tick'); break;
-      case 'snitch': SFX.play('swap'); floatText(e.b, '+' + e.g); bump(TOAST_PRI.snitch, t('tSnitch')); break;
       case 'd6': SFX.play('shuffle'); floatText(e.pi, '', ICON.d6); bump(TOAST_PRI.d6, t('tD6')); break;
       case 'pill': SFX.play(e.p === 'badtrip' ? 'bad' : 'lucky'); bump(TOAST_PRI.pill, t('pill_' + e.p)); break;
       case 'tower': SFX.play('devil'); JUICE.shake(5); (e.hits || []).forEach(i => floatText(i, '+1')); bump(TOAST_PRI.tower, t('tTower')); break;
@@ -5537,7 +5470,6 @@ function processEvents() {
       case 'deal': SFX.play('devil'); JUICE.ignite(1); bump(TOAST_PRI.deal, t('tDeal')); break;
       case 'dealDue': SFX.play('bad'); JUICE.shake(5); bump(TOAST_PRI.deal, t('tDealDue', e.k)); break;
       case 'monstro': SFX.play('devil'); JUICE.shake(8); { const r = seatRect(e.t) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 90, ['#b23a48', '#5a1020', '#ffccd5', '#fff'], 2.2); } floatText(e.t, '+' + e.k); bump(TOAST_PRI.monstro, t('tMonstro', nm(e.t))); break;
-      case 'caught': SFX.play('bad'); floatText(e.pi, t('tCaught')); break;
       case 'ko': SFX.play('ko'); bump(TOAST_PRI.ko, t('tOut', nm(e.pi))); break;
       case 'win': SFX.play('win'); JUICE.burst(innerWidth / 2, innerHeight * 0.4, 160, ['#ff2d55', '#ffd23f', '#22d3ee', '#a3e635', '#fff'], 2); bump(TOAST_PRI.win, e.pi === ME ? t('youWin') : t('wins', nm(e.pi))); break;
       case 'mirror': SFX.play('swap'); bump(TOAST_PRI.mirror, t('tMirror', nm(e.b))); break;

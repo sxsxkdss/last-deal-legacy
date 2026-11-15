@@ -69,7 +69,6 @@ Which colors and sides each value exists on: just look at the file names in `tem
 | `shuffle` | Black Hole deals hands out |
 | `stack` | a draw stack grows |
 | `took` | someone takes a stack |
-| `uno` | someone calls "Last card" |
 | `skip` | Skip / Reverse / Skip Everyone |
 | `swap` | hands swap / rotate, Mirror, Shield |
 | `turn` | your turn starts |

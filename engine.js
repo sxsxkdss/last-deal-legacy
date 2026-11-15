@@ -89,10 +89,10 @@ const CURSES = ['dark', 'fever', 'mirror', 'static'];
 const HORSE_TURNS = 10, HORSE_AT = 0.7, HORSE_AGAIN = 0.05, WAR_SECS = 4;
 const ATTACK_VALS = { L: ['d1', 'd2', 'd4'], D: ['d5'] };
 // Lobby presets. Every rule key the server knows, every house card.
-const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
+const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'chaos'];
 const PRESETS = (() => {
   const on = (keys, all) => Object.fromEntries(all.map(k => [k, keys.includes(k)]));
-  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'uno', 'lastCall'];
+  const base = ['flip', 'stacking', 'multi', 'drawUntil', 'lastCall'];
   return {
     classic: { rules: on(base, RULE_ALL), cards: on([], EXTRA_CARDS) },
     den: { rules: on(base.concat(['combos', 'gamble', 'potato', 'chaos']), RULE_ALL), cards: on(EXTRA_CARDS.filter(k => !['deal', 'wd15'].includes(k)), EXTRA_CARDS) },
@@ -142,9 +142,9 @@ function faceName(f) { return f.c === 'w' ? VALUE_NAME[f.v] : COLOR_NAME[f.c] + 
 class Game {
   constructor(names, humans, rules) {
     rules = Object.assign({}, rules);
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, snitch: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, uno: true, flip: true, chaos: true }, rules);
-    // cut from the game: 7 swap, 0 rotate, jump-in, revenge, snitch, finisher
-    Object.assign(this.rules, { jumpIn: false, revenge: false, snitch: false, finisher: false });
+    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, flip: true, chaos: true }, rules);
+    // cut from the game: 7 swap, 0 rotate, jump-in, revenge, finisher
+    Object.assign(this.rules, { jumpIn: false, revenge: false, finisher: false });
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -152,7 +152,7 @@ class Game {
     this.gid = Math.random().toString(36).slice(2, 8);
     this.side = 'L';
     this.next = this.newCard();
-    this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, unoCalled: false, vulnerable: false, shield: false, oweN: 0, owed: [], av: '', peer: '' }));
+    this.players = names.map((n, i) => ({ name: n, hand: [], human: hum.includes(i), out: false, elim: false, shield: false, oweN: 0, owed: [], av: '', peer: '' }));
     for (const p of this.players) for (let i = 0; i < this.rules.handSize; i++) p.hand.push(this.newCard());
     // debt match: house tokens bought in the shop (seat -> ids) and the chips earned this deal
     this.perks = rules.perks || {};
@@ -229,7 +229,6 @@ class Game {
       if (this.rules.mercy && p.hand.length >= this.rules.mercy) break;
       if (got.length > 300) break;
     }
-    if (p.hand.length !== 1) p.vulnerable = false;
     if (got.length) this.ev('draw', { pi, k: got.length });
     return got;
   }
@@ -701,9 +700,6 @@ class Game {
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
     this.drewBy = -1;
-    if (p.hand.length === 1) { p.vulnerable = this.rules.uno && !p.unoCalled; if (p.unoCalled) { this.addLog(`${p.name} calls UNO.`, 'uno', 'uno', { n: p.name }); this.ev('uno', { pi }); } }
-    else p.vulnerable = false;
-    p.unoCalled = false;
     if (p.hand.length === 0) {
       this.winner = pi; p.out = true;
       this.addLog(`${p.name} empties their hand and wins.`, 'win', 'win', { n: p.name });
@@ -814,7 +810,6 @@ class Game {
         let given = 0;
         for (let r = 0; r < 2 * k && p.hand.length > 1; r++) { const free = p.hand.filter(c => !c.lock); if (!free.length) break; const c = free[Math.floor(Math.random() * free.length)]; p.hand.splice(p.hand.indexOf(c), 1); this.players[tgt].hand.push(c); given++; }
         if (given && hasDeal(p, 'alms')) this.payDebt(pi, -10, 'alms');
-        if (given) this.players[tgt].vulnerable = false;
         this.addLog(`${p.name} gives ${this.players[tgt].name} ${given} cards.`, 'swap', 'gift', { n: p.name, t: this.players[tgt].name, g: given });
         this.ev('gift', { a: pi, b: tgt, g: given });
         break;
@@ -884,7 +879,6 @@ class Game {
         // reroll: your whole hand is replaced by the same number of fresh cards
         const keep = p.hand.filter(c => c.lock || c.chain), cnt = p.hand.length - keep.length;
         p.hand = keep; for (let r = 0; r < cnt; r++) p.hand.push(this.newCard());
-        p.vulnerable = false;
         this.addLog(`${p.name} rolls the D6: a fresh hand of ${cnt}.`, 'flip', 'd6', { n: p.name, k: cnt });
         this.ev('d6', { pi, k: cnt });
         break;
@@ -968,7 +962,6 @@ class Game {
         const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
         const t = this.players[tgt];
         for (let r = 0; r < 10; r++) { const c = this.next; this.next = this.newCard(); c.chain = 2; t.hand.push(c); }
-        t.vulnerable = false;
         this.addLog(`${p.name} offers a sacrifice: ${t.name} takes 10 chained cards.`, 'bad', 'sacr', { n: p.name, t: t.name });
         this.ev('sacr', { pi, t: tgt }); this.ev('draw', { pi: tgt, k: 10 });
         if (this.chipsWon && hasDeal(p, 'blood')) this.chipsWon[pi] += 10;
@@ -1010,7 +1003,6 @@ class Game {
           for (let k = 0; k < act.length; k++) { order.push(i); i = this.nextIdx(i, 1); }
           for (const j of act) this.players[j].hand = [];
           all.forEach((c, k) => this.players[order[k % order.length]].hand.push(c));
-          for (const q of this.players) q.vulnerable = false;
           this.addLog(`Black hole. Every hand is pooled and dealt back out: ${act.map(j => this.players[j].name + ' ' + this.players[j].hand.length).join(', ')}.`, 'swap', 'bhole', { l: act.map(j => [this.players[j].name, this.players[j].hand.length]) });
           this.ev('bhole', {});
         }
@@ -1095,7 +1087,7 @@ class Game {
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
     }
   }
-  // Every draw is one card by hand. Owed cards (UNO penalty, a lost duel) can be paid any time;
+  // Every draw is one card by hand. Owed cards (a lost duel, chaos tax) can be paid any time;
   // a debt (a taken stack, roulette, draw-color) has to be paid before play moves on.
   draw(pi) {
     const p = this.players[pi];
@@ -1104,7 +1096,6 @@ class Game {
       let got;
       if (p.owed && p.owed.length) { const c = p.owed.shift(); p.hand.push(c); got = [c]; this.ev('draw', { pi, k: 1 }); }
       else { got = this.give(pi, 1); p.oweN--; }
-      if (p.hand.length !== 1) p.vulnerable = false;
       this.seq++; this.mercyCheck();
       return got;
     }
@@ -1181,13 +1172,6 @@ class Game {
     this.debt = { pi: vi, until: color, got: 0, kind: 'roulette' };
     return [];
   }
-  callUno(pi) {
-    const p = this.players[pi];
-    if (p.out) return false;
-    if (p.hand.length === 1 && p.vulnerable) { p.vulnerable = false; this.addLog(`${p.name} calls UNO just in time`, 'uno', 'unoLate', { n: p.name }); this.ev('uno', { pi }); return true; }
-    if ((p.hand.length <= 2 || (this.rules.multi && this.unoReach(pi))) && !p.unoCalled) { p.unoCalled = true; this.ev('uno', { pi }); return true; }
-    return false;
-  }
   // ---- Chaos events ----
   rollChaos() {
     this.chaosIn = 8 + Math.floor(Math.random() * 5);
@@ -1233,7 +1217,7 @@ class Game {
   removePlayer(pi, why = 'left') {
     const p = this.players[pi];
     if (!p || p.out || this.winner !== null) return false;
-    p.out = true; p.left = why !== 'broke'; p.vulnerable = false; p.shield = false;
+    p.out = true; p.left = why !== 'broke'; p.shield = false;
     if (why !== 'broke') this.addLog(`${p.name} ${why === 'left' ? 'left the match' : 'was away too long and is out of the match'}. Everyone else plays on.`, 'bad', 'left', { n: p.name, aw: why === 'left' ? 0 : 1 });
     if (this.offer && this.offer.pi === pi) this.offer = null;
     this.ev('ko', { pi });
@@ -1281,12 +1265,6 @@ class Game {
     this.applyShield(); this.checkFlipBack();
     return true;
   }
-  // can this player get down to one card in a single same-number drop?
-  unoReach(pi) {
-    const h = this.players[pi].hand, cnt = {};
-    for (const c of h) { const f = this.f(c); const key = (f.c === 'w' ? 'w:' : '') + f.v; cnt[key] = (cnt[key] || 0) + 1; }
-    return Object.values(cnt).some(n => n >= h.length - 1);
-  }
   // Russian roulette: facing a stack of +8 or more, pull the trigger instead of answering it.
   // Click: the stack is gone and the turn passes. Bang: you take it doubled.
   canGamble(pi) { return this.rules.gamble !== false && pi === this.turn && this.pending >= (this.side === 'D' ? 4 : 8) && !this.debt && this.roulette === null && !this.owes(pi) && this.winner === null; }
@@ -1307,21 +1285,6 @@ class Game {
     this.ev('gamble', { pi, ok: 0, k: this.pending });
     this.draw(pi);
     return false;
-  }
-  catchUno(catcher, target) {
-    const t = this.players[target];
-    if (!t || !t.vulnerable || t.hand.length !== 1 || t.out || catcher === target) return false;
-    t.vulnerable = false;
-    this.addLog(`${this.players[catcher].name} catches ${t.name} not saying UNO. ${t.name} must draw 2.`, 'bad', 'caught', { n: this.players[catcher].name, t: t.name });
-    this.ev('caught', { pi: target, by: catcher });
-    t.oweN = (t.oweN || 0) + 2; this.seq++;
-    if (this.rules.snitch !== false) {
-      // the snitch also dumps two of their own cards on the victim
-      const c = this.players[catcher]; let given = 0;
-      for (let r = 0; r < 1 && c.hand.length > 1; r++) { t.hand.push(c.hand.splice(Math.floor(Math.random() * c.hand.length), 1)[0]); given++; }
-      if (given) { this.addLog(`Snitch: ${c.name} also dumps ${given} of their cards on ${t.name}.`, 'bad', 'snitch', { n: c.name, t: t.name, g: given }); this.ev('snitch', { a: catcher, b: target, g: given }); }
-    }
-    return true;
   }
 }
 
@@ -1461,7 +1424,7 @@ function serialize(g, viewer = -1, logN = 8) {
     gid: g.gid, ru: g.rules, sd: g.side,
     p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
-      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
+      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
       p.hand.map((c, k) => (c.lock || c.chain ? [k, c.chain || 0, c.lock ? 1 : 0] : null)).filter(Boolean),
       [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0) | (p.signedNow ? 32 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
       p.hand.map(c => (c.uniq ? 1 : 0)).join(''),
@@ -1486,7 +1449,7 @@ function deserialize(st) {
     if (hs[0] === '!') hand = [...hs.slice(1)].map(ch => { const c = { id: CARD_ID++, hidden: true }; c[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(ch)] || { c: 'w', v: 'wild' }); return c; });
     else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
-      out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
+      out: !!(a[4] & 1), elim: !!(a[4] & 2), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
       ...(() => { const d = Array.isArray(a[8]) ? a[8] : []; return { angel: d[0] || 0, demon: d[1] || 0, deals: String(d[2] || '').split('+').filter(Boolean), fallen: !!(d[3] & 4), broke: !!(d[3] & 8), skipNext: !!(d[3] & 16), signedNow: !!(d[3] & 32), debt: d[4] || 0, limit: d[5] || 0, markT: d[6] >= 0 ? d[6] : null, used: Object.fromEntries(String(d[7] || '').split(',').filter(Boolean).map(k => [k, true])) }; })(),
       ...(() => { const d = Array.isArray(a[10]) ? a[10] : []; return { inv: String(d[0] || '').split(',').filter(Boolean), fx: Object.fromEntries(String(d[1] || '').split(',').filter(Boolean).map(x => { const [k, v] = x.split(':'); return [k, v === undefined ? true : +v]; })), buff: d[2] || 0 }; })() };
   });

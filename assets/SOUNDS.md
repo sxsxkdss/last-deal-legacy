@@ -33,7 +33,6 @@ Every sound the game plays has a name. Put a file with that name in `assets/soun
 | `coin` | Loan paid out; interest; rent (+3¢); every shop purchase |
 | `swap` | Gift; hands swap / rotate; Mirror reflects; shield breaks a stack; snitch; War arms a card; Famine hands cards over; guardian angel |
 | `skip` | Skip, Skip Everyone, Reverse |
-| `uno` | Someone calls their last card |
 | `spin` | Russian roulette is spun |
 | `click2` | Roulette: the chamber was empty |
 | `bang` | Roulette: the gun goes off; a Sacrifice card is played |
