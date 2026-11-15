@@ -4500,12 +4500,12 @@ const WEAR = (() => {
     const r = rng(i * 104729 + 7);
     const halo = blob(r, 38, 0.3), scorch = blob(r, 31, 0.26, 44), sear = blob(r, 27, 0.22, 40), core = blob(r, 23, 0.32, 36);
     const cracks = Array.from({ length: 3 + Math.floor(r() * 3) }, () => { const a = r() * 6.28, l = 7 + r() * 10; let x = 50 + Math.cos(a) * 3, y = 50 + Math.sin(a) * 3, d = `M${x.toFixed(1)} ${y.toFixed(1)}`; for (let k = 0; k < 3; k++) { const b = a + (r() - 0.5) * 1.2; x += Math.cos(b) * l / 3; y += Math.sin(b) * l / 3; d += `L${x.toFixed(1)} ${y.toFixed(1)}`; } return d; }).join('');
-    const mot = Array.from({ length: 5 }, (_, k) => { const a = r() * 6.28, d = r() * 11, sub = rng(i * 31 + k * 977 + 3); const pth = blob(sub, 4 + r() * 5, 0.5, 14).replace(/(\d+\.\d) (\d+\.\d)/g, (m, x, y) => (+x - 50 + 50 + Math.cos(a) * d).toFixed(1) + ' ' + (+y - 50 + 50 + Math.sin(a) * d).toFixed(1)); return `<path d='${pth}' fill='rgb(${k % 2 ? 34 : 4},${k % 2 ? 29 : 3},${k % 2 ? 25 : 2})' opacity='${k % 2 ? 0.55 : 0.7}'/>`; }).join('');
+    const mot = Array.from({ length: 5 }, (_, k) => { const a = r() * 6.28, d = r() * 11, sub = rng(i * 31 + k * 977 + 3); const pth = blob(sub, 4 + r() * 5, 0.5, 14).replace(/(\d+\.\d) (\d+\.\d)/g, (m, x, y) => (+x - 50 + 50 + Math.cos(a) * d).toFixed(1) + ' ' + (+y - 50 + 50 + Math.sin(a) * d).toFixed(1)); return `<path d='${pth}' fill='rgb(${k % 2 ? 70 : 24},${k % 2 ? 56 : 15},${k % 2 ? 46 : 10})' opacity='${k % 2 ? 0.45 : 0.5}'/>`; }).join('');
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs>`
-      + `<radialGradient id='h'><stop offset='.5' stop-color='rgb(22,13,8)' stop-opacity='.8'/><stop offset='.78' stop-color='rgb(34,22,14)' stop-opacity='.38'/><stop offset='1' stop-color='rgb(44,30,20)' stop-opacity='0'/></radialGradient>`
+      + `<radialGradient id='h'><stop offset='.5' stop-color='rgb(46,28,16)' stop-opacity='.6'/><stop offset='.78' stop-color='rgb(60,40,24)' stop-opacity='.28'/><stop offset='1' stop-color='rgb(44,30,20)' stop-opacity='0'/></radialGradient>`
       + `<clipPath id='k'><path d='${core}'/></clipPath></defs>`
-      + `<path d='${halo}' fill='url(#h)'/><path d='${scorch}' fill='rgb(28,14,7)' opacity='.9'/><path d='${sear}' fill='rgb(48,19,8)' opacity='.5'/>`
-      + `<path d='${core}' fill='rgb(15,11,8)'/><g clip-path='url(#k)'>${mot}</g><path d='${core}' fill='none' stroke='rgb(3,2,1)' stroke-width='1.6' opacity='.9'/><path d='${cracks}' fill='none' stroke='rgb(62,54,48)' stroke-width='.6' stroke-linecap='round' opacity='.45'/></svg>`;
+      + `<path d='${halo}' fill='url(#h)'/><path d='${scorch}' fill='rgb(58,30,14)' opacity='.72'/><path d='${sear}' fill='rgb(92,44,18)' opacity='.42'/>`
+      + `<path d='${core}' fill='rgb(40,26,18)' opacity='.82'/><g clip-path='url(#k)'>${mot}</g><path d='${core}' fill='none' stroke='rgb(22,13,8)' stroke-width='1.4' opacity='.75'/><path d='${cracks}' fill='none' stroke='rgb(96,80,66)' stroke-width='.6' stroke-linecap='round' opacity='.4'/></svg>`;
     const hole = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='${core}' transform='translate(50 50) scale(.84) translate(-50 -50)' fill='black'/></svg>`;
     css.push(`.card .burn.b${i}{background-image:${enc(svg)}}`, `.card.burnt.h${i}{--hole:${enc(hole)}}`);
   }
