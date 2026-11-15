@@ -845,7 +845,7 @@ body.dark #cactus svg { filter: brightness(.7) saturate(.8); }
 /* Death's curses: drawn over the game, never in the way of a click */
 #curseDark { position: fixed; inset: 0; z-index: 95; pointer-events: none; --mx: 50vw; --my: 80vh;
   background: radial-gradient(circle at var(--mx) var(--my), transparent 0, transparent 95px, rgba(0, 0, 0, .9) 140px, #000 190px); }
-#curseStatic { position: fixed; inset: -20px; z-index: 96; pointer-events: none; opacity: .46; mix-blend-mode: screen;
+#curseStatic { position: fixed; inset: -20px; z-index: 96; pointer-events: none; opacity: .58; mix-blend-mode: screen;
   background-image: var(--tex-static),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, .08) 0 1px, transparent 1px 3px);
   animation: staticNoise .18s steps(4) infinite; }
@@ -1018,7 +1018,7 @@ body.lite #psycho { display: none !important; }
 .ewin .elines i { display: block; width: 130px; height: 5px; background: #4a4a4a; }
 .ewin .elines i + i { width: 86px; }
 .ewin .ebtn { width: 60px; height: 18px; margin: 0 auto 8px; background: #bfbfbf; border: 2px solid; border-color: #f4f4f4 #3a3a3a #3a3a3a #f4f4f4; outline: 1px solid #000; }
-body.lite #crash { display: none !important; }
+body.lite #crash:not(.on) { display: none; }
 
 </style>
 </head>
@@ -4036,8 +4036,8 @@ const JUICE = (() => {
   function errBox() {
     return '<div class="ewin"><div class="etitle"><i></i><b>×</b></div><div class="ebody"><span class="eicon">×</span><span class="elines"><i></i><i></i></span></div><div class="ebtn"></div></div>';
   }
-  function glitch() {
-    if (!full()) return;
+  function glitch(force) {
+    if (!force && !full()) return;
     const g = document.getElementById('game'); if (!g) return;
     if (!crash) {
       crash = document.createElement('div'); crash.id = 'crash'; document.body.appendChild(crash);
@@ -4085,7 +4085,7 @@ const JUICE = (() => {
         else if (r.classList.contains('spin')) { r.classList.remove('spin'); r.textContent = GLYPH[ev] || '?'; r.classList.add('stop'); SFX.play('reel', k); }
       });
       if (spinning) { if (Math.random() < 0.5) SFX.play('tick'); requestAnimationFrame(tickR); }
-      else { el.classList.add('done'); SFX.play('chaos'); shake(3); glitch(); burst(innerWidth / 2, innerHeight / 2, 40, null, 1); slotBusy = setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.classList.add('hidden'), 220); }, 1700); }
+      else { el.classList.add('done'); SFX.play('chaos'); shake(3); burst(innerWidth / 2, innerHeight / 2, 40, null, 1); slotBusy = setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.classList.add('hidden'), 220); }, 1700); }
     };
     requestAnimationFrame(tickR);
   }
@@ -4196,7 +4196,7 @@ const JUICE = (() => {
     let el = document.getElementById('visit');
     if (!el) { el = document.createElement('div'); el.id = 'visit'; document.body.appendChild(el); }
     el.className = ''; void el.offsetWidth; el.className = kind === 'dark' ? 'demon' : 'angel';
-    if (kind === 'dark') { shake(5); glitch(); }
+    if (kind === 'dark') { shake(5); }
     if (full()) burst(innerWidth / 2, innerHeight * 0.35, kind === 'dark' ? 40 : 24, null, kind === 'dark' ? 2 : 0.6);
   }
   return { tempo, visit, startBg, burst, shake, glitch, tilt, untilt, slot, setSide, setHeat, full, fireLevel, ignite, comboFlame, setTable };
@@ -5427,17 +5427,17 @@ function processEvents() {
       }
       case 'took': SFX.play('took'); if (e.k >= 10) JUICE.shake(4); if (e.k >= 10) bump(TOAST_PRI.took, `+${e.k}`); break;
       case 'stack': SFX.play('stack', e.k); JUICE.shake(Math.min(4, 1 + e.k / 8)); bump(TOAST_PRI.stack, t('tStack', e.k)); if (e.k >= 15) { JUICE.ignite(Math.min(1, e.k / 30)); bump(TOAST_PRI.fire, t('tFire')); } break;
-      case 'mult': SFX.play('mult', e.x); JUICE.shake(3); JUICE.glitch(); if (e.k) { JUICE.ignite(1); bump(TOAST_PRI.mult, `${t('tMult', e.x)} → +${e.k}`); } else bump(TOAST_PRI.mult, t('tArm', e.x)); break;
+      case 'mult': SFX.play('mult', e.x); JUICE.shake(3); if (e.k) { JUICE.ignite(1); bump(TOAST_PRI.mult, `${t('tMult', e.x)} → +${e.k}`); } else bump(TOAST_PRI.mult, t('tArm', e.x)); break;
       case 'lucky': SFX.play(e.h ? 'lucky' : 'bad'); if (e.h) { const r = seatRect(e.pi) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 60, ['#22c55e', '#a3e635', '#ffd23f', '#fff'], 1.4); } bump(TOAST_PRI.lucky, e.h ? t('tLucky') : t('tMiss')); break;
       case 'glass': SFX.play('glass'); JUICE.burst(cw.left + cw.width / 2, cw.top + cw.height / 2, 70, ['#e0f2fe', '#7dd3fc', '#ffffff', '#94a3b8'], 1.6); JUICE.shake(2); bump(TOAST_PRI.glass, e.broke ? t('tGlass') : t('tGlassHit')); break;
-      case 'devil': SFX.play('devil'); JUICE.glitch(); JUICE.shake(5); JUICE.ignite(1); bump(TOAST_PRI.devil, t('tDevil')); break;
+      case 'devil': SFX.play('devil'); JUICE.shake(5); JUICE.ignite(1); bump(TOAST_PRI.devil, t('tDevil')); break;
       case 'loan': SFX.play('coin'); floatText(e.pi, t('tLoan')); break;
       case 'gift': SFX.play('swap'); floatText(e.b, '+' + e.g); bump(TOAST_PRI.gift, t('tGift', nm(e.b))); break;
-      case 'echo': SFX.play(e.ok ? 'mult' : 'bad', 2); if (e.ok) JUICE.glitch(); bump(TOAST_PRI.echo, e.ok ? t('tEcho') : t('tEchoNone')); break;
+      case 'echo': SFX.play(e.ok ? 'mult' : 'bad', 2); bump(TOAST_PRI.echo, e.ok ? t('tEcho') : t('tEchoNone')); break;
       case 'interest': SFX.play('coin'); (e.pis || []).forEach(i => floatText(i, '+2')); bump(TOAST_PRI.interest, t('tInterest')); break;
       case 'sacrifice': SFX.play('devil'); JUICE.ignite(0.6); { const r = seatRect(e.pi) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 50, ['#ff2d55', '#7a0018', '#ffd23f', '#000'], 1.3); } bump(TOAST_PRI.sacrifice, t('tSacrifice')); break;
       case 'wheel': SFX.play('reel'); setTimeout(() => SFX.play('bad'), 250); floatText(e.t, '+4'); bump(TOAST_PRI.wheel, t('tWheel', nm(e.t))); break;
-      case 'bomb': SFX.play('devil'); JUICE.shake(6); JUICE.glitch(); { const r = seatRect(e.v) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 90, ['#fff', '#ffd23f', '#ff7814', '#e63c0a', '#222'], 2); } bump(TOAST_PRI.bomb, t('tBomb')); break;
+      case 'bomb': SFX.play('devil'); JUICE.shake(6); { const r = seatRect(e.v) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 90, ['#fff', '#ffd23f', '#ff7814', '#e63c0a', '#222'], 2); } bump(TOAST_PRI.bomb, t('tBomb')); break;
       case 'loanDue': SFX.play('bad'); JUICE.shake(2); floatText(e.pi, t('tDue')); bump(TOAST_PRI.loan, `${nm(e.pi)}: ${t('tDue')}`); break;
       case 'skip': SFX.play('skip'); floatText(e.pi, t('tSkipped')); break;
       case 'skipall': SFX.play('skip'); bump(TOAST_PRI.skipall, t('tSkipAll')); break;
@@ -5448,26 +5448,26 @@ function processEvents() {
       case 'uno': SFX.play('uno'); floatText(e.pi, t('tUno')); break;
       case 'multi': bump(TOAST_PRI.multi, t('tMulti', e.k)); break;
       case 'combo': showCombo(e); break;
-      case 'gamble': SFX.play('spin'); setTimeout(() => { SFX.play(e.ok ? 'click2' : 'bang'); if (!e.ok) { JUICE.shake(8); JUICE.glitch(); JUICE.ignite(1); } }, 380); setTimeout(() => bump(TOAST_PRI.gamble, e.ok ? t('tClick') : t('tBang', e.k)), 380); break;
-      case 'lastcall': SFX.play('lastcall'); JUICE.shake(4); JUICE.glitch(); bump(TOAST_PRI.lastcall, t('tLastCall')); break;
+      case 'gamble': SFX.play('spin'); setTimeout(() => { SFX.play(e.ok ? 'click2' : 'bang'); if (!e.ok) { JUICE.shake(8); JUICE.ignite(1); } }, 380); setTimeout(() => bump(TOAST_PRI.gamble, e.ok ? t('tClick') : t('tBang', e.k)), 380); break;
+      case 'lastcall': SFX.play('lastcall'); JUICE.shake(4); bump(TOAST_PRI.lastcall, t('tLastCall')); break;
       case 'finisher': SFX.play('bad'); JUICE.shake(4); bump(TOAST_PRI.finisher, t('tFinisher', e.k)); break;
       case 'revengeOn': SFX.play('stack', 3); floatText(e.pi, t('tagRevenge')); break;
-      case 'revenge': SFX.play('mult', 3); JUICE.glitch(); JUICE.ignite(1); bump(TOAST_PRI.revenge, t('tRevenge', e.k)); break;
+      case 'revenge': SFX.play('mult', 3); JUICE.ignite(1); bump(TOAST_PRI.revenge, t('tRevenge', e.k)); break;
       case 'potato': SFX.play('devil'); JUICE.shake(6); { const r = seatRect(e.pi) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 70, ['#c9a227', '#7a5230', '#ff7814', '#fff'], 1.8); } floatText(e.pi, '+3'); bump(TOAST_PRI.potato, t('tPotato', nm(e.pi))); break;
       case 'potatoLit': SFX.play('tick'); break;
       case 'snitch': SFX.play('swap'); floatText(e.b, '+' + e.g); bump(TOAST_PRI.snitch, t('tSnitch')); break;
-      case 'd6': SFX.play('shuffle'); JUICE.glitch(); floatText(e.pi, '', ICON.d6); bump(TOAST_PRI.d6, t('tD6')); break;
+      case 'd6': SFX.play('shuffle'); floatText(e.pi, '', ICON.d6); bump(TOAST_PRI.d6, t('tD6')); break;
       case 'pill': SFX.play(e.p === 'badtrip' ? 'bad' : 'lucky'); bump(TOAST_PRI.pill, t('pill_' + e.p)); break;
       case 'tower': SFX.play('devil'); JUICE.shake(5); (e.hits || []).forEach(i => floatText(i, '+1')); bump(TOAST_PRI.tower, t('tTower')); break;
-      case 'glitch': SFX.play('reel'); JUICE.glitch(); setTimeout(() => JUICE.glitch(), 160); bump(TOAST_PRI.glitch, cardName({ c: 'w', v: e.v })); break;
+      case 'glitch': SFX.play('reel'); bump(TOAST_PRI.glitch, cardName({ c: 'w', v: e.v })); break;
       case 'brim': SFX.play('devil'); JUICE.shake(6); JUICE.ignite(0.8); (e.hits || []).forEach((i, n) => setTimeout(() => { const r = seatRect(i) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 50, ['#ff2a2a', '#7a0000', '#ffb3b3', '#fff'], 1.6); floatText(i, '+2'); }, n * 120)); bump(TOAST_PRI.brim, t('tBrim')); break;
       case 'foot': SFX.play('devil'); JUICE.shake(7); { const r = seatRect(e.t) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 70, ['#e8c4a0', '#7a5230', '#fff'], 1.8); } bump(TOAST_PRI.foot, t('tFoot', nm(e.t))); break;
-      case 'maze': SFX.play('chaos'); JUICE.glitch(); bump(TOAST_PRI.maze, t('tMaze')); break;
-      case 'deal': SFX.play('devil'); JUICE.glitch(); JUICE.ignite(1); bump(TOAST_PRI.deal, t('tDeal')); break;
+      case 'maze': SFX.play('chaos'); bump(TOAST_PRI.maze, t('tMaze')); break;
+      case 'deal': SFX.play('devil'); JUICE.ignite(1); bump(TOAST_PRI.deal, t('tDeal')); break;
       case 'dealDue': SFX.play('bad'); JUICE.shake(5); bump(TOAST_PRI.deal, t('tDealDue', e.k)); break;
       case 'monstro': SFX.play('devil'); JUICE.shake(8); { const r = seatRect(e.t) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 90, ['#b23a48', '#5a1020', '#ffccd5', '#fff'], 2.2); } floatText(e.t, '+' + e.k); bump(TOAST_PRI.monstro, t('tMonstro', nm(e.t))); break;
       case 'caught': SFX.play('bad'); floatText(e.pi, t('tCaught')); break;
-      case 'ko': SFX.play('ko'); JUICE.glitch(); bump(TOAST_PRI.ko, t('tOut', nm(e.pi))); break;
+      case 'ko': SFX.play('ko'); bump(TOAST_PRI.ko, t('tOut', nm(e.pi))); break;
       case 'win': SFX.play('win'); JUICE.burst(innerWidth / 2, innerHeight * 0.4, 160, ['#ff2d55', '#ffd23f', '#22d3ee', '#a3e635', '#fff'], 2); bump(TOAST_PRI.win, e.pi === ME ? t('youWin') : t('wins', nm(e.pi))); break;
       case 'mirror': SFX.play('swap'); bump(TOAST_PRI.mirror, t('tMirror', nm(e.b))); break;
       case 'shieldup': SFX.play('click'); floatText(e.pi, t('tShieldUp')); break;
@@ -5489,17 +5489,17 @@ function processEvents() {
       case 'warTime': SFX.play('bad'); JUICE.shake(4); floatText(e.pi, '+2'); break;
       case 'arms': case 'rot': SFX.play('swap'); break;
       case 'tithe': SFX.play('swap'); floatText(e.t, '+1'); break;
-      case 'dealTaken': SFX.play(e.kind === 'dark' ? 'devil' : 'win'); JUICE.glitch(); bump(6, t('tDealTaken', nm(e.pi), t('deal_' + e.d))); break;
+      case 'dealTaken': SFX.play(e.kind === 'dark' ? 'devil' : 'win'); bump(6, t('tDealTaken', nm(e.pi), t('deal_' + e.d))); break;
       case 'fall': SFX.play('devil'); JUICE.shake(6); bump(8, t('tFall', nm(e.pi))); break;
       case 'guardian': SFX.play('swap'); bump(6, t('tGuardian', nm(e.pi))); break;
-      case 'sacr': SFX.play('bang'); JUICE.shake(8); JUICE.glitch(); bump(9, t('tSacr', nm(e.t))); break;
+      case 'sacr': SFX.play('bang'); JUICE.shake(8); bump(9, t('tSacr', nm(e.t))); break;
       case 'swind': SFX.play('win'); bump(6, t('tSwind', nm(e.pi))); break;
-      case 'broke': SFX.play('ko'); JUICE.glitch(); bump(9, t('tBroke', nm(e.pi))); break;
+      case 'broke': SFX.play('ko'); bump(9, t('tBroke', nm(e.pi))); break;
       case 'chained': if (e.pi === ME) floatText(e.pi, t('tChained', e.k)); break;
       case 'puppet': SFX.play('chaos'); bump(5, t('tPuppet', nm(e.t))); break;
       case 'demonCharge': if (e.pi === ME) floatText(e.pi, '', DEAL_ICON.demon + ' ' + e.k + '%'); break;
       case 'flip':
-        SFX.play('flip'); JUICE.glitch(); JUICE.shake(2); bump(TOAST_PRI.flip, e.side === 'D' ? t('tDark') : t('tLight'));
+        SFX.play('flip'); JUICE.shake(2); bump(TOAST_PRI.flip, e.side === 'D' ? t('tDark') : t('tLight'));
         document.querySelectorAll('#hand .card').forEach(el => { el.classList.remove('new'); el.classList.add('flipin'); });
         break;
     }
@@ -5710,6 +5710,8 @@ function drawHorse() {
   warMine = !!(w && w[0] === ME && G.turn === ME && G.winner === null && !G.warded(ME));
   if (warMine) warEnd = performance.now() + w[1];
 }
+// Static: the old-software crash keeps hitting while the curse lasts
+setInterval(() => { if (curseOn === 'static' && !document.hidden && Math.random() < 0.55) { JUICE.glitch(true); if (Math.random() < 0.35) setTimeout(() => JUICE.glitch(true), 260); } }, 2200);
 function setCurse(c) {
   if (c === curseOn) return;
   document.body.classList.remove('curse-' + curseOn);
@@ -5936,7 +5938,7 @@ function showCombo(e) {
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   const big = e.m > 0 || e.mult >= 3;
   SFX.play('mult', Math.min(4, e.mult)); setTimeout(() => SFX.play('lucky'), 180);
-  JUICE.shake(big ? 4 : 2); if (big) JUICE.glitch();
+  JUICE.shake(big ? 4 : 2);
   JUICE.comboFlame(el.querySelector('.mult'), Math.min(8, 1.5 + e.mult * 1.2), 1700);
   const r = el.getBoundingClientRect(); JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 40 + e.mult * 10, ['#009dff', '#fe5f55', '#ffd23f', '#fff'], 1.2);
   clearTimeout(comboTimer); comboTimer = setTimeout(() => el.classList.remove('show'), 1900);
