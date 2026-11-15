@@ -1020,6 +1020,18 @@ body.lite #psycho { display: none !important; }
 .ewin .ebtn { width: 60px; height: 18px; margin: 0 auto 8px; background: #bfbfbf; border: 2px solid; border-color: #f4f4f4 #3a3a3a #3a3a3a #f4f4f4; outline: 1px solid #000; }
 body.lite #crash:not(.on) { display: none; }
 
+/* the score strip: compact, in one row, pinned to the top edge of the piles */
+#combo { flex-direction: row; gap: 12px; padding: 8px 16px; top: 30%; transform: translate(-50%, 0) scale(.7); max-width: 92vw; white-space: nowrap; }
+#combo.show { transform: translate(-50%, 0) scale(1) rotate(-1deg); }
+#combo .cname { font-size: 20px; line-height: 24px; }
+#combo .chips, #combo .mult { font-size: 18px; line-height: 26px; min-width: 40px; width: auto; height: auto; padding: 0 8px; border-radius: var(--ui-r); }
+#combo .cscore { gap: 4px; }
+#combo .cwho { font-size: 11px; }
+#combo .cpay { font-size: 12px; line-height: 16px; }
+@media (max-width: 820px) { #combo { gap: 8px; padding: 4px 8px; } #combo .cname { font-size: 15px; } #combo .chips, #combo .mult { font-size: 14px; min-width: 28px; } #combo .cpay { display: none; } }
+#combo { flex-wrap: wrap; justify-content: center; row-gap: 2px; white-space: normal; }
+#combo .cpay { flex: 1 1 100%; text-align: center; }
+
 </style>
 </head>
 <body>
@@ -5934,6 +5946,8 @@ function showCombo(e) {
   if (!el) { el = document.createElement('div'); el.id = 'combo'; $('game').appendChild(el); }
   const pay = [e.d ? t('comboToss', e.d) : '', e.slap >= 0 && e.sd ? t('comboNightSlap', nm(e.slap), e.sd) : '', e.m ? t('comboHit', e.m) : '', e.r ? t('comboRelief', e.r) : ''].filter(Boolean).join(' · ');
   el.innerHTML = `<span class="cwho">${esc(nm(e.pi))}</span><b class="cname">${t('combo_' + e.key)}</b><div class="cscore"><span class="chips">${e.chips}</span><i>×</i><span class="mult">${e.mult}</span></div>${pay ? `<span class="cpay">${esc(pay)}</span>` : ''}`;
+  // sits on the top edge of the pile area, never over the day/night panel next to it
+  { const pr = document.querySelector('.piles'); if (pr) { const r = pr.getBoundingClientRect(); el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = Math.max(8, r.top + 6) + 'px'; el.style.maxWidth = Math.max(220, r.width - 12) + 'px'; } }
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   const big = e.m > 0 || e.mult >= 3;
   SFX.play('mult', Math.min(4, e.mult)); setTimeout(() => SFX.play('lucky'), 180);
