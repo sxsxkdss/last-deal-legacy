@@ -19,7 +19,7 @@ const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the m
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'chaos'];
-const BOT_NAMES = ['Glitch', 'Turbo', 'Vex', 'Nova', 'Byte', 'Rusty', 'Pixel', 'Zap', 'Hex', 'Static'];
+const BOT_NAMES = ['Адидас', 'Марат', 'Пальто', 'Кащей', 'Турбо', 'Зима', 'Ералаш', 'Айгуль', 'Сутулый', 'Жёлтый'];
 
 const clean = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 const validToken = t => typeof t === 'string' && /^[a-z0-9]{12,40}$/.test(t);
