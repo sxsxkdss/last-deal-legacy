@@ -1119,6 +1119,15 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 /* the deck is the draw button now: it lights up and nods when a click on it does something */
 #drawpile.can { animation: deckNod 1.6s ease-in-out infinite; }
 @keyframes deckNod { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+/* a bit bigger again */
+#comboRef { padding: 8px 12px; }
+#comboRef .crhead .label, .comboref .crhead .label { font-size: 12px; line-height: 16px; }
+#comboRef .cr, .comboref .cr { grid-template-columns: minmax(0, 1fr) auto 30px 28px 34px; gap: 8px; padding: 2px 4px; }
+#comboRef .cnm, .comboref .cnm { font-size: 12px; line-height: 17px; }
+#comboRef .mc, .comboref .mc { width: 11px; height: 15px; font-size: 9px; }
+#comboRef .toss, #comboRef .hit, #comboRef .debt, #comboRef .nil, .comboref .toss, .comboref .hit, .comboref .debt, .comboref .nil { font-size: 12px; line-height: 17px; }
+#comboRef .crcols, .comboref .crcols { font-size: 9px; line-height: 12px; }
+#comboRef .crfoot, .comboref .crfoot { font-size: 10px; line-height: 13px; margin-top: 4px; padding-top: 4px; }
 
 </style>
 </head>
