@@ -40,6 +40,9 @@
   --f-chalk: 'Oswald', 'Arial Narrow', sans-serif;
   /* card size */
   --cw: clamp(58px, min(10.5vh, 7.5vw), 104px); --ch: calc(var(--cw) * 1.47);
+  --tex-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --tex-ink: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 2.15'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+  --tex-static: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -.25'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --grime-in: inset 0 0 28px rgba(40, 25, 10, .45), inset 0 0 2px rgba(0, 0, 0, .4);
 }
@@ -328,7 +331,7 @@ body:not(.lite) #hand:not(.big) .card:not(:hover):not(.new):not(.flipin):not(.no
   -webkit-mask-composite: source-out; mask-composite: subtract;
 }
 /* the shadows of torn cards are cast by whatever they lie on */
-#hand, .piles, #fx, .pick, .colors, .draftpick { filter: drop-shadow(0 7px 7px rgba(0, 0, 0, .75)) drop-shadow(0 0 1px rgba(0, 0, 0, .9)); }
+#hand, .piles, #fx, .pick, .colors, .draftpick { filter: drop-shadow(0 7px 7px rgba(0, 0, 0, .8)); }
 .card.c-r { --cc: var(--r); } .card.c-y { --cc: var(--y); } .card.c-g { --cc: var(--g); } .card.c-b { --cc: var(--b); }
 .card.c-p { --cc: var(--p); } .card.c-t { --cc: var(--t); } .card.c-o { --cc: var(--o); } .card.c-v { --cc: var(--v); }
 .card.c-w { --cc: #100d0b; }
@@ -346,7 +349,7 @@ body:not(.lite) #hand:not(.big) .card:not(:hover):not(.new):not(.flipin):not(.no
     linear-gradient(var(--ca, 30deg), transparent calc(var(--cp, 50%) - .8%), rgba(0, 0, 0, var(--co, 0)) var(--cp, 50%), rgba(255, 245, 225, calc(var(--co, 0) * .5)) calc(var(--cp, 50%) + .4%), transparent calc(var(--cp, 50%) + 1.2%)),
     /* grime from hands, heavier on one side */
     linear-gradient(var(--ga, 180deg), rgba(30, 15, 5, var(--go, .5)), transparent 55%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .12  0 0 0 0 .08  0 0 0 0 .04  0 0 0 1.1 -.25'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+    var(--tex-grain); }
 .card::after { content: ''; position: absolute; inset: calc(var(--cw) * .045); z-index: 4; pointer-events: none; border: 1px solid rgba(216, 206, 180, .28); border-radius: calc(var(--cw) * .03); mix-blend-mode: screen;
   background:
     radial-gradient(ellipse calc(var(--ws, 20%) * 1.05) calc(var(--ws, 20%) * var(--wh, 1) * 1.05) at calc(var(--wx, 40%) - 0%) calc(var(--wy, 40%) + 0%), rgba(225, 215, 190, calc(var(--wo, 0) * .16)), rgba(225, 215, 190, calc(var(--wo, 0) * .07)) 70%, transparent 86%),
@@ -601,8 +604,8 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 /* ---------- worn harder: chewed corners, burns and coffee, print that's flaking off ---------- */
 /* the stencil ink flakes off in patches */
 .card .mid, .card .cor {
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 2.15'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 2.15'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+  -webkit-mask-image: var(--tex-ink);
+  mask-image: var(--tex-ink);
   -webkit-mask-size: var(--ms, 90px) var(--ms, 90px); mask-size: var(--ms, 90px) var(--ms, 90px);
   -webkit-mask-position: var(--mx, 0) var(--my, 0); mask-position: var(--mx, 0) var(--my, 0);
 }
@@ -842,7 +845,7 @@ body.dark #cactus svg { filter: brightness(.7) saturate(.8); }
 #curseDark { position: fixed; inset: 0; z-index: 95; pointer-events: none; --mx: 50vw; --my: 80vh;
   background: radial-gradient(circle at var(--mx) var(--my), transparent 0, transparent 95px, rgba(0, 0, 0, .9) 140px, #000 190px); }
 #curseStatic { position: fixed; inset: -20px; z-index: 96; pointer-events: none; opacity: .3; mix-blend-mode: screen;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -.25'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+  background-image: var(--tex-static),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, .08) 0 1px, transparent 1px 3px);
   animation: staticNoise .18s steps(4) infinite; }
 #curseDark.hidden, #curseStatic.hidden { display: none; }
@@ -3718,76 +3721,99 @@ const JUICE = (() => {
     const vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
     // The back room, seen from above: a worn felt table with a wooden rail under one hanging lamp,
     // darkness all around, slow smoke in the light. Day = a warm bulb, night = a red bulb. Big stacks make it flicker.
-    const fs = `precision mediump float;uniform float t;uniform vec2 r;uniform float side;uniform float heat;uniform vec4 tb;uniform float beat;
-      float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    // Two passes: the room itself (felt, rail, floor: lots of noise, never moves) is baked into a texture
+    // whenever the layout changes; every frame only lights it, adds the smoke and dithers.
+    const NOISE = `float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
-      float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.03+vec2(17.,9.);a*=.5;}return v;}
+      float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.03+vec2(17.,9.);a*=.5;}return v;}`;
+    const fsRoom = `precision mediump float;uniform vec2 r;uniform vec4 tb;${NOISE}
       void main(){
         vec2 px=gl_FragCoord.xy;
-        vec2 c=tb.xy, rad=tb.zw;                        // table centre and half-size, in pixels
-        vec2 q=(px-c)/rad;                               // -1..1 across the table
-        float e=length(q*vec2(1.,1.));                   // rounded-rectangle-ish table: superellipse
+        vec2 c=tb.xy, rad=tb.zw;
+        vec2 q=(px-c)/rad;
         float sq=pow(pow(abs(q.x),4.)+pow(abs(q.y),4.),.25);
         float felt=1.-smoothstep(.93,.95,sq);
         float rail=smoothstep(.93,.95,sq)*(1.-smoothstep(1.04,1.07,sq));
-        // felt: fine nap, scuffs, a worn patch in the middle
         vec2 fp=px/min(r.x,r.y)*7.;
         float nap=fbm(fp*6.)*.5+fbm(fp*1.3)*.5;
         float scuff=smoothstep(.55,.85,fbm(fp*.8+3.))*.35;
         float wear=smoothstep(.9,.0,length(q*vec2(.9,1.2)))*.18;
         vec3 feltC=vec3(.07,.19,.14)*(.7+.45*nap)-scuff*.06+wear*vec3(.07,.07,.04);
-        feltC=mix(feltC,vec3(dot(feltC,vec3(.33))),.35); // drained colour
-        // wooden rail with grain
+        feltC=mix(feltC,vec3(dot(feltC,vec3(.33))),.35);
         float grain=fbm(vec2(atan(q.y,q.x)*22.,sq*40.));
         vec3 woodC=vec3(.13,.075,.045)*(.6+.6*grain);
-        // floor: almost black boards
         vec3 floorC=vec3(.035,.03,.027)*(.7+.5*fbm(vec2(px.x/r.x*3.,px.y/r.y*40.)));
         vec3 col=mix(floorC,woodC,rail+felt);
         col=mix(col,feltC,felt);
-        // the lamp: warm by day, red at night; a slow sway and a flicker that worsens with the stack
+        gl_FragColor=vec4(col*4.,1.);   // stored x4 so the dark tones keep their steps in 8 bits
+      }`;
+    const fs = `precision mediump float;uniform float t;uniform vec2 r;uniform float side;uniform float heat;uniform float beat;uniform sampler2D room;${NOISE}
+      void main(){
+        vec2 px=gl_FragCoord.xy;
+        vec3 col=texture2D(room,px/r).rgb*.25;
         float sway=sin(t*.35)*.015;
         vec2 lp=vec2(.5+sway,.52)*r;
         float d=length((px-lp)/min(r.x,r.y));
-        float buzz=step(.985,n(vec2(floor(t*6.),3.)));            // a tired bulb: once in a while it dips
+        float buzz=step(.985,n(vec2(floor(t*6.),3.)));
         float fl=1.-heat*.22*step(.88,n(vec2(t*6.,1.)))-.025*n(vec2(t*2.,7.))-.22*buzz;
-        // day: a stronger, wider bulb and some light bounced off the walls; night: one narrow red lamp
         float spread=mix(2.2,2.7,side);
         float lamp=exp(-d*d*spread)*mix(1.45,1.35,side)*fl*(1.+beat*.16)+mix(.07,.055,side);
         vec3 bulb=mix(vec3(1.,.88,.66),vec3(1.,.18,.14),side);
         col*=lamp*bulb*mix(1.9,2.4,side);
-        // smoke drifting through the light
         float sm=fbm(px/min(r.x,r.y)*2.5+vec2(t*.03,-t*.05));
         col+=bulb*smoothstep(.45,.9,sm)*exp(-d*d*1.8)*(.06+beat*.05);
-        // heavy vignette into darkness
         col*=smoothstep(mix(1.6,1.45,side),mix(.1,.12,side),d);
-        // PSX-style: few colour steps with ordered dithering
         vec2 ip=floor(mod(gl_FragCoord.xy,4.));
         float bay=mod(ip.x*2.+ip.y*3.,4.)/4.;
         col=floor(col*48.+bay)/48.;
         gl_FragColor=vec4(col,1.);
       }`;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
-    const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { cv.classList.add('nogl'); return; }
-    gl.useProgram(pr);
+    const prog = src => { const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, src)); gl.linkProgram(pr); return gl.getProgramParameter(pr, gl.LINK_STATUS) ? pr : null; };
+    const prRoom = prog(fsRoom), pr = prog(fs);
+    if (!prRoom || !pr) { cv.classList.add('nogl'); return; }
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = { t: gl.getUniformLocation(pr, 't'), r: gl.getUniformLocation(pr, 'r'), side: gl.getUniformLocation(pr, 'side'), heat: gl.getUniformLocation(pr, 'heat'), tb: gl.getUniformLocation(pr, 'tb'), beat: gl.getUniformLocation(pr, 'beat') };
-    const size = () => { const k = 3; cv.width = Math.ceil(innerWidth / k); cv.height = Math.ceil(innerHeight / k); gl.viewport(0, 0, cv.width, cv.height); };
+    const bindQuad = p => { const loc = gl.getAttribLocation(p, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0); };
+    const U = { t: gl.getUniformLocation(pr, 't'), r: gl.getUniformLocation(pr, 'r'), side: gl.getUniformLocation(pr, 'side'), heat: gl.getUniformLocation(pr, 'heat'), beat: gl.getUniformLocation(pr, 'beat'), room: gl.getUniformLocation(pr, 'room') };
+    const UR = { r: gl.getUniformLocation(prRoom, 'r'), tb: gl.getUniformLocation(prRoom, 'tb') };
+    // the baked room
+    const tex = gl.createTexture(), fbo = gl.createFramebuffer();
+    let roomKey = '';
+    const K = 3;
+    const bakeRoom = () => {
+      const T = state.table || { x: innerWidth * 0.4, y: innerHeight * 0.5, w: innerWidth * 0.38, h: innerHeight * 0.42 };
+      const key = [cv.width, cv.height, Math.round(T.x), Math.round(T.y), Math.round(T.w), Math.round(T.h)].join(',');
+      if (key === roomKey) return; roomKey = key;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cv.width, cv.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      gl.useProgram(prRoom); bindQuad(prRoom);
+      gl.uniform2f(UR.r, cv.width, cv.height); gl.uniform4f(UR.tb, T.x / K, (innerHeight - T.y) / K, T.w / K, T.h / K);
+      gl.viewport(0, 0, cv.width, cv.height);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.useProgram(pr); bindQuad(pr); gl.uniform1i(U.room, 0);
+    };
+    const size = () => { cv.width = Math.ceil(innerWidth / K); cv.height = Math.ceil(innerHeight / K); gl.viewport(0, 0, cv.width, cv.height); };
     size(); addEventListener('resize', size);
+    gl.useProgram(pr); bindQuad(pr);
     state.gl = gl;
     const t0 = performance.now(); let last = 0;
     (function frame(now) {
       requestAnimationFrame(frame);
       if (!full() || document.hidden) return;
       if (now - last < 33) return; last = now; // ~30 fps is plenty for a background
+      bakeRoom();
       state.side += (state.sideT - state.side) * 0.06;
       state.heat += (state.heatT - state.heat) * 0.05;
       if (typeof S === 'undefined' || S.bgMotion !== false) state.tAcc = (state.tAcc || 0) + Math.min(0.05, (now - (state.tLast || now)) / 1000); state.tLast = now;
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.uniform1f(U.t, 20 + (state.tAcc || 0)); gl.uniform2f(U.r, cv.width, cv.height);
-      gl.uniform1f(U.side, state.side);
-      { const k = 3, T = state.table || { x: innerWidth * 0.4, y: innerHeight * 0.5, w: innerWidth * 0.38, h: innerHeight * 0.42 }; gl.uniform4f(U.tb, T.x / k, (innerHeight - T.y) / k, T.w / k, T.h / k); } gl.uniform1f(U.heat, Math.min(1, state.heat)); gl.uniform1f(U.beat, state.beat || 0);
+      gl.uniform1f(U.side, state.side); gl.uniform1f(U.heat, Math.min(1, state.heat)); gl.uniform1f(U.beat, state.beat || 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     })(t0);
   }
@@ -4702,6 +4728,39 @@ const CHAIN_SVGS = [0, 1, 2, 3, 4, 5].map(vi => {
     + `<g stroke="#0c0203" fill="#0c0203">${A.body}${B.body}</g>`
     + `<g stroke="#ff4a30" fill="none" stroke-width=".35" opacity=".55">${A.rim.replace(/stroke-width="[\d.]+"/g, '')}${B.rim.replace(/stroke-width="[\d.]+"/g, '')}</g></svg>`;
 });
+// ================= BAKED TEXTURES =================
+// SVG noise (feTurbulence) and the blurred chains are drawn once into bitmaps at start-up; the page then only
+// stretches pictures instead of re-running SVG filters for every card size (Firefox re-ran them constantly).
+const BAKE = (() => {
+  const svgURL = svg => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  const toBlobURL = (src, w, h) => new Promise(res => {
+    const img = new Image();
+    img.onload = () => { try { const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); c.toBlob(b => res(b ? URL.createObjectURL(b) : null), 'image/png'); } catch (e) { res(null); } };
+    img.onerror = () => res(null);
+    img.src = src;
+  });
+  const set2x = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('background-image', 'image-set(url("x.png") 2x)');
+  const css = []; const st = document.createElement('style'); document.head.appendChild(st);
+  // chains: vector first (works at once), bitmaps as soon as they're baked
+  CHAIN_SVGS.forEach((svg, k) => { css[k] = `.card .chainov.cv${k}{background:url("${svgURL(svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '))}") center / 100% 100% no-repeat}`; });
+  st.textContent = css.join('\n');
+  async function run() {
+    const root = getComputedStyle(document.documentElement);
+    for (const v of ['--noise', '--tex-grain', '--tex-ink', '--tex-static']) {
+      const m = /url\(\s*"(data:[\s\S]*)"\s*\)\s*$/.exec(root.getPropertyValue(v).trim()); if (!m) continue;
+      const src = m[1], w = +(/width=(?:'|%27)(\d+)/.exec(src) || [])[1] || 140, h = +(/height=(?:'|%27)(\d+)/.exec(src) || [])[1] || w;
+      const u = await toBlobURL(src, set2x ? w * 2 : w, set2x ? h * 2 : h); if (!u) continue;
+      document.documentElement.style.setProperty(v, set2x ? `image-set(url("${u}") 2x)` : `url("${u}")`);
+    }
+    await Promise.all(CHAIN_SVGS.map(async (svg, k) => {
+      const u = await toBlobURL(svgURL(svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')), 300, 441);
+      if (u) css[k] = `.card .chainov.cv${k}{background:url("${u}") center / 100% 100% no-repeat}`;
+    }));
+    st.textContent = css.join('\n');
+  }
+  (window.requestIdleCallback || (f => setTimeout(f, 200)))(() => run());
+  return { run };
+})();
 const LOCK_SVG = `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#120807" stroke="#2c1612" stroke-width="3"/>`
   + `<g fill="#120807" stroke="#2c1612" stroke-width="1.2">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<path transform="rotate(${a} 20 20)" d="M18 4.5 20 0l2 4.5z"/>`).join('')}</g>`
   + `<circle cx="20" cy="20" r="12.5" fill="none" stroke="#ff3d1a" stroke-width="1" stroke-opacity=".8"/>`
@@ -4828,7 +4887,7 @@ function faceHTML(f, side, cls = '', id = '') {
   const cor = CORNER[f.v] || esc(f.v);
   const uniq = f.v === 'swind' || f.v === 'sacr' || /\buniq\b/.test(cls) ? ' uniq' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];
-  const chains = /\blocked\b/.test(cls) ? `<i class="chainglow"></i><i class="chainov">${CHAIN_SVGS[(parseInt(id, 10) || 0) % CHAIN_SVGS.length]}</i><i class="lock">${LOCK_SVG}${chainN ? `<b>${chainN}</b>` : ''}</i>` : '';
+  const chains = /\blocked\b/.test(cls) ? `<i class="chainglow"></i><i class="chainov cv${(parseInt(id, 10) || 0) % CHAIN_SVGS.length}"></i><i class="lock">${LOCK_SVG}${chainN ? `<b>${chainN}</b>` : ''}</i>` : '';
   return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${W.burn ? `<i class="burn ${W.burn}"></i>` : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
