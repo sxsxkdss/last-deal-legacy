@@ -542,8 +542,8 @@ body.lite #cardtip, body.lite #combo { transition: none; }
   #bottom .me { margin-bottom: 4px; gap: 8px; }
   #bottom .me .who { gap: 8px; }
   #bottom .me .bar { display: none; }
-  .actions { width: 100%; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; }
-  .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr; }
+  .actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
   .btn { height: 44px; padding: 0 8px; }
   #ticker { display: block; padding: 4px 2px 0; min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 400 12px/16px var(--f-type); color: var(--chalk-2); }
   #hand { padding: 32px 16px 20px; }
@@ -1087,8 +1087,8 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 #bottom .me .actions, #bottom .me .abbar, #bottom .me .invbar { flex: 0 1 auto; }
 @media (max-width: 820px) {
   #bottom .me { width: 100%; }
-  #bottom .me .actions { flex: 1 1 100%; grid-template-columns: 1.6fr 1fr 1fr 1fr; }
-  #bottom .me .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 1.6fr 1.2fr 1fr 1fr 1fr; }
+  #bottom .me .actions { flex: 1 1 100%; grid-template-columns: 1fr 1fr 1fr; }
+  #bottom .me .actions:has(#btnGamble:not(.hidden)) { grid-template-columns: 1.2fr 1fr 1fr 1fr; }
   #btnSelect { font-size: 11px; padding: 0 4px; white-space: normal; line-height: 12px; }
 }
 /* the same reference on a paper sheet (phones): dark ink */
@@ -1115,6 +1115,10 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 #comboRef .crfoot, .comboref .crfoot { margin-top: 3px; padding-top: 3px; font-size: 9px; line-height: 12px; }
 /* the poker reference sits at the bottom of the side column */
 #comboRef { margin-top: auto; }
+
+/* the deck is the draw button now: it lights up and nods when a click on it does something */
+#drawpile.can { animation: deckNod 1.6s ease-in-out infinite; }
+@keyframes deckNod { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
 
 </style>
 </head>
@@ -1177,7 +1181,7 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
     <div id="toast"></div>
     <div class="center" id="center">
       <div class="piles">
-        <div class="pile" id="drawpile" title="Draw pile: you can see the back of the next card"></div>
+        <div class="pile" id="drawpile" ></div>
         <div class="pile" id="discard"></div>
       </div>
       <div class="hud" id="hud"></div>
@@ -1190,7 +1194,6 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
       <div class="invbar hidden" id="invBar"></div>
       <div class="colbar hidden" id="colBar"><span class="label" id="colTxt"></span><button class="btn" id="btnColGive"></button><button class="btn" id="btnColLever"></button></div>
         <div class="actions">
-        <button class="btn primary" id="btnDraw" data-i18n="draw"></button>
         <button class="btn" id="btnPass" data-i18n="pass"></button>
         <button class="btn gamble hidden" id="btnGamble"></button>
         <button class="btn quiet" id="btnSelect"></button>
@@ -2838,11 +2841,11 @@ STR.en = {
   oweBanner: k => `Picking up ${k} ${cardsW(k)}…`, myStackDebt: k => `Picking up the stack: ${k} to go`, myColorDebt: (c, k) => `Drawing till ${c}: ${k} so far`,
   otherDebtN: (n, k) => `${n} is picking up (${k} to go)`, otherDebtC: (n, c) => `${n} is drawing till ${c}`,
   rouletteMe: 'Call a colour', rouletteOther: n => `${n} is calling a colour`,
-  stackOrTake: (m, k) => `Put +${m} or more on it, reflect it, or take +${k}`,
+  stackOrTake: (m, k) => `Put +${m} or more on it, reflect it, or click the deck to take +${k}`,
   playOrPass: 'Play the card you drew, or pass',
   yourTurn: 'Your turn. Click a card or drag it to the pile.',
-  keepDrawing: c => `Nothing fits. Draw till you get ${c} or a wild.`,
-  drawOne: 'Nothing fits. Draw.',
+  keepDrawing: c => `Nothing fits. Click the deck till you get ${c} or a wild.`,
+  drawOne: 'Nothing fits. Click the deck.',
   turnOf: (n, aw) => `${n}'s turn${aw ? ' (away, skipped soon)' : ''}`,
   tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Next', tagShield: 'Vest', tagWinner: 'Winner', tagPlayer: 'Player', tagTurn: 'their turn',
   yourTurnStamp: 'YOUR TURN', tAgain: 'Go again',
@@ -3037,11 +3040,11 @@ STR.ru = {
   oweBanner: k => `Берёте ${k} ${cardsAcc(k)}…`, myStackDebt: k => `Берёте стопку: ещё ${k}`, myColorDebt: (c, k) => `Тянете до «${c}»: уже ${k}`,
   otherDebtN: (n, k) => `${n} берёт карты (ещё ${k})`, otherDebtC: (n, c) => `${n} тянет до «${c}»`,
   rouletteMe: 'Назовите цвет', rouletteOther: n => `${n} называет цвет`,
-  stackOrTake: (m, k) => `Положите +${m} или больше, отразите или возьмите +${k}`,
+  stackOrTake: (m, k) => `Положите +${m} или больше, отразите или нажмите на колоду и возьмите +${k}`,
   playOrPass: 'Сыграйте взятую карту или пасуйте',
   yourTurn: 'Ваш ход. Нажмите на карту или перетащите её в сброс.',
-  keepDrawing: c => `Ходить нечем. Тяните до «${c}» или джокера.`,
-  drawOne: 'Ходить нечем. Берите.',
+  keepDrawing: c => `Ходить нечем. Тяните из колоды до «${c}» или джокера.`,
+  drawOne: 'Ходить нечем. Берите из колоды.',
   turnOf: (n, aw) => `Ходит ${n}${aw ? ' (отошёл, скоро пропуск)' : ''}`,
   tagLeft: 'Ушёл', tagAway: 'Отошёл', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Жилет', tagWinner: 'Победитель', tagPlayer: 'Игрок', tagTurn: 'ходит',
   yourTurnStamp: 'ВАШ ХОД', tAgain: 'Ещё ход',
@@ -3575,7 +3578,7 @@ const RULES_HTML = {};
 RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every card has two faces: day and night. Days are played on the casino floor, nights in the back room.</p>
   <h3>Basics</h3><ul>
     <li>Put down a card of the same colour or the same symbol, or a wild. Empty your hand to win.</li>
-    <li>Click a card or drag it to the pile. Drag cards sideways to reorder your hand. Hover a card (long-press on a phone) to read it. Keys: <b>D</b> or <b>Space</b> to draw, <b>P</b> to pass.</li>
+    <li>Click a card or drag it to the pile. Drag cards sideways to reorder your hand. Hover a card (long-press on a phone) to read it. To draw, click the deck (or press <b>D</b> or <b>Space</b>). <b>P</b> passes.</li>
     <li>The host picks the rules and the House cards in the lobby.</li></ul>
   <h3>Day and night</h3><ul>
     <li><b>Shift</b> turns every card over. Day becomes night and the table rules change.</li>
@@ -3585,10 +3588,10 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
     <li>You see the other face of everyone else's cards and of the next card in the deck. Never your own.</li></ul>
   <h3>Drawing</h3><ul>
     <li>A stack you take and every penalty come in by themselves, one card at a time.</li>
-    <li>Drawing till a colour comes (nothing to play, Colour Roulette, Draw Till Colour) is by hand, one click per card.</li>
+    <li>Drawing till a colour comes (nothing to play, Colour Roulette, Draw Till Colour) is by hand, one click on the deck per card.</li>
     <li>While you owe cards, you can't play.</li></ul>
   <h3>Stacks</h3><ul>
-    <li>Answer a draw card with one of the same value or higher: +1, +2, +4, +5, +6, +8, +10, +15. Can't? Take the whole stack.</li>
+    <li>Answer a draw card with one of the same value or higher: +1, +2, +4, +5, +6, +8, +10, +15. Can't? Click the deck and take the whole stack.</li>
     <li><b>Double Down</b> and <b>Triple Down</b> multiply the stack, up to +60. <b>Mirror</b> sends it back. <b>Vest</b> stops the next one that reaches you. <b>Encore</b> repeats the draw card under it.</li>
     <li><b>Russian roulette</b>: facing a big enough stack, press Roulette and pick a rival. Click (50%): they take the whole stack and play moves on. Bang: you take it doubled.</li></ul>
   <h3>Poker hands</h3><ul>
@@ -3640,7 +3643,7 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
 RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконечную колоду. У каждой карты два лица: дневное и ночное. Днём играют в зале казино, ночью в подсобке.</p>
   <h3>Основы</h3><ul>
     <li>Кладите карту того же цвета или того же символа, или джокера. Скинули все карты — выиграли.</li>
-    <li>Нажмите на карту или перетащите её в сброс. Тащите карты вбок, чтобы переставить их в руке. Наведите на карту (на телефоне подержите палец), чтобы прочитать её. Клавиши: <b>D</b> или <b>пробел</b> взять, <b>P</b> пас.</li>
+    <li>Нажмите на карту или перетащите её в сброс. Тащите карты вбок, чтобы переставить их в руке. Наведите на карту (на телефоне подержите палец), чтобы прочитать её. Чтобы взять карту, нажмите на колоду (или <b>D</b>, <b>пробел</b>). <b>P</b> — пас.</li>
     <li>Правила и карты Дома выбирает хозяин в лобби.</li></ul>
   <h3>День и ночь</h3><ul>
     <li><b>Смена</b> переворачивает все карты. День становится ночью, и правила стола меняются.</li>
@@ -3650,10 +3653,10 @@ RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконеч
     <li>Вы видите обратную сторону чужих карт и следующей карты колоды. Своих — никогда.</li></ul>
   <h3>Как брать карты</h3><ul>
     <li>Взятая стопка и любые штрафы приходят сами, по одной карте.</li>
-    <li>Тянуть до цвета (ходить нечем, «Цветная рулетка», «Тяни до цвета») нужно руками, по нажатию на каждую карту.</li>
+    <li>Тянуть до цвета (ходить нечем, «Цветная рулетка», «Тяни до цвета») нужно руками: одно нажатие на колоду — одна карта.</li>
     <li>Пока вы должны карты, ходить нельзя.</li></ul>
   <h3>Стопки</h3><ul>
-    <li>На «Возьми» отвечайте картой того же номинала или старше: +1, +2, +4, +5, +6, +8, +10, +15. Нечем — забирайте всю стопку.</li>
+    <li>На «Возьми» отвечайте картой того же номинала или старше: +1, +2, +4, +5, +6, +8, +10, +15. Нечем — нажмите на колоду и забирайте всю стопку.</li>
     <li><b>Дабл</b> и <b>Трипл</b> умножают стопку, до +60. <b>Зеркало</b> отправляет её обратно. <b>Бронежилет</b> держит следующую стопку, дошедшую до вас. <b>Бис</b> повторяет «Возьми» под собой.</li>
     <li><b>Русская рулетка</b>: перед большой стопкой нажмите «Рулетка» и выберите соперника. Щелчок (50%): он забирает всю стопку, и ход идёт дальше. Выстрел: берёте её сами вдвое.</li></ul>
   <h3>Покерные комбинации</h3><ul>
@@ -4845,7 +4848,8 @@ function attachCard(el, card) {
     el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   };
 }
-$('btnDraw').onclick = () => { if (!busy && G && !$('btnDraw').disabled) act('draw'); };
+let canDrawNow = false;
+function drawNow() { if (!busy && G && canDrawNow) act('draw'); }
 $('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
 $('btnGamble').onclick = async () => {
   if (busy || !G || !G.canGamble || !G.canGamble(ME)) return;
@@ -4854,7 +4858,7 @@ $('btnGamble').onclick = async () => {
   if (tg === null || tg === undefined || !G.canGamble(ME)) return;
   act('gamble', { target: tg });
 };
-$('drawpile').onclick = () => $('btnDraw').onclick();
+$('drawpile').onclick = drawNow;
 $('btnSelect').onclick = () => { selMode = !selMode; if (!selMode) selIds = []; SFX.play('click'); render(); };
 $('discard').addEventListener('click', () => { if (selIds.length) playSelection(); });
 $('btnSort').onclick = () => { sortMode = { color: 'value', value: 'none', none: 'color', manual: 'color' }[sortMode]; render(); };
@@ -4888,7 +4892,7 @@ $('btnMenu').onclick = () => {
 };
 document.addEventListener('keydown', e => {
   if (!G || $('game').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
-  if (e.key === 'd' || e.key === ' ') { e.preventDefault(); $('btnDraw').onclick(); }
+  if (e.key === 'd' || e.key === ' ') { e.preventDefault(); drawNow(); }
   else if (e.key === 'p') $('btnPass').onclick();
 });
 
@@ -5293,10 +5297,10 @@ function render() {
   $('meBarWrap').style.display = G.rules.mercy ? '' : 'none';
   const mpct = G.rules.mercy ? Math.min(100, me.hand.length / G.rules.mercy * 100) : 0;
   $('meDanger').style.width = mpct + '%'; $('meBarWrap').classList.toggle('hot', mpct >= 80);
-  const bd = $('btnDraw');
+  // no Draw button: the deck itself is clicked; its tooltip says what a click does
   const digging = myTurn && G.rules.drawUntil && G.pending === 0 && G.drewBy !== ME && G.playable(ME).length === 0 && (G.drawRunPi === ME && G.drawRun > 0);
-  bd.disabled = !canDraw;
-  bd.textContent = owe ? t('penalty', me.oweN)
+  canDrawNow = !!canDraw;
+  $('drawpile').title = !canDraw ? '' : owe ? t('penalty', me.oweN)
     : myDebt ? (G.debt.n ? t('pickUpLeft', G.debt.n) : t('drawUntil', colorName(G.debt.until), G.debt.got))
     : G.pending > 0 && myTurn ? t('take', G.pending) : (digging ? t('drawAgain', G.drawRun) : t('draw'));
   $('btnPass').disabled = !(myTurn && G.drewBy === ME && G.pending === 0);
