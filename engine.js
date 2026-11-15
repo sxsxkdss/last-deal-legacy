@@ -1,6 +1,6 @@
 // ===== ENGINE: UNO Flip × No Mercy × Classic (no DOM) =====
 const SIDE_COLORS = { L: ['r', 'y', 'g', 'b'], D: ['p', 't', 'o', 'v'] };
-const COLOR_NAME = { r: 'Red', y: 'Yellow', g: 'Green', b: 'Blue', p: 'Pink', t: 'Teal', o: 'Orange', v: 'Purple', w: 'Wild' };
+const COLOR_NAME = { r: 'Red', y: 'Yellow', g: 'Green', b: 'Blue', p: 'Pink', t: 'Teal', o: 'Orange', v: 'Purple', w: 'Wild', x: 'Dead' };
 const VALUE_NAME = {
   skip: 'Skip', rev: 'Reverse', d1: 'Draw 1', d2: 'Draw 2', d4: 'Draw 4', d5: 'Draw 5', flip: 'Flip',
   discall: 'Discard All', skipall: 'Skip Everyone', wild: 'Wild', wd2: 'Wild Draw 2', wd4: 'Wild Draw 4',
@@ -9,7 +9,7 @@ const VALUE_NAME = {
   mirror: 'Mirror', shield: 'Vest', dflip: 'Eclipse', duel: 'Wild Duel', wd15: 'Wild Draw 15', bhole: 'Wild Pot',
   mul2: 'Wild Double Down', mul3: 'Wild Triple Down', lucky: 'Horseshoe', glass: 'Shot Glass', devil: '666', spin: 'Wild Jackpot', loan: 'Loan',
   gift: 'Tip', echo: 'Wild Encore', freeze: 'Handcuffs', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Shotgun',
-  d6: 'Wild Redeal', pill: 'Scratch Card', tower: 'The Tower', glitch: 'Wild Glitch', brim: 'Wild Brimstone', foot: 'Collector', maze: 'Spinner', deal: 'Wild Contract', monstro: 'Wild All-In'
+  d6: 'Wild Redeal', pill: 'Scratch Card', tower: 'The Tower', glitch: 'Wild Glitch', brim: 'Wild Brimstone', foot: 'Collector', maze: 'Spinner', deal: 'Wild Contract', monstro: 'Wild All-In', lead: 'Lead', leech: 'Leech', fuse: 'Lit Fuse'
 };
 // ---------- Balatro combos: number cards played together in one drop ----------
 // d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
@@ -62,12 +62,21 @@ const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky
 const LAST_CALL = 150;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
+  if (BAD_VALUE[f.v]) return BAD_VALUE[f.v];
   if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
   if (f.c === 'w') return ['wild'].includes(f.v) ? 25 : 35;
   if (['d4', 'd5', 'skipall'].includes(f.v)) return 20;
   if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 12;
   return 35; // house cards (and the unique ones)
 }
+// ---- bad cards: rare colourless dead weight. Reasons to pass cards along when a deal starts. ----
+// Lead: plays on anything (never on a stack), the colour stays, you pick up 2.
+// Leech: only goes down as your very last card; it feeds at the start of your turns (+1) and drops off after 3 meals.
+// Lit fuse: can't be played at all; after 3 of your turns it blows up in your hand (+4) and is gone.
+const BAD = ['lead', 'leech', 'fuse'];
+const BAD_VALUE = { lead: 30, leech: 25, fuse: 25 };
+const FUSE_TURNS = 3, LEAD_DRAW = 2, FUSE_HIT = 4, LEECH_MEALS = 3;
+const isBad = f => !!f && f.c === 'x';
 // tokens sold in the shop; price in chips
 // ---- deals: the angel (light, by day) and the demon (dark, by night). One active at a time, one of each per match. ----
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
@@ -103,15 +112,16 @@ const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, 
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
   L: { colored: { '0': 2, '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1.5, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 1 },
-       wild: { wild: 4, wd2: 2, wd4: 2, wrd4: 2, wd6: 1, wd10: 0.5, roul: 1.5, mul2: 1.5, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0 } },
+       wild: { wild: 4, wd2: 2, wd4: 2, wrd4: 2, wd6: 1, wd10: 0.5, roul: 1.5, mul2: 1.5, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0 }, bad: { lead: 1.2, leech: 1, fuse: 1 } },
   D: { colored: { '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skipall: 2, rev: 2, d5: 1.5, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
-       wild: { wild: 4, wdc: 2, wd6: 1.5, wd10: 1, wrd8: 1, roul: 1.5, wd15: 0.5, mul3: 1, deal: 1, swind: 0, sacr: 0 } }
+       wild: { wild: 4, wdc: 2, wd6: 1.5, wd10: 1, wrd8: 1, roul: 1.5, wd15: 0.5, mul3: 1, deal: 1, swind: 0, sacr: 0 }, bad: { lead: 1.2, leech: 1, fuse: 1 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
   FACES[s] = []; FACE_W[s] = [];
   for (const c of SIDE_COLORS[s]) for (const [v, w] of Object.entries(SIDE_WEIGHTS[s].colored)) { FACES[s].push({ c, v }); FACE_W[s].push(w); }
   for (const [v, w] of Object.entries(SIDE_WEIGHTS[s].wild)) { FACES[s].push({ c: 'w', v }); FACE_W[s].push(w); }
+  for (const [v, w] of Object.entries(SIDE_WEIGHTS[s].bad)) { FACES[s].push({ c: 'x', v }); FACE_W[s].push(w); }
 }
 // Safe printable chars ('#'..'~' minus backslash, then Latin-1 ¡..ÿ) index faces on the wire: 1 char per side.
 const ALPHA = (Array.from({ length: 92 }, (_, i) => String.fromCharCode(35 + i)).filter(ch => ch !== '\\').join('') + Array.from({ length: 95 }, (_, i) => String.fromCharCode(161 + i)).join(''));
@@ -207,6 +217,12 @@ class Game {
   canPlay(card) {
     if (this.roulette !== null || this.debt || this.offer || card.hidden || card.lock || this.owes(this.turn)) return false;
     const f = this.f(card), t = this.f(this.top);
+    if (isBad(f)) {
+      if (this.pending > 0) return false;
+      if (f.v === 'lead') return true;
+      if (f.v === 'leech') { const h = this.players[this.turn] && this.players[this.turn].hand; return !!h && h.length === 1 && h[0] === card; }
+      return false; // the fuse only leaves by being passed on, given away or blowing up
+    }
     if (this.pending > 0 && (f.c === 'w' || EXTRA_CARDS.includes(f.v)) && !card.uniq && this.horseOn('plague', 'blank', this.turn)) return false;
     if (this.pending > 0) return f.v === 'mirror' || f.v === 'mul2' || f.v === 'mul3' || (f.v === 'echo' && (DRAW_VAL[this.f(this.top).v] || 0) >= this.stackMin) || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
     if (this.lock > 0) return f.c === 'w' || f.c === this.color;
@@ -426,6 +442,7 @@ class Game {
     }
     // chains: cards from a Sacrifice count down; anything else from last turn falls off
     for (const c of p.hand) { if (c.chain > 0) { c.lock = true; c.chain--; } else c.lock = false; }
+    this.badTurn(pi);
     // debt for the hand you hold
     if (p.limit > 0) {
       const d = this.turnDebt(pi);
@@ -552,7 +569,7 @@ class Game {
       case 'eclipse': {
         this.side = other(this.side);
         const nf = this.f(this.top);
-        this.color = nf.c === 'w' ? Bot.bestColor(this, p.hand, this.side) : nf.c;
+        this.color = (nf.c === 'w' || nf.c === 'x') ? Bot.bestColor(this, p.hand, this.side) : nf.c;
         this.addLog(`Eclipse: ${p.name} turns the table to the ${this.side === 'D' ? 'dark' : 'light'} side.`, 'flip', 'eclipse', { n: p.name, dk: this.side === 'D' ? 1 : 0 });
         this.ev('flip', { side: this.side });
         const dark = this.side === 'D', tf = p.inv.includes('twoface');
@@ -618,6 +635,29 @@ class Game {
     }
     return false;
   }
+  // bad cards in the hand of whoever starts a turn: leeches feed, fuses burn down (both only on the side showing)
+  badTurn(pi) {
+    const p = this.players[pi];
+    // a leech feeds (+1) at the start of each of your turns; after LEECH_MEALS meals it is full and drops off
+    for (const c of p.hand.slice()) {
+      if (!(this.f(c).v === 'leech' && this.f(c).c === 'x') || p.hand.length < 2) continue;
+      c.meals = (c.meals || 0) + 1;
+      p.oweN = (p.oweN || 0) + 1;
+      const full = c.meals >= LEECH_MEALS;
+      if (full) p.hand.splice(p.hand.indexOf(c), 1);
+      this.addLog(full ? `The leech feeds on ${p.name} one last time (+1) and drops off.` : `The leech feeds on ${p.name}: +1.`, 'bad', 'leech', { n: p.name, k: 1, full: full ? 1 : 0 });
+      this.ev('bad', { pi, v: 'leech', k: 1, full: full ? 1 : 0 });
+    }
+    for (const c of p.hand.slice()) {
+      if (!(this.f(c).v === 'fuse' && this.f(c).c === 'x')) continue;
+      c.fuse = (c.fuse == null ? FUSE_TURNS : c.fuse) - 1;
+      if (c.fuse > 0) continue;
+      p.hand.splice(p.hand.indexOf(c), 1);
+      p.oweN = (p.oweN || 0) + FUSE_HIT;
+      this.addLog(`The fuse burns down in ${p.name}'s hand: BOOM, +${FUSE_HIT}.`, 'bad', 'fuse', { n: p.name, k: FUSE_HIT });
+      this.ev('bad', { pi, v: 'fuse', k: FUSE_HIT });
+    }
+  }
   hasPerk(pi, id) { const l = this.perks && this.perks[pi]; return !!(l && l.includes(id)); }
   // Last Call: after LAST_CALL handovers the house closes. Fewest cards wins; a tie goes to whoever sits soonest in turn order.
   lastCallLeft() { return this.rules.lastCall === false ? null : Math.max(0, LAST_CALL - (this.turnNo || 0)); }
@@ -659,7 +699,7 @@ class Game {
       if (chain.length === 1) for (const id of opts.extra) {
         const c = p.hand.find(x => x.id === id);
         // same value; a wild only goes with wilds, a colored card only with colored cards
-        if (c && !c.lock && !chain.includes(c) && this.f(c).v === face.v && (this.f(c).c === 'w') === (face.c === 'w')) chain.push(c);
+        if (c && !c.lock && !chain.includes(c) && !isBad(face) && this.f(c).v === face.v && (this.f(c).c === 'w') === (face.c === 'w')) chain.push(c);
       }
     }
     const k = chain.length;
@@ -675,7 +715,7 @@ class Game {
     this.top = last; this.topBy = pi;
     for (const c of chain) { this.pile.push(cardCode(c) + '!' + c.id); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
-    if (!blank) this.color = k > 1 && this.f(last).c !== 'w' ? this.f(last).c : (this.f(last).c === 'w' || face.c === 'w') ? this.validColor(opts.color || (face.c !== 'w' ? face.c : null), pi) : this.f(last).c;
+    if (!blank && !isBad(face)) this.color = k > 1 && this.f(last).c !== 'w' ? this.f(last).c : (this.f(last).c === 'w' || face.c === 'w') ? this.validColor(opts.color || (face.c !== 'w' ? face.c : null), pi) : this.f(last).c;
     this.seq++; this.drawRun = 0;
     let extra = '';
     if (face.v === 'discall') {
@@ -721,6 +761,11 @@ class Game {
       this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0, r: relief, j: combo.joker ? 1 : 0 });
     }
     switch (blank ? '' : face.v) {
+      case 'lead':
+        p.oweN = (p.oweN || 0) + LEAD_DRAW;
+        this.addLog(`The lead drags ${p.name} down: +${LEAD_DRAW}.`, 'bad', 'lead', { n: p.name, k: LEAD_DRAW });
+        this.ev('bad', { pi, v: 'lead', k: LEAD_DRAW });
+        break;
       case 'skip':
         steps = 1 + k;
         for (let s = 1; s <= k; s++) this.ev('skip', { pi: this.nextIdx(pi, s) });
@@ -1022,8 +1067,8 @@ class Game {
         this.side = other(this.side);
         this.flipBack = face.v === 'dflip' ? { pi: this.nextIdx(pi, 1), seq: this.seq } : null;
         const nf = this.f(this.top);
-        this.color = nf.c === 'w' ? this.validColor(opts.flipColor, pi) : nf.c;
-        this.addLog(`Flip. Everything turns to the ${this.side === 'D' ? 'dark' : 'light'} side. Top card is now ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip', 'flip', { dk: this.side === 'D' ? 1 : 0, f: nf, c: nf.c === 'w' ? this.color : null });
+        this.color = (nf.c === 'w' || nf.c === 'x') ? this.validColor(opts.flipColor, pi) : nf.c;
+        this.addLog(`Flip. Everything turns to the ${this.side === 'D' ? 'dark' : 'light'} side. Top card is now ${faceName(nf)}${(nf.c === 'w' || nf.c === 'x') ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip', 'flip', { dk: this.side === 'D' ? 1 : 0, f: nf, c: (nf.c === 'w' || nf.c === 'x') ? this.color : null });
         this.ev('flip', { side: this.side });
         if (face.v === 'dflip') this.addLog(`Double flip: it turns back after ${this.players[this.nextIdx(pi, 1)].name}'s turn.`, 'flip', 'dflip', { n: this.players[this.nextIdx(pi, 1)].name });
         break;
@@ -1073,8 +1118,8 @@ class Game {
       this.flipBack = null;
       this.side = other(this.side);
       const nf = this.f(this.top);
-      this.color = nf.c === 'w' ? Bot.bestColor(this, this.players[this.turn].hand, this.side) : nf.c;
-      this.addLog(`The double flip wears off. Back to the ${this.side === 'D' ? 'dark' : 'light'} side: ${faceName(nf)}${nf.c === 'w' ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip', 'dflipOff', { dk: this.side === 'D' ? 1 : 0, f: nf, c: nf.c === 'w' ? this.color : null });
+      this.color = (nf.c === 'w' || nf.c === 'x') ? Bot.bestColor(this, this.players[this.turn].hand, this.side) : nf.c;
+      this.addLog(`The double flip wears off. Back to the ${this.side === 'D' ? 'dark' : 'light'} side: ${faceName(nf)}${(nf.c === 'w' || nf.c === 'x') ? ' → ' + COLOR_NAME[this.color] : ''}.`, 'flip', 'dflipOff', { dk: this.side === 'D' ? 1 : 0, f: nf, c: (nf.c === 'w' || nf.c === 'x') ? this.color : null });
       this.ev('flip', { side: this.side });
     }
   }
@@ -1193,7 +1238,7 @@ class Game {
       case 'storm': {                             // the table flips
         this.side = other(this.side);
         const nf = this.f(this.top);
-        this.color = nf.c === 'w' ? this.colors()[Math.floor(Math.random() * 4)] : nf.c;
+        this.color = (nf.c === 'w' || nf.c === 'x') ? this.colors()[Math.floor(Math.random() * 4)] : nf.c;
         this.ev('flip', { side: this.side });
         break;
       }
@@ -1341,6 +1386,7 @@ const Bot = {
     for (const card of opts) {
       const f = g.f(card);
       let s = 10 + Math.random() * 3;
+      if (isBad(f)) { s = f.v === 'leech' ? 100 : (opts.length === 1 ? 1 : -50); if (s > bestScore) { bestScore = s; best = card; } continue; }
       if (g.pending > 0) {
         if (f.v === 'mirror') s += g.pending >= 4 ? 30 : -2;
         else if (f.v === 'mul2' || f.v === 'mul3') s += g.pending >= 4 ? 18 : 4;
@@ -1484,4 +1530,4 @@ Object.defineProperty(Game.prototype, 'turn', {
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
+if (typeof module !== 'undefined') module.exports = { BAD, BAD_VALUE, isBad, FUSE_TURNS, LEAD_DRAW, FUSE_HIT, LEECH_MEALS, comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };

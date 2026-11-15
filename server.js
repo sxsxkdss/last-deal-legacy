@@ -303,7 +303,8 @@ function newDeal(room) {
 function botPass(G, i) {
   const h = G.players[i].hand.slice();
   const cnt = {}; for (const c of h) { const f = G.f(c); cnt[f.c] = (cnt[f.c] || 0) + 1; }
-  h.sort((a, b) => { const fa = G.f(a), fb = G.f(b); const na = /^\d$/.test(fa.v) ? 0 : 1, nb = /^\d$/.test(fb.v) ? 0 : 1; return na - nb || (cnt[fa.c] || 0) - (cnt[fb.c] || 0); });
+  // bad cards go first, then numbers of the thinnest colour
+  h.sort((a, b) => { const fa = G.f(a), fb = G.f(b); const ba = fa.c === 'x' ? 0 : 1, bb = fb.c === 'x' ? 0 : 1; const na = /^\d$/.test(fa.v) ? 0 : 1, nb = /^\d$/.test(fb.v) ? 0 : 1; return ba - bb || na - nb || (cnt[fa.c] || 0) - (cnt[fb.c] || 0); });
   return h.slice(0, 2);
 }
 function maybeEndDraft(room) { const M = room.M; if (alive(M).every(i => M.pass[i])) endDraft(room); else sync(room); }
