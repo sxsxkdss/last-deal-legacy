@@ -1701,7 +1701,7 @@ class Game {
     if (face.v === 'discall') {
       const cols = new Set(chain.map(c => this.f(c).c));
       let same = p.hand.filter(c => cols.has(this.f(c).c));
-      if (this.horseOn('famine', 'two', pi)) same = same.filter(c => !c.lock).slice(0, Math.max(0, 2 - k));
+      if (this.horseOn('famine', null, pi)) same = same.filter(c => !c.lock).slice(0, 1); // Famine: the purge only takes one more card of its colour
       p.handDumped = same.length;
       p.hand = p.hand.filter(c => !same.includes(c));
       if (same.length) extra = ` and discards ${same.length} more card${same.length > 1 ? 's' : ''} of ${k > 1 ? 'those colors' : 'that color'}`;
@@ -3499,8 +3499,8 @@ Object.assign(STR.en, {
   horseD_war_timer: '5 seconds per turn. Run out and the turn ends: +2 cards.',
   horseD_war_fury: 'Every attack hits for +2 cards.',
   horseD_war_arms: 'Each turn one of your calm cards (not a wild) turns into an attack.',
-  horseD_famine_two: 'No more than 2 cards played or thrown away per turn.',
-  horseD_famine_tithe: 'After each turn the player hands a random card to whoever holds the fewest.',
+  horseD_famine_two: 'No more than 2 cards played or thrown away per turn. Discard-all takes only itself and one card of its colour.',
+  horseD_famine_tithe: 'After each turn the player hands a random card to whoever holds the fewest. Discard-all takes only itself and one card of its colour.',
   horseD_plague_blank: 'Wilds lose their powers: they go on anything and do nothing.',
   horseD_plague_rot: 'At the start of each turn 2 random cards in your hand rot and are replaced.',
   curse_dark: 'Darkness', curse_fever: 'Fever', curse_mirror: 'Mirror world', curse_static: 'Static',
@@ -3513,8 +3513,8 @@ Object.assign(STR.ru, {
   horseD_war_timer: '5 секунд на ход. Не успели — ход окончен и +2 карты.',
   horseD_war_fury: 'Каждая атака бьёт на +2 карты сильнее.',
   horseD_war_arms: 'В начале хода одна ваша мирная карта (не джокер) становится атакующей.',
-  horseD_famine_two: 'Не больше 2 карт за ход: разыграть или сбросить.',
-  horseD_famine_tithe: 'После хода игрок отдаёт случайную карту тому, у кого меньше всех.',
+  horseD_famine_two: 'Не больше 2 карт за ход: разыграть или сбросить. Сброс всего забирает только себя и одну карту своего цвета.',
+  horseD_famine_tithe: 'После хода игрок отдаёт случайную карту тому, у кого меньше всех. Сброс всего забирает только себя и одну карту своего цвета.',
   horseD_plague_blank: 'Джокеры теряют силу: кладутся на что угодно и ничего не делают.',
   horseD_plague_rot: 'В начале хода 2 случайные карты в руке гниют и заменяются.',
   curse_dark: 'Мрак', curse_fever: 'Лихорадка', curse_mirror: 'Зазеркалье', curse_static: 'Помехи',

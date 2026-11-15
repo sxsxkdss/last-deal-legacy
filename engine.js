@@ -656,7 +656,7 @@ class Game {
     if (face.v === 'discall') {
       const cols = new Set(chain.map(c => this.f(c).c));
       let same = p.hand.filter(c => cols.has(this.f(c).c));
-      if (this.horseOn('famine', 'two', pi)) same = same.filter(c => !c.lock).slice(0, Math.max(0, 2 - k));
+      if (this.horseOn('famine', null, pi)) same = same.filter(c => !c.lock).slice(0, 1); // Famine: the purge only takes one more card of its colour
       p.handDumped = same.length;
       p.hand = p.hand.filter(c => !same.includes(c));
       if (same.length) extra = ` and discards ${same.length} more card${same.length > 1 ? 's' : ''} of ${k > 1 ? 'those colors' : 'that color'}`;
