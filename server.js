@@ -285,7 +285,7 @@ function newDeal(room) {
   M.round++;
   const deals = M.ds.map((d, i) => Object.assign({}, d, { debt: M.debt[i], limit: hasDeal(d, 'bail') && d.limitAdj ? d.limitAdj : M.limit }));
   if (process.env.HORSE_FORCE && !M.horseUsed) { const [k, v] = process.env.HORSE_FORCE.split(':'); M.horse = { k, v, left: 10, fresh: true, curses: M.names.map((_, i) => (process.env.CURSE || 'dark,fever,mirror,static').split(',')[i % 4]) }; M.horseUsed = true; }
-  const G = new Game(M.names, M.names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0, deals, horse: M.horse, horseUsed: M.horseUsed }));
+  const G = new Game(M.names, M.names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0, deals, horse: M.horse, horseUsed: M.horseUsed, horseCount: M.horseCount || 0 }));
   for (let i = 0; i < n; i++) {
     const p = G.players[i];
     if (M.col[i]) { p.hand = []; p.out = true; p.elim = true; p.collector = true; continue; }
@@ -347,7 +347,7 @@ function settle(room) {
     rows.push({ i, cards: p.hand.length, paid: paid[i], turn: turnD[i], chips });
     M.hist[i].push(M.debt[i]);
   }
-  M.horse = G.horse && G.horse.left > 0 ? G.horse : null; M.horseUsed = !!G.horseUsed;
+  M.horse = G.horse && G.horse.left > 0 ? G.horse : null; M.horseUsed = !!G.horseUsed; M.horseCount = G.horseCount || 0;
   const out = live.filter(i => M.debt[i] > (M.ds[i].limitAdj || M.limit));
   for (const i of out) M.col[i] = true;
   M.last = { round: M.round, winner: G.winner, rows, out };

@@ -61,7 +61,7 @@ const DEBT_LIMITS = [250, 500, 1000];
 // ---- the Horsemen: once per match, when anyone's debt reaches 70% of their limit, one rides in for 10 table turns ----
 const HORSEMEN = { death: ['curse'], war: ['timer', 'fury', 'arms'], famine: ['two', 'tithe'], plague: ['blank', 'rot'] };
 const CURSES = ['dark', 'fever', 'mirror', 'static'];
-const HORSE_TURNS = 10, HORSE_AT = 0.7, WAR_SECS = 5;
+const HORSE_TURNS = 10, HORSE_AT = 0.7, HORSE_AGAIN = 0.05, WAR_SECS = 5;
 const ATTACK_VALS = { L: ['d1', 'd2', 'd4'], D: ['d5'] };
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
@@ -141,8 +141,9 @@ class Game {
     });
     delete this.rules.deals;
     this.horse = rules.horse && rules.horse.left > 0 ? JSON.parse(JSON.stringify(rules.horse)) : null;
+    this.horseCount = rules.horseCount || 0;
     this.horseUsed = !!rules.horseUsed || !!this.horse;
-    delete this.rules.horse; delete this.rules.horseUsed;
+    delete this.rules.horse; delete this.rules.horseUsed; delete this.rules.horseCount;
     this.chipsWon = this.players.map(() => 0);
     this.padUsed = this.players.map(() => false);
     let top;
@@ -229,13 +230,20 @@ class Game {
   // ================= THE HORSEMEN =================
   horseOn(k, v) { const h = this.horse; return !!(h && h.left > 0 && h.k === k && (!v || h.v === v)); }
   horseCheck() {
-    if (this.horseUsed || this.horse) return;
-    const who = this.players.findIndex(p => !p.out && p.limit > 0 && (p.debt || 0) >= p.limit * HORSE_AT);
-    if (who < 0) return;
+    if (this.horse && this.horse.left > 0) return;
+    let who;
+    if (!this.horseUsed) {
+      who = this.players.findIndex(p => !p.out && p.limit > 0 && (p.debt || 0) >= p.limit * HORSE_AT);
+      if (who < 0) return;
+    } else {
+      // after the first one, any turn may bring another (5%)
+      if (!this.players.some(p => p.limit > 0) || Math.random() >= HORSE_AGAIN) return;
+      who = this.turn;
+    }
     const ks = Object.keys(HORSEMEN), k = ks[Math.floor(Math.random() * ks.length)];
     const vs = HORSEMEN[k], v = vs[Math.floor(Math.random() * vs.length)];
     this.horse = { k, v, left: HORSE_TURNS, fresh: true, curses: k === 'death' ? this.players.map(() => CURSES[Math.floor(Math.random() * CURSES.length)]) : [] };
-    this.horseUsed = true;
+    this.horseUsed = true; this.horseCount = (this.horseCount || 0) + 1;
     this.addLog(`A horseman rides in: ${k}. ${HORSE_TURNS} turns.`, 'bad', 'horse', { k, v, n: this.players[who].name });
     this.ev('horse', { k, v, pi: who });
   }
