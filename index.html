@@ -238,7 +238,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 .phaserules { max-width: 230px; font: 500 11px/15px var(--f-type); color: var(--chalk-2); }
 .chaosline { font: 600 16px/20px var(--f-chalk); letter-spacing: .04em; color: var(--chalk); }
 .chaosline.dim { color: rgba(232, 226, 210, .72); }
-.chaosline.warn { animation: flicker 1.2s infinite; }
+.chaosline.warn { color: #ffb48a; }
 .chaosline.lastcall { font-size: 24px; color: #ff6a55; }
 @keyframes flicker { 0%, 18%, 22%, 61%, 65%, 100% { opacity: 1 } 20%, 63% { opacity: .5 } }
 #hud .multchip { display: inline-block; align-self: flex-start; }
@@ -247,7 +247,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 @keyframes heat { 25% { translate: calc(var(--heat, 0) * -3px) calc(var(--heat, 0) * 2px); rotate: calc(var(--heat, 0) * -2deg) } 75% { translate: calc(var(--heat, 0) * 3px) calc(var(--heat, 0) * -2px); rotate: calc(var(--heat, 0) * 2deg) } }
 .ember { --emb: 0; color: color-mix(in srgb, #ffefd0, #ff9a4a calc(var(--emb) * 60%));
   text-shadow: 0 2px 0 #000, 0 0 calc(4px + var(--emb) * 16px) rgba(255, 96, 30, calc(.25 + var(--emb) * .55)), 0 calc(var(--emb) * -6px) calc(var(--emb) * 22px) rgba(160, 30, 10, calc(var(--emb) * .6)); }
-.stack.ember, .multchip.ember { animation: heat .32s infinite, smoulder 1.6s ease-in-out infinite; }
+.stack.ember { animation: heat .32s infinite, smoulder 1.6s ease-in-out infinite; }
 #combo .mult.ember { animation: smoulder .8s ease-in-out infinite; }
 @keyframes smoulder { 50% { filter: brightness(calc(1 + var(--emb) * .25)) } }
 .float { position: absolute; left: 50%; top: 8px; z-index: 5; padding: 2px 8px; white-space: nowrap; pointer-events: none; border-radius: var(--ui-r);
