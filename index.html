@@ -567,8 +567,8 @@ body.lite #cardtip, body.lite #combo { transition: none; }
 .phase b { scale: calc(1 + var(--beat, 0) * .14); }
 .stack { scale: calc(1 + var(--beat, 0) * .06); }
 #dirRing path { stroke: rgba(240, 234, 218, calc(.18 + var(--beat, 0) * .25)); }
-body.kick .opp.turn { animation: kick .22s ease-out; }
-@keyframes kick { 40% { translate: 0 -2px; } }
+body.kick .opp.turn { animation: kickGlow .32s ease-out; }
+@keyframes kickGlow { 0% { box-shadow: 0 0 0 3px #ff3a2a, 0 0 36px rgba(230, 40, 25, .85), var(--grime-in); } 100% { box-shadow: 0 0 0 3px var(--stamp-hi), 0 0 22px rgba(200, 30, 20, .55), var(--grime-in); } }
 
 /* ---------- debt match: lobby mode, collector bar, draft, shop ---------- */
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
