@@ -224,7 +224,7 @@ function nextBotJob(room) {
     const m = Bot.choose(G, pi);
     if (m) { G.play(pi, m.cardId, m); return; }
     if (G.drewBy === pi) { G.pass(pi); return; }
-    if (G.canGamble(pi) && Math.random() < 0.4) { G.gamble(pi); return; }
+    if (G.canGamble(pi) && Math.random() < 0.4) { G.gamble(pi, Bot.gambleTarget(G, pi)); return; }
     G.draw(pi);
   } };
 }
@@ -448,7 +448,7 @@ function applyAct(G, pi, a) {
     }
     case 'draw': G.draw(pi); break;
     case 'pass': G.pass(pi); break;
-    case 'gamble': G.gamble(pi); break;
+    case 'gamble': G.gamble(pi, target); break;
     case 'roul': if (G.roulette === pi) G.resolveRoulette(col); break;
     case 'deal': if (G.offer && G.offer.pi === pi) G.resolveDeal(pi, typeof a.id === 'string' ? a.id : null, target); break;
     case 'item': G.useItem(pi, String(a.id || '')); break;

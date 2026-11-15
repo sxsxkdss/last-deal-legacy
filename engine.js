@@ -1265,24 +1265,28 @@ class Game {
     this.applyShield(); this.checkFlipBack();
     return true;
   }
-  // Russian roulette: facing a stack of +8 or more, pull the trigger instead of answering it.
-  // Click: the stack is gone and the turn passes. Bang: you take it doubled.
+  // Russian roulette: facing a stack (+8 by day, +4 at night), aim the revolver at a rival instead of answering it.
+  // Click: the whole stack goes to them and play moves on. Bang: you take it doubled (tripled with the Cursed Drum).
   canGamble(pi) { return this.rules.gamble !== false && pi === this.turn && this.pending >= (this.side === 'D' ? 4 : 8) && !this.debt && this.roulette === null && !this.owes(pi) && this.winner === null; }
-  gamble(pi) {
+  gamble(pi, target) {
     if (!this.canGamble(pi)) return null;
     const p = this.players[pi], k = this.pending;
+    let tg = Number.isInteger(target) ? target : -1;
+    if (tg === pi || !this.players[tg] || this.players[tg].out) tg = this.nextIdx(pi, 1);
+    const t = this.players[tg];
     this.seq++;
     const drum = hasDeal(p, 'drum');
     if (Math.random() < (drum || this.hasPerk(pi, 'luck') ? 2 / 3 : 0.5)) {
-      this.addLog(`${p.name} spins the revolver… click. The +${k} stack is gone.`, 'win', 'gambleWin', { n: p.name, k });
-      this.ev('gamble', { pi, ok: 1, k });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.drewBy = -1;
+      const got = this.hit(pi, tg, k);
+      this.addLog(`${p.name} aims at ${t.name}… click. ${t.name} takes the +${got} stack.`, 'win', 'gambleWin', { n: p.name, t: t.name, k: got });
+      this.ev('gamble', { pi, t: tg, ok: 1, k: got });
       this.turn = this.nextIdx(pi, 1); this.applyShield(); this.checkFlipBack();
       return true;
     }
     this.pending *= drum ? 3 : 2;
-    this.addLog(`${p.name} spins the revolver… BANG. The stack doubles to +${this.pending}.`, 'bad', 'gambleLose', { n: p.name, k: this.pending });
-    this.ev('gamble', { pi, ok: 0, k: this.pending });
+    this.addLog(`${p.name} aims at ${t.name}… BANG. ${p.name} takes the stack doubled: +${this.pending}.`, 'bad', 'gambleLose', { n: p.name, t: t.name, k: this.pending });
+    this.ev('gamble', { pi, t: tg, ok: 0, k: this.pending });
     this.draw(pi);
     return false;
   }
@@ -1290,6 +1294,8 @@ class Game {
 
 // ===== BOT BRAIN =====
 const Bot = {
+  // who to aim the revolver at: whoever is closest to going out
+  gambleTarget(G, pi) { let best = -1; G.players.forEach((q, i) => { if (i !== pi && !q.out && (best < 0 || q.hand.length < G.players[best].hand.length)) best = i; }); return best; },
   // deals: light ones are always taken (best for the moment), dark ones while the debt is still manageable
   // bots and the Dark shop's items: simple habits
   item(g, pi) {

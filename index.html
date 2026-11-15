@@ -2434,24 +2434,28 @@ class Game {
     this.applyShield(); this.checkFlipBack();
     return true;
   }
-  // Russian roulette: facing a stack of +8 or more, pull the trigger instead of answering it.
-  // Click: the stack is gone and the turn passes. Bang: you take it doubled.
+  // Russian roulette: facing a stack (+8 by day, +4 at night), aim the revolver at a rival instead of answering it.
+  // Click: the whole stack goes to them and play moves on. Bang: you take it doubled (tripled with the Cursed Drum).
   canGamble(pi) { return this.rules.gamble !== false && pi === this.turn && this.pending >= (this.side === 'D' ? 4 : 8) && !this.debt && this.roulette === null && !this.owes(pi) && this.winner === null; }
-  gamble(pi) {
+  gamble(pi, target) {
     if (!this.canGamble(pi)) return null;
     const p = this.players[pi], k = this.pending;
+    let tg = Number.isInteger(target) ? target : -1;
+    if (tg === pi || !this.players[tg] || this.players[tg].out) tg = this.nextIdx(pi, 1);
+    const t = this.players[tg];
     this.seq++;
     const drum = hasDeal(p, 'drum');
     if (Math.random() < (drum || this.hasPerk(pi, 'luck') ? 2 / 3 : 0.5)) {
-      this.addLog(`${p.name} spins the revolver… click. The +${k} stack is gone.`, 'win', 'gambleWin', { n: p.name, k });
-      this.ev('gamble', { pi, ok: 1, k });
       this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.drewBy = -1;
+      const got = this.hit(pi, tg, k);
+      this.addLog(`${p.name} aims at ${t.name}… click. ${t.name} takes the +${got} stack.`, 'win', 'gambleWin', { n: p.name, t: t.name, k: got });
+      this.ev('gamble', { pi, t: tg, ok: 1, k: got });
       this.turn = this.nextIdx(pi, 1); this.applyShield(); this.checkFlipBack();
       return true;
     }
     this.pending *= drum ? 3 : 2;
-    this.addLog(`${p.name} spins the revolver… BANG. The stack doubles to +${this.pending}.`, 'bad', 'gambleLose', { n: p.name, k: this.pending });
-    this.ev('gamble', { pi, ok: 0, k: this.pending });
+    this.addLog(`${p.name} aims at ${t.name}… BANG. ${p.name} takes the stack doubled: +${this.pending}.`, 'bad', 'gambleLose', { n: p.name, t: t.name, k: this.pending });
+    this.ev('gamble', { pi, t: tg, ok: 0, k: this.pending });
     this.draw(pi);
     return false;
   }
@@ -2459,6 +2463,8 @@ class Game {
 
 // ===== BOT BRAIN =====
 const Bot = {
+  // who to aim the revolver at: whoever is closest to going out
+  gambleTarget(G, pi) { let best = -1; G.players.forEach((q, i) => { if (i !== pi && !q.out && (best < 0 || q.hand.length < G.players[best].hand.length)) best = i; }); return best; },
   // deals: light ones are always taken (best for the moment), dark ones while the debt is still manageable
   // bots and the Dark shop's items: simple habits
   item(g, pi) {
@@ -2719,7 +2725,7 @@ const STR = {
     tagLeft: 'Left', tagAway: 'Away', tagOwes: k => `Owes ${k}`, tagNext: 'Up next', tagShield: 'Shield', tagWinner: 'Winner', tagPlayer: 'Player',
     tJump: 'Jump-in', tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Skip everyone', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands rotate',
     tRoulette: 'Roulette', tMulti: k => `${k} at once`, tMirror: n => `Mirrored to ${n}`, tShieldUp: 'Shield up', tShield: k => `Shield breaks +${k}`,
-    tBhole: 'Black hole', tMult: x => `×${x}`, tArm: x => `×${x} armed`, tLucky: 'Lucky!', tMiss: 'No luck', tGlass: 'Shatter!', tGlassHit: 'Glass!', tDevil: '666', tLoan: 'Loan', tDue: 'Payday', tFire: 'ON FIRE', gambleBtn: 'Roulette', tClick: 'click… you live', tBang: k => `BANG! +${k}`, tOverload: 'OVERLOAD', tFinisher: k => `Finisher: +${k}`, tRevenge: k => `REVENGE +${k}`, tagRevenge: 'Revenge', tPotato: n => `Potato → ${n}`, potatoOn: 'Hot potato ticking', potatoHot: 'Hot potato: any second', pill_health: 'Full Health (−2 cards)', pill_badtrip: 'Bad Trip (+3)', pill_steel: 'Balls of Steel (shield)', pill_drowsy: "I'm Drowsy… (next player skipped)", pill_telepills: 'Telepills (hands swapped)', pill_wizard: 'R U A Wizard? (reverse)',
+    tBhole: 'Black hole', tMult: x => `×${x}`, tArm: x => `×${x} armed`, tLucky: 'Lucky!', tMiss: 'No luck', tGlass: 'Shatter!', tGlassHit: 'Glass!', tDevil: '666', tLoan: 'Loan', tDue: 'Payday', tFire: 'ON FIRE', gambleBtn: 'Roulette', tClick: 'click… you live', tShot: (n, k) => `Click → ${n} +${k}`, gambleQ: 'Who do you aim at?', gambleSub: k => `Click (50%): they take the whole +${k} stack. Bang: you take it doubled.`, tBang: k => `BANG! +${k}`, tOverload: 'OVERLOAD', tFinisher: k => `Finisher: +${k}`, tRevenge: k => `REVENGE +${k}`, tagRevenge: 'Revenge', tPotato: n => `Potato → ${n}`, potatoOn: 'Hot potato ticking', potatoHot: 'Hot potato: any second', pill_health: 'Full Health (−2 cards)', pill_badtrip: 'Bad Trip (+3)', pill_steel: 'Balls of Steel (shield)', pill_drowsy: "I'm Drowsy… (next player skipped)", pill_telepills: 'Telepills (hands swapped)', pill_wizard: 'R U A Wizard? (reverse)',
     tD6: 'REROLL', tTower: 'THE TOWER', tBrim: 'BRIMSTONE', tFoot: n => `Mom's Foot → ${n}`, tMaze: 'CURSE OF THE MAZE', tDeal: 'DEVIL DEAL', tDealDue: k => `The devil collects: +${k}`, tMonstro: n => `Monstro → ${n}`, mazeLeft: k => `Maze: ${k}`, tagMarked: 'Marked', combo_pair: 'Pair', combo_twopair: 'Two Pair', combo_three: 'Three of a Kind', combo_straight: 'Straight', combo_flush: 'Flush', combo_fullhouse: 'Full House', combo_four: 'Four of a Kind', combo_straightflush: 'Straight Flush', combo_five: 'Five of a Kind',
     comboToss: n => `−${n} ${n === 1 ? 'card' : 'cards'}`, comboHit: n => `everyone +${n}`, noCombo: 'Not a combo', comboQ: 'Play a combo?', comboSub: 'Pick number cards that make a poker hand: a pair, two pair, three or four of a kind, a straight (3+ in a row, one color), a flush (5 of one color), a full house. They go down left to right; drag to reorder, tap to switch off.', tGift: n => `Gift → ${n}`, tEcho: 'Echo', tEchoNone: 'Echo fades', tInterest: 'Interest', tSacrifice: 'Sacrifice', tWheel: n => `Wheel → ${n}`, tBomb: 'BOOM', giftQ: 'Who gets the gift?', giftSub: k => `${k} random cards from your hand go to them.`, tagLoan: n => `loan ${n}`, multNext: x => `next draw ×${x}`, tDark: 'Dark side', tLight: 'Light side', tOut: n => `${n} is out`,
     pickColor: 'Pick a color', rouletteTitle: 'Color roulette', rouletteSub: 'Name a color. You draw cards until it shows up and keep all of them.',
@@ -2763,7 +2769,7 @@ const STR = {
     tagLeft: 'Вышел', tagAway: 'Нет', tagOwes: k => `Должен ${k}`, tagNext: 'Следующий', tagShield: 'Щит', tagWinner: 'Победитель', tagPlayer: 'Игрок',
     tJump: 'Вмешался!', tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропуск всех', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
     tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tMirror: n => `Отражено: ${n}`, tShieldUp: 'Щит поднят', tShield: k => `Щит отбил +${k}`,
-    tBhole: 'Чёрная дыра', tMult: x => `×${x}`, tArm: x => `×${x} заряжен`, tLucky: 'Повезло!', tMiss: 'Мимо', tGlass: 'Вдребезги!', tGlassHit: 'Стекло!', tDevil: '666', tLoan: 'Кредит', tDue: 'Расплата', tFire: 'В ОГНЕ', gambleBtn: 'Рулетка', tClick: 'щёлк… живой', tBang: k => `БАХ! +${k}`, tOverload: 'ПЕРЕГРУЗ', tFinisher: k => `Добивание: +${k}`, tRevenge: k => `МЕСТЬ +${k}`, tagRevenge: 'Месть', tPotato: n => `Картошка → ${n}`, potatoOn: 'Горячая картошка тикает', potatoHot: 'Картошка вот-вот рванёт', pill_health: 'Полное здоровье (−2 карты)', pill_badtrip: 'Бэд трип (+3)', pill_steel: 'Стальные шары (щит)', pill_drowsy: 'Я сонный… (следующий пропускает)', pill_telepills: 'Телепилюли (обмен рукой)', pill_wizard: 'Ты волшебник? (разворот)',
+    tBhole: 'Чёрная дыра', tMult: x => `×${x}`, tArm: x => `×${x} заряжен`, tLucky: 'Повезло!', tMiss: 'Мимо', tGlass: 'Вдребезги!', tGlassHit: 'Стекло!', tDevil: '666', tLoan: 'Кредит', tDue: 'Расплата', tFire: 'В ОГНЕ', gambleBtn: 'Рулетка', tClick: 'щёлк… живой', tShot: (n, k) => `Щёлк → ${n} +${k}`, gambleQ: 'В кого целитесь?', gambleSub: k => `Щелчок (50%): он забирает всю стопку +${k}. Бах: берёте её сами вдвое.`, tBang: k => `БАХ! +${k}`, tOverload: 'ПЕРЕГРУЗ', tFinisher: k => `Добивание: +${k}`, tRevenge: k => `МЕСТЬ +${k}`, tagRevenge: 'Месть', tPotato: n => `Картошка → ${n}`, potatoOn: 'Горячая картошка тикает', potatoHot: 'Картошка вот-вот рванёт', pill_health: 'Полное здоровье (−2 карты)', pill_badtrip: 'Бэд трип (+3)', pill_steel: 'Стальные шары (щит)', pill_drowsy: 'Я сонный… (следующий пропускает)', pill_telepills: 'Телепилюли (обмен рукой)', pill_wizard: 'Ты волшебник? (разворот)',
     tD6: 'РЕРОЛЛ', tTower: 'БАШНЯ', tBrim: 'БРИМСТОУН', tFoot: n => `Нога мамы → ${n}`, tMaze: 'ПРОКЛЯТИЕ ЛАБИРИНТА', tDeal: 'СДЕЛКА С ДЬЯВОЛОМ', tDealDue: k => `Дьявол берёт своё: +${k}`, tMonstro: n => `Монстро → ${n}`, mazeLeft: k => `Лабиринт: ${k}`, tagMarked: 'Метка', combo_pair: 'Пара', combo_twopair: 'Две пары', combo_three: 'Сет', combo_straight: 'Стрит', combo_flush: 'Флеш', combo_fullhouse: 'Фулл-хаус', combo_four: 'Каре', combo_straightflush: 'Стрит-флеш', combo_five: 'Покер',
     comboToss: n => `−${n} ${cardsAcc(n)}`, comboHit: n => `всем +${n}`, noCombo: 'Это не комбинация', comboQ: 'Сыграть комбинацию?', comboSub: 'Выберите числовые карты, которые складываются в покерную комбинацию: пара, две пары, сет, каре, стрит (3+ подряд одного цвета), флеш (5 одного цвета), фулл-хаус. Карты ложатся слева направо; перетаскивайте, чтобы поменять порядок, нажмите, чтобы выключить.', tGift: n => `Подарок → ${n}`, tEcho: 'Эхо', tEchoNone: 'Эхо затихло', tInterest: 'Проценты', tSacrifice: 'Жертва', tWheel: n => `Колесо → ${n}`, tBomb: 'БУМ', giftQ: 'Кому подарок?', giftSub: k => `${k} случайные карты из вашей руки уйдут ему.`, tagLoan: n => `кредит ${n}`, multNext: x => `след. «Возьми» ×${x}`, tDark: 'Тёмная сторона', tLight: 'Светлая сторона', tOut: n => `${n} выбыл(а)`,
     pickColor: 'Выберите цвет', rouletteTitle: 'Цветная рулетка', rouletteSub: 'Назовите цвет. Вы тянете карты, пока он не выпадет, и забираете все.',
@@ -2790,7 +2796,7 @@ const RULES_I18N = {
     ['zero', '0 rotates hands', 'Playing a 0 passes every hand to the next player.'],
     ['jumpIn', 'Jump-in', 'Play an exact copy of the top card out of turn, wilds included.'],
     ['chaos', 'Chaos', 'Every few plays a slot machine spins and hits the table with a random event.'],
-    ['gamble', 'Russian roulette', 'Facing a stack of +8 or more, pull the trigger instead: 50% the stack is gone, 50% you take it doubled.'],
+    ['gamble', 'Russian roulette', 'Facing a stack of +8 or more, aim the revolver at a rival: 50% they take the whole stack, 50% you take it doubled.'],
     ['lastCall', 'Last call', 'After 150 turns the house closes the table: fewest cards wins. Keeps every game finite.'],
     ['potato', 'Hot potato', 'A hidden fuse ticks with every play. When it runs out, whoever is up picks up 3.'],
     ['revenge', 'Revenge', 'Take a stack of 10+ and your next draw card counts double.'],
@@ -2806,7 +2812,7 @@ const RULES_I18N = {
     ['zero', '0 — руки по кругу', 'Сыграв 0, все передают руку следующему игроку.'],
     ['jumpIn', 'Вмешательство', 'Точную копию верхней карты, включая джокеров, можно сыграть вне очереди.'],
     ['chaos', 'Хаос', 'Каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.'],
-    ['gamble', 'Русская рулетка', 'Перед стопкой +8 и больше можно нажать на спуск: 50% — стопка исчезает, 50% — берёте её вдвойне.'],
+    ['gamble', 'Русская рулетка', 'Перед стопкой +8 и больше наведите револьвер на соперника: 50% — он забирает всю стопку, 50% — берёте её сами вдвое.'],
     ['lastCall', 'Последний звонок', 'Через 150 ходов дом закрывает стол: побеждает тот, у кого меньше карт. Ни одна партия не тянется вечно.'],
     ['potato', 'Горячая картошка', 'Скрытый фитиль тикает с каждым ходом. Когда догорит, тот, чей ход, берёт 3.'],
     ['revenge', 'Месть', 'Взяли стопку 10+ — ваша следующая карта «Возьми» считается вдвойне.'],
@@ -2921,8 +2927,8 @@ function fmtLog(l, myName) {
     deal: () => `${N(a.n)} подписывает контракт: ${a.g} ${cardsAcc(a.g)} уходят. Следующая стопка — вдвойне.`,
     dealDue: () => `Срок по контракту: стопка ${N(a.n)} удваивается до +${a.k}.`,
     monstro: () => `Ва-банк: ${N(a.t)} берёт +${a.a}.`,
-    gambleWin: () => `${N(a.n)} крутит барабан… щёлк. Стопка +${a.k} исчезает.`,
-    gambleLose: () => `${N(a.n)} крутит барабан… БАХ. Стопка удваивается до +${a.k}.`,
+    gambleWin: () => `${N(a.n)} целится в ${N(a.t)}… щёлк. ${N(a.t)} забирает стопку +${a.k}.`,
+    gambleLose: () => `${N(a.n)} целится в ${N(a.t)}… БАХ. ${N(a.n)} берёт стопку сам: +${a.k}.`,
     lastCall: () => `Последний звонок. Дом закрывает стол: у ${N(a.n)} меньше всех карт (${a.k}), победа.`,
     finisher: () => `ДОБИВАНИЕ: ${N(a.n)} почти выиграл(а). Стопка растёт до +${a.k}.`,
     revengeOn: () => `${N(a.n)} клянётся отомстить: следующая «Возьми» — вдвойне.`,
@@ -2997,8 +3003,8 @@ function fmtLog(l, myName) {
     deal: () => `${N(a.n)} signs the contract: ${a.g} cards gone. The next stack they take is doubled.`,
     dealDue: () => `The contract comes due: ${N(a.n)}'s stack is doubled to +${a.k}.`,
     monstro: () => `All-in: ${N(a.t)} picks up +${a.a}.`,
-    gambleWin: () => `${N(a.n)} spins the revolver… click. The +${a.k} stack is gone.`,
-    gambleLose: () => `${N(a.n)} spins the revolver… BANG. The stack doubles to +${a.k}.`,
+    gambleWin: () => `${N(a.n)} aims at ${N(a.t)}… click. ${N(a.t)} takes the +${a.k} stack.`,
+    gambleLose: () => `${N(a.n)} aims at ${N(a.t)}… BANG. ${N(a.n)} takes the stack: +${a.k}.`,
     lastCall: () => `Last call. The house closes the table: ${N(a.n)} holds the fewest cards (${a.k}) and wins.`,
     finisher: () => `FINISHER: ${N(a.n)} was about to win. The stack grows to +${a.k}.`,
     revengeOn: () => `${N(a.n)} swears revenge: their next draw card counts double.`,
@@ -3077,7 +3083,7 @@ const RULES_HTML = {
     <li><b>Curse of the Maze</b> (dark): for 6 plays the direction may flip after every card. <b>Devil Deal</b> (dark wild): lose half your hand, the next stack you take is doubled. <b>Monstro</b> (dark wild): the next player picks up as many cards as you hold (up to 6).</li>
     <li><b>Black Hole</b> (dark): every hand is pooled, shuffled and dealt back out evenly.</li></ul>
     <h3>Brutal rules</h3><ul>
-    <li><b>Russian roulette</b>: facing a stack of +8 or more, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
+    <li><b>Russian roulette</b>: facing a stack of +8 or more, press Roulette and pick a rival: 50% they take the whole stack and play moves on, 50% you take it doubled.</li>
     <li><b>Overload</b>: without the Mercy Rule, a hand of 100 explodes: it burns down to 50 and everyone else catches 2.</li>
     <li><b>Hot potato</b>: a hidden fuse ticks with every play; when it runs out, whoever is up picks up 3.</li>
     <li><b>Revenge</b>: take a stack of 10+ and your next draw card counts double. <b>Finisher</b>: a stack reaching someone with 2 cards or fewer grows by +4.</li></ul>
@@ -3127,7 +3133,7 @@ const RULES_HTML = {
     <li><b>Проклятие лабиринта</b> (тёмная): 6 ходов направление может меняться после каждой карты. <b>Сделка с дьяволом</b> (тёмный джокер): половина руки уходит, следующая стопка — вдвойне. <b>Монстро</b> (тёмный джокер): следующий берёт столько, сколько у вас в руке (до 6).</li>
     <li><b>Чёрная дыра</b> (тёмная): все руки собираются, перемешиваются и раздаются поровну.</li></ul>
     <h3>Жёсткие правила</h3><ul>
-    <li><b>Русская рулетка</b>: перед стопкой +8 и больше нажмите «Рулетка»: 50% — стопка исчезает и ход переходит дальше, 50% — берёте её вдвойне.</li>
+    <li><b>Русская рулетка</b>: перед стопкой +8 и больше нажмите «Рулетка» и выберите соперника: 50% — он забирает всю стопку, и ход идёт дальше, 50% — берёте её сами вдвое.</li>
     <li><b>Перегруз</b>: без правила милосердия рука из 100 карт взрывается: сгорает до 50, остальные ловят по 2.</li>
     <li><b>Горячая картошка</b>: скрытый фитиль тикает с каждым ходом; когда догорит, тот, чей ход, берёт 3.</li>
     <li><b>Месть</b>: взяли стопку 10+ — следующая ваша «Возьми» вдвойне. <b>Добивание</b>: стопка, пришедшая к игроку с 2 картами или меньше, растёт на +4.</li></ul>
@@ -3377,7 +3383,7 @@ for (const L of ['en', 'ru']) {
   const c = RULES_I18N[L].find(x => x[0] === 'chaos');
   if (c) c[2] = L === 'en' ? 'By day, every few plays the slot machine spins and hits the table with a random event.' : 'Днём каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.';
   const g = RULES_I18N[L].find(x => x[0] === 'gamble');
-  if (g) g[2] = L === 'en' ? 'Facing a stack (+8 by day, +4 at night), pull the trigger instead: 50% the stack is gone, 50% you take it doubled.' : 'Перед стопкой (днём от +8, ночью от +4) можно нажать на спуск: 50% — стопка исчезает, 50% — берёте её вдвойне.';
+  if (g) g[2] = L === 'en' ? 'Facing a stack (+8 by day, +4 at night), aim the revolver at a rival: 50% they take the whole stack, 50% you take it doubled.' : 'Перед стопкой (днём от +8, ночью от +4) наведите револьвер на соперника: 50% — он забирает всю стопку, 50% — берёте её сами вдвое.';
   const f = RULES_I18N[L].find(x => x[0] === 'flip');
   if (f) f[2] = L === 'en' ? 'Shift cards turn every card over: day becomes night and the table rules change with it.' : 'Карта «Смена» переворачивает все карты: день становится ночью, и вместе с ним меняются правила стола.';
 }
@@ -3398,7 +3404,7 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
     <h3>Stacks</h3><ul>
     <li>Answer a draw card with one of equal or higher value: +1, +2, +4, +5, +6, +8, +10, +15. If you can't, take the whole stack.</li>
     <li><b>Double Down</b> / <b>Triple Down</b> multiply a stack (up to +60). <b>Mirror</b> sends it back. <b>Vest</b> stops the next one that reaches you. <b>Encore</b> repeats a draw card on top of itself.</li>
-    <li><b>Russian roulette</b>: facing a big enough stack, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
+    <li><b>Russian roulette</b>: facing a big enough stack, press Roulette and pick a rival: 50% they take the whole stack and play moves on, 50% you take it doubled.</li>
 </ul>
     <h3>Poker hands</h3><ul>
     <li><b>How to pick</b>: right-click cards (or Ctrl/Shift+click; on a phone press <b>Pick several</b> and tap them). The name of the hand shows above your strip. Left-click any picked card (or drag it onto the pile) to throw them all. A left click on an unpicked card plays just that one.</li>
@@ -3436,7 +3442,7 @@ RULES_HTML.ru = `<p class="rulestag">Подпольный карточный п�
     <h3>Стопки</h3><ul>
     <li>На карту «Возьми» отвечайте такой же или старше: +1, +2, +4, +5, +6, +8, +10, +15. Нечем — забирайте всю стопку.</li>
     <li><b>Дабл</b> / <b>Трипл</b> умножают стопку (до +60). <b>Зеркало</b> отправляет её обратно. <b>Бронежилет</b> держит следующую, дошедшую до вас. <b>Бис</b> повторяет «Возьми» поверх самой себя.</li>
-    <li><b>Русская рулетка</b>: перед достаточно большой стопкой нажмите «Рулетка»: 50% — стопка исчезает и ход уходит дальше, 50% — берёте её вдвойне.</li>
+    <li><b>Русская рулетка</b>: перед достаточно большой стопкой нажмите «Рулетка» и выберите соперника: 50% — он забирает всю стопку, и ход идёт дальше, 50% — берёте её сами вдвое.</li>
 </ul>
     <h3>Покерные комбинации</h3><ul>
     <li><b>Как выбрать</b>: правый клик по картам (или Ctrl/Shift+клик; на телефоне кнопка <b>Выбрать несколько</b> и тапы). Над вашей полоской появляется название комбинации. Левый клик по любой выбранной карте (или перетаскивание на сброс) скидывает их все. Левый клик по невыбранной карте играет только её.</li>
@@ -4838,7 +4844,13 @@ function attachCard(el, card) {
 }
 $('btnDraw').onclick = () => { if (!busy && G && !$('btnDraw').disabled) act('draw'); };
 $('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
-$('btnGamble').onclick = () => { if (!busy && G && G.canGamble && G.canGamble(ME)) act('gamble'); };
+$('btnGamble').onclick = async () => {
+  if (busy || !G || !G.canGamble || !G.canGamble(ME)) return;
+  const rivals = G.players.map((p, i) => i).filter(i => i !== ME && !G.players[i].out);
+  const tg = rivals.length > 1 ? await pickTarget(t('gambleQ'), t('gambleSub', G.pending), t('cancel')) : rivals[0];
+  if (tg === null || tg === undefined || !G.canGamble(ME)) return;
+  act('gamble', { target: tg });
+};
 $('drawpile').onclick = () => $('btnDraw').onclick();
 $('btnSelect').onclick = () => { selMode = !selMode; if (!selMode) selIds = []; SFX.play('click'); render(); };
 $('discard').addEventListener('click', () => { if (selIds.length) playSelection(); });
@@ -5454,7 +5466,7 @@ function processEvents() {
       case 'roulette': SFX.play('stack', 3); bump(TOAST_PRI.roulette, t('tRoulette')); break;
       case 'multi': bump(TOAST_PRI.multi, t('tMulti', e.k)); break;
       case 'combo': showCombo(e); break;
-      case 'gamble': SFX.play('spin'); setTimeout(() => { SFX.play(e.ok ? 'click2' : 'bang'); if (!e.ok) { JUICE.shake(8); JUICE.ignite(1); } }, 380); setTimeout(() => bump(TOAST_PRI.gamble, e.ok ? t('tClick') : t('tBang', e.k)), 380); break;
+      case 'gamble': SFX.play('spin'); setTimeout(() => { SFX.play(e.ok ? 'click2' : 'bang'); if (!e.ok) { JUICE.shake(8); JUICE.ignite(1); } if (e.ok && e.t !== undefined) floatText(e.t, '+' + e.k); else if (!e.ok) floatText(e.pi, '+' + e.k); }, 380); setTimeout(() => bump(TOAST_PRI.gamble, e.ok ? t('tShot', G.players[e.t] ? G.players[e.t].name : '', e.k) : t('tBang', e.k)), 380); break;
       case 'lastcall': SFX.play('lastcall'); JUICE.shake(4); bump(TOAST_PRI.lastcall, t('tLastCall')); break;
       case 'finisher': SFX.play('bad'); JUICE.shake(4); bump(TOAST_PRI.finisher, t('tFinisher', e.k)); break;
       case 'revengeOn': SFX.play('stack', 3); floatText(e.pi, t('tagRevenge')); break;
