@@ -1032,6 +1032,21 @@ body.lite #crash:not(.on) { display: none; }
 #combo { flex-wrap: wrap; justify-content: center; row-gap: 2px; white-space: normal; }
 #combo .cpay { flex: 1 1 100%; text-align: center; }
 
+/* ---------- poker hands, always on view under the log ---------- */
+#comboRef { flex: 0 0 auto; margin: 0 16px 16px; padding: 8px 12px; background: #14100d; border: 1px solid #2a221b; border-radius: var(--ui-r); color: #b9ad94; font: 500 11px/15px var(--f-type); }
+#comboRef.hidden { display: none; }
+#comboRef .crhead { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+#comboRef .crnote { color: #7d725e; font-size: 10px; line-height: 13px; }
+#comboRef .cr { display: grid; grid-template-columns: 96px 92px 1fr; gap: 8px; align-items: baseline; padding: 2px 4px; border-radius: var(--ui-r); }
+#comboRef .cr b { font: 600 12px/16px var(--f-stamp); text-transform: uppercase; letter-spacing: .04em; color: #e2d6bb; }
+#comboRef .cr .shape { color: #d8cdb2; letter-spacing: .04em; white-space: nowrap; }
+#comboRef .cr .eff { color: #9a8f79; }
+#comboRef .cr.on { background: #3a1410; }
+#comboRef .cr.on b, #comboRef .cr.on .eff { color: #ffcfb8; }
+@media (max-width: 820px) { #comboRef { display: none; } }
+#side:has(#comboRef:not(.hidden)) #log { flex: 0 1 auto; max-height: none; min-height: 60px; }
+#side { overflow: hidden; }
+
 </style>
 </head>
 <body>
@@ -1121,7 +1136,7 @@ body.lite #crash:not(.on) { display: none; }
     <div id="selBar" class="selbar hidden"></div>
     <div id="hand"></div>
   </div>
-  <div id="side"><div class="sidehead"><span class="label" data-i18n="log"></span><span class="label" id="netTag"></span><button class="btn quiet" id="btnFx"></button><button class="btn quiet" id="btnSound">Sound on</button></div><div id="log"></div></div>
+  <div id="side"><div class="sidehead"><span class="label" data-i18n="log"></span><span class="label" id="netTag"></span><button class="btn quiet" id="btnFx"></button><button class="btn quiet" id="btnSound">Sound on</button></div><div id="log"></div><div id="comboRef"></div></div>
 </div>
 
 <div id="netBanner" class="hidden"></div>
@@ -1193,7 +1208,7 @@ function comboOf(faces) {
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
-const LAST_CALL = 250;
+const LAST_CALL = 150;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
   if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
@@ -2796,7 +2811,7 @@ const RULES_I18N = {
     ['uno', 'Last card call', 'Get caught on one card without calling "Last card": draw 2.'],
     ['chaos', 'Chaos', 'Every few plays a slot machine spins and hits the table with a random event.'],
     ['gamble', 'Russian roulette', 'Facing a stack of +8 or more, pull the trigger instead: 50% the stack is gone, 50% you take it doubled.'],
-    ['lastCall', 'Last call', 'After 250 turns the house closes the table: fewest cards wins. Keeps every game finite.'],
+    ['lastCall', 'Last call', 'After 150 turns the house closes the table: fewest cards wins. Keeps every game finite.'],
     ['potato', 'Hot potato', 'A hidden fuse ticks with every play. When it runs out, whoever is up picks up 3.'],
     ['revenge', 'Revenge', 'Take a stack of 10+ and your next draw card counts double.'],
     ['snitch', 'Snitch', 'Catch someone who didn’t call “Last card” and you also dump one of your cards on them.'],
@@ -2814,7 +2829,7 @@ const RULES_I18N = {
     ['uno', 'Крик «Одна»', 'Поймали с одной картой без крика «Одна»: возьмите 2.'],
     ['chaos', 'Хаос', 'Каждые несколько ходов крутится слот-машина и обрушивает на стол случайное событие.'],
     ['gamble', 'Русская рулетка', 'Перед стопкой +8 и больше можно нажать на спуск: 50% — стопка исчезает, 50% — берёте её вдвойне.'],
-    ['lastCall', 'Последний звонок', 'Через 250 ходов дом закрывает стол: побеждает тот, у кого меньше карт. Ни одна партия не тянется вечно.'],
+    ['lastCall', 'Последний звонок', 'Через 150 ходов дом закрывает стол: побеждает тот, у кого меньше карт. Ни одна партия не тянется вечно.'],
     ['potato', 'Горячая картошка', 'Скрытый фитиль тикает с каждым ходом. Когда догорит, тот, чей ход, берёт 3.'],
     ['revenge', 'Месть', 'Взяли стопку 10+ — ваша следующая карта «Возьми» считается вдвойне.'],
     ['snitch', 'Стукач', 'Поймали кого-то без крика «Одна» — заодно скиньте ему одну свою карту.'],
@@ -3423,7 +3438,7 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
     <h3>Table rules</h3><ul>
     <li><b>Same-symbol drops</b>: play every card with the same symbol together.</li>
     <li><b>Last card</b>: call it at two cards or right after dropping to one. Caught: you draw 2.</li>
-    <li><b>Last call</b>: after 250 turns the house closes the table and whoever holds the fewest cards wins. The table counts down the last 30.</li></ul>
+    <li><b>Last call</b>: after 150 turns the house closes the table and whoever holds the fewest cards wins. The table counts down the last 10.</li></ul>
     <h3>The House's cards</h3><ul>
     <li><b>Luck</b>: Horseshoe (1 in 3: two cards leave your hand), Scratch Card (a random prize or loss), Jackpot (pull the slot lever now), Redeal (a fresh hand).</li>
     <li><b>Money</b>: Loan (two cards gone now, four back in 3 plays), Tip (give 2 cards away), Contract (lose half your hand, your next stack is doubled).</li>
@@ -3462,7 +3477,7 @@ RULES_HTML.ru = `<p class="rulestag">Подпольный карточный п�
     <h3>Правила стола</h3><ul>
     <li><b>Сброс одинаковых</b>: все карты с одним символом вместе.</li>
     <li><b>«Одна»</b>: крикните на двух картах или сразу после того, как осталась одна. Поймали — берёте 2.</li>
-    <li><b>Последний звонок</b>: через 250 ходов дом закрывает стол, и побеждает тот, у кого меньше всего карт. Последние 30 ходов стол отсчитывает вслух.</li></ul>
+    <li><b>Последний звонок</b>: через 150 ходов дом закрывает стол, и побеждает тот, у кого меньше всего карт. Последние 10 ходов стол отсчитывает вслух.</li></ul>
     <h3>Карты Дома</h3><ul>
     <li><b>Удача</b>: Подкова (1 к 3: две карты уходят), Лотерейка (случайный выигрыш или проигрыш), Джекпот (рычаг слотов сразу), Пересдача (новая рука).</li>
     <li><b>Деньги</b>: Займ (две карты уходят сейчас, четыре — через 3 хода), Чаевые (отдать 2 карты), Контракт (половина руки уходит, следующая стопка вдвойне).</li>
@@ -3719,6 +3734,8 @@ Object.assign(STR.ru, {
   combo_rainbow: 'Радуга', withJoker: 'с джокером', togetherN: n => `${n} вместе`, oneCard: 'Одна карта', multiOff: 'Мультисброс за этим столом выключен',
   hintCombo: (h, n) => `В руке: ${h} (${n}) · выбрать`, selectOn: 'Выбор: вкл', selectOff: 'Выбрать несколько', comboRelief: n => `долг −${n}`
 });
+Object.assign(STR.en, { refTitle: 'Poker hands', refNote: 'straights and flushes are one colour · a plain Wild = any number · by day: extras leave your hand, debt forgiven; by night: the next player takes the extras', refAll: n => `all +${n}`, refDebt: n => `debt −${n}`, refStraightToss: '−1 per card past 2', refStraightDebt: 'debt −3 each' });
+Object.assign(STR.ru, { refTitle: 'Покерные комбинации', refNote: 'стрит и флеш — одного цвета · простой Джокер = любая цифра · днём лишние карты уходят и долг прощается, ночью лишние берёт следующий', refAll: n => `всем +${n}`, refDebt: n => `долг −${n}`, refStraightToss: '−1 за каждую сверх 2', refStraightDebt: 'долг −3 за каждую' });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -4717,11 +4734,27 @@ function bestCombo(hand) {
   for (const cs of cands) { const cb = comboOf(cs.map(c => G.f(c))); if (!cb) continue; const sc = (cs.some(c => fits(c) && (isNumF(G.f(c)) || isJoker(G.f(c)))) ? 10000 : 0) + COMBO_RANK.indexOf(cb.key) * 100 + cs.length * 10 + cb.mult; if (sc > bestScore) { bestScore = sc; best = { cards: cs, cb }; } }
   return best;
 }
+// every poker hand, always on view next to the log; the one your picked cards make lights up
+const COMBO_SHAPE = { pair: '7 7', twopair: '4 4 · 9 9', three: '6 6 6', straight: '3 4 5 …', flush: '■ ■ ■ ■ ■', fullhouse: '2 2 2 · 8 8', four: '5 5 5 5', rainbow: '5 5 5 5 ◆', straightflush: '3 4 5 6 7 ■', five: '7 7 7 7 7' };
+let comboRefKey = '';
+function drawComboRef(active) {
+  const el = $('comboRef'); if (!el || !G) return;
+  const on = G.rules.combos !== false && G.rules.multi;
+  const key = LANG + ':' + on + ':' + (active || '');
+  if (key === comboRefKey) return; comboRefKey = key;
+  if (!on) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  const rows = COMBO_RANK.slice().reverse().map(k => { const c = COMBOS[k];
+    const eff = [k === 'straight' ? t('refStraightToss') : c.d ? '−' + c.d : '', c.m ? t('refAll', c.m) : '', k === 'straight' ? t('refStraightDebt') : t('refDebt', c.r)].filter(Boolean).join(' · ');
+    return `<div class="cr${k === active ? ' on' : ''}"><b>${t('combo_' + k)}</b><span class="shape">${COMBO_SHAPE[k]}</span><span class="eff">${eff}</span></div>`; }).join('');
+  el.innerHTML = `<div class="crhead"><span class="label">${t('refTitle')}</span><span class="crnote">${t('refNote')}</span></div>${rows}`;
+}
 function drawSelBar() {
   const bar = $('selBar'); if (!G || !G.players[ME]) { bar.classList.add('hidden'); return; }
   const me = G.players[ME];
   selIds = selIds.filter(id => me.hand.some(c => c.id === id && !c.lock));
   const info = selInfo(), myTurn = myTurnNow(), canGo = info && info.ok && myTurn && !busy;
+  drawComboRef(info && info.kind === 'combo' ? info.cb.key : null);
   let html = '';
   // just the name of what the picked cards make; the buttons only in tap-to-pick mode (phones)
   if (info && info.cards.length > 1) {
@@ -5239,7 +5272,7 @@ function render() {
     <span class="row dirtxt">${G.dir === 1 ? UI_ICON.cw : UI_ICON.ccw} ${t(G.dir === 1 ? 'cw' : 'ccw')}</span>
     ${G.rules.chaos ? (G.side === 'L' || G.inflate || G.lock ? `<span class="chaosline ${G.inflate || G.lock || G.chaosIn <= 2 ? 'warn' : ''}">${G.inflate ? t('inflated', G.inflate) : G.lock ? t('locked', G.lock) : t('chaosIn', G.chaosIn)}</span>` : `<span class="chaosline dim">${t('slotsClosed')}</span>`) : ''}
     ${G.potatoState && G.side === 'D' ? `<span class="chaosline ${G.potatoState === 2 ? 'warn potato hot' : 'potato'}">${t(G.potatoState === 2 ? 'potatoHot' : 'potatoOn')}</span>` : ''}
-    ${lcLeft !== null && lcLeft <= 30 && G.winner === null ? `<span class="chaosline warn lastcall">${lcLeft ? t('lastCallIn', lcLeft) : t('lastCallNow')}</span>` : ''}
+    ${lcLeft !== null && lcLeft <= 10 && G.winner === null ? `<span class="chaosline warn lastcall">${lcLeft ? t('lastCallIn', lcLeft) : t('lastCallNow')}</span>` : ''}
     ${G.maze > 0 ? `<span class="chaosline warn">${t('mazeLeft', G.maze)}</span>` : ''}
     ${G.multNext > 1 ? `<span class="chaosline warn multchip">${t('multNext', G.multNext)}</span>` : ''}
     ${G.pending > 0 ? `<span class="label" style="margin-top:8px">${t('stack')}</span><span class="stack${G.pending >= 8 ? ' burning' : ''}" style="--heat:${Math.min(1, G.pending / 20).toFixed(2)}">+${G.pending}</span>` : ''}`);
@@ -5248,7 +5281,7 @@ function render() {
     const tr = $('table').getBoundingClientRect(), hr = $('bottom').getBoundingClientRect(), orr = $('opps').getBoundingClientRect();
     const top = orr.top + orr.height * 0.55, bottom = hr.bottom - 6;
     JUICE.setTable({ x: tr.left + tr.width / 2, y: (top + bottom) / 2, w: tr.width / 2 - 8, h: (bottom - top) / 2 });
-  } JUICE.setHeat(Math.max(G.pending / 22, lcLeft !== null && lcLeft <= 30 ? (30 - lcLeft) / 45 : 0)); JUICE.fireLevel(G.pending, G.multNext || 1);
+  } JUICE.setHeat(Math.max(G.pending / 22, lcLeft !== null && lcLeft <= 10 ? (10 - lcLeft) / 15 : 0)); JUICE.fireLevel(G.pending, G.multNext || 1);
   // banner
   const ban = $('banner');
   let txt, you = false;

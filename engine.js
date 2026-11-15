@@ -59,7 +59,7 @@ function comboOf(faces) {
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
-const LAST_CALL = 250;
+const LAST_CALL = 150;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
   if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
