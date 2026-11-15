@@ -1047,6 +1047,20 @@ body.lite #crash:not(.on) { display: none; }
 #side:has(#comboRef:not(.hidden)) #log { flex: 0 1 auto; max-height: none; min-height: 60px; }
 #side { overflow: hidden; }
 
+/* ---------- whose turn it is, at a glance ---------- */
+.opp { position: relative; }
+.opp.turn { transform: translateY(6px) scale(1.06); box-shadow: 0 0 0 3px #ff5a36, 0 0 22px rgba(255, 90, 54, .55), var(--grime-in); }
+.opp .turnflag { position: absolute; left: 50%; bottom: -12px; translate: -50% 0; z-index: 3; padding: 1px 8px; background: #b3261e; color: #fff2e6; font: 700 11px/16px var(--f-stamp); letter-spacing: .14em; text-transform: uppercase; rotate: -2deg; white-space: nowrap; }
+#bottom.myturn .me { background: linear-gradient(90deg, rgba(255, 210, 120, .16), rgba(255, 210, 120, .03) 70%, transparent); box-shadow: inset 3px 0 0 #ffd27a; }
+#bottom.myturn #meName { color: #ffe2a0; }
+/* ---------- playable and picked cards stand out ---------- */
+#hand .card.ok { box-shadow: inset 0 0 0 2px #ffd27a, inset 0 0 14px rgba(255, 210, 120, .45), inset 0 0 calc(var(--cw) * .28) rgba(0, 0, 0, .55); border-color: #ffd27a; filter: saturate(.95) brightness(1.08) contrast(1.1); }
+#hand .card:not(.ok):not(.jump):not(.sel) { filter: saturate(.45) brightness(.62) contrast(1.05); }
+body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
+#hand .card.sel { transform: translateY(calc(var(--dy, 0px) - 38px)) rotate(var(--rot, 0deg)); border-color: #fff;
+  box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px #ff5a36, inset 0 0 22px rgba(255, 255, 255, .35); filter: brightness(1.12) saturate(1.05); }
+#hand .card.sel:hover { transform: translateY(calc(var(--dy, 0px) - 42px)) rotate(0deg) scale(1.04) var(--tilt, rotate(0deg)); }
+
 </style>
 </head>
 <body>
@@ -3736,6 +3750,7 @@ Object.assign(STR.ru, {
 });
 Object.assign(STR.en, { refTitle: 'Poker hands', refNote: 'straights and flushes are one colour · a plain Wild = any number · by day: extras leave your hand, debt forgiven; by night: the next player takes the extras', refAll: n => `all +${n}`, refDebt: n => `debt −${n}`, refStraightToss: '−1 per card past 2', refStraightDebt: 'debt −3 each' });
 Object.assign(STR.ru, { refTitle: 'Покерные комбинации', refNote: 'стрит и флеш — одного цвета · простой Джокер = любая цифра · днём лишние карты уходят и долг прощается, ночью лишние берёт следующий', refAll: n => `всем +${n}`, refDebt: n => `долг −${n}`, refStraightToss: '−1 за каждую сверх 2', refStraightDebt: 'долг −3 за каждую' });
+Object.assign(STR.en, { tagTurn: 'their turn', yourTurnStamp: 'YOUR TURN' }); Object.assign(STR.ru, { tagTurn: 'ходит', yourTurnStamp: 'ВАШ ХОД' });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -5216,7 +5231,7 @@ function render() {
   document.body.classList.toggle('dark', G.side === 'D');
   const ob = otherSide();
   const tk = `${G.turn}:${G.roulette}:${G.seq}:${G.gid}`;
-  if (tk !== turnKey) { turnKey = tk; turnStartedAt = Date.now(); if (myTurnNow()) SFX.play('turn'); }
+  if (tk !== turnKey) { const was = turnKey.split(':')[0]; turnKey = tk; turnStartedAt = Date.now(); if (myTurnNow()) { SFX.play('turn'); if (was !== String(ME)) toast(t('yourTurnStamp')); } }
   const elapsed = (Date.now() - turnStartedAt) / 1000;
   const cc = G.roulette !== null ? 'var(--muted)' : CVAR[G.color];
   document.documentElement.style.setProperty('--cc-now', cc);
@@ -5249,7 +5264,7 @@ function render() {
     const timer = turn ? `<div class="timer" style="animation-duration:${limit / 1000}s;animation-delay:-${elapsed}s"></div>` : '';
     const dealRow = MATCH && !MATCH.col[i] ? dealBadges(p) : '';
     return `<div class="opp ${turn ? 'turn' : ''} ${p.out && G.winner !== i ? 'out' : ''} ${MATCH && MATCH.col[i] ? 'collector' : ''}" id="opp${i}">
-      <div class="top"><span class="ini">${initials(p.name)}</span><span class="nm">${esc(p.name)}</span></div>
+      ${turn ? `<span class="turnflag">${t('tagTurn')}</span>` : ''}<div class="top"><span class="ini">${initials(p.name)}</span><span class="nm">${esc(p.name)}</span></div>
       <div class="fan">${fan}</div>
       <div class="meta"><span class="cnt">${n}</span><span class="tags">${tags.join(' · ')}</span></div>${dealRow}
       ${G.rules.mercy ? `<div class="bar ${pct >= 80 ? 'hot' : ''}"><div style="width:${pct}%"></div></div>` : ''}${timer}
@@ -5260,6 +5275,7 @@ function render() {
   const back = me && hasDeal(me, 'sharp') && G.next && G.next[G.side] ? faceHTML(G.next[G.side], G.side, 'peek') : faceHTML(nb, ob);
   setHTML($('drawpile'), back + back + back);
   const myTurn = myTurnNow();
+  $('bottom').classList.toggle('myturn', myTurn && !me.out && G.winner === null);
   const owe = G.owes(ME), myDebt = G.debt && G.debt.pi === ME && myTurn;
   const canDraw = !me.out && G.winner === null && (owe || myDebt || (myTurn && !G.debt && (G.pending > 0 || G.drewBy !== ME)));
   $('drawpile').classList.toggle('can', canDraw && (owe || myDebt || G.pending > 0 || G.playable(ME).length === 0));
@@ -5980,7 +5996,10 @@ function showCombo(e) {
   const pay = [e.d ? t('comboToss', e.d) : '', e.slap >= 0 && e.sd ? t('comboNightSlap', nm(e.slap), e.sd) : '', e.m ? t('comboHit', e.m) : '', e.r ? t('comboRelief', e.r) : ''].filter(Boolean).join(' · ');
   el.innerHTML = `<span class="cwho">${esc(nm(e.pi))}</span><b class="cname">${t('combo_' + e.key)}</b><div class="cscore"><span class="chips">${e.chips}</span><i>×</i><span class="mult">${e.mult}</span></div>${pay ? `<span class="cpay">${esc(pay)}</span>` : ''}`;
   // sits on the top edge of the pile area, never over the day/night panel next to it
-  { const pr = document.querySelector('.piles'); if (pr) { const r = pr.getBoundingClientRect(); el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = Math.max(8, r.top + 6) + 'px'; el.style.maxWidth = Math.max(220, r.width - 12) + 'px'; } }
+  // shows up by whoever played it: under a rival's tag, or just above your own strip
+  { el.style.maxWidth = '';
+    if (e.pi === ME) { const r = $('bottom').querySelector('.me').getBoundingClientRect(); el.style.left = (r.left + Math.min(r.width, 640) / 2) + 'px'; el.style.top = Math.max(8, r.top - 92) + 'px'; }
+    else { const o = $('opp' + e.pi); if (o) { const r = o.getBoundingClientRect(); el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = (r.bottom + 10) + 'px'; } } }
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   const big = e.m > 0 || e.mult >= 3;
   SFX.play('mult', Math.min(4, e.mult)); setTimeout(() => SFX.play('lucky'), 180);
