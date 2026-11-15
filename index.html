@@ -944,6 +944,12 @@ body.curse-mirror #cardtip { scale: -1 1; }
 .card.tier-u .mid { color: #f6dc96; text-shadow: 0 0 6px rgba(255, 190, 90, .55); }
 body.lite .card.tier-u::after { animation: none; }
 .tipmini .card::after { animation: none; }
+/* the foil and the prism also drift slowly on their own, so they shimmer on phones and when the mouse is elsewhere */
+@property --drift { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@keyframes foilDrift { 0%, 100% { --drift: -22%; } 50% { --drift: 22%; } }
+.card.tier-w::after { background-position: calc(var(--gx, 30%) + var(--drift)) calc(var(--gy, 30%) + var(--drift)), 0 0; animation: foilDrift 5.5s ease-in-out infinite; }
+.card.tier-h::after { background-position: calc(var(--gx, 30%) + var(--drift)) calc(var(--gy, 30%) - var(--drift)); animation: foilDrift 7s ease-in-out infinite; }
+body.lite .card.tier-w::after, body.lite .card.tier-h::after { animation: none; }
 
 </style>
 </head>
