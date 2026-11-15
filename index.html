@@ -849,7 +849,7 @@ body.dark #cactus svg { filter: brightness(.7) saturate(.8); }
 @keyframes staticNoise { 0% { background-position: 0 0, 0 0; } 25% { background-position: -47px 31px, 0 1px; } 50% { background-position: 63px -19px, 0 2px; } 75% { background-position: -21px -58px, 0 1px; } }
 body.curse-static #game { animation: staticJolt 3.3s steps(1) infinite; }
 @keyframes staticJolt { 0%, 91%, 100% { translate: 0 0; filter: none; } 92% { translate: 7px -2px; filter: hue-rotate(60deg) saturate(2); } 94% { translate: -9px 1px; } 96% { translate: 3px 0; filter: contrast(1.6); } }
-body.curse-mirror #bottom { transform: scaleX(-1); }
+body.curse-mirror #game { transform: scaleX(-1); }
 body.curse-fever #hand .card { animation: fever .11s steps(2) infinite; }
 @keyframes fever { 0% { translate: 1px -1px; } 50% { translate: -1px 1.5px; } 100% { translate: 1.5px .5px; } }
 body.lite #curseStatic { animation: none; }
@@ -3311,7 +3311,7 @@ Object.assign(STR.en, {
   horseD_plague_blank: 'Wilds lose their powers: they go on anything and do nothing.',
   horseD_plague_rot: 'At the start of each turn 2 random cards in your hand rot and are replaced.',
   curse_dark: 'Darkness', curse_fever: 'Fever', curse_mirror: 'Mirror world', curse_static: 'Static',
-  curseD_dark: 'You only see around your cursor.', curseD_fever: 'Your hand shakes and shuffles itself.', curseD_mirror: 'Your hand and buttons are mirrored.', curseD_static: 'Interference over the screen.',
+  curseD_dark: 'You only see around your cursor.', curseD_fever: 'Your hand shakes and shuffles itself.', curseD_mirror: 'The whole table is mirrored.', curseD_static: 'Interference over the screen.',
   horseRides: 'A HORSEMAN RIDES IN', horseLeft: k => `${k}/10 turns`, yourCurse: 'Your curse'
 });
 Object.assign(STR.ru, {
@@ -3325,7 +3325,7 @@ Object.assign(STR.ru, {
   horseD_plague_blank: 'Джокеры теряют силу: кладутся на что угодно и ничего не делают.',
   horseD_plague_rot: 'В начале хода 2 случайные карты в руке гниют и заменяются.',
   curse_dark: 'Мрак', curse_fever: 'Лихорадка', curse_mirror: 'Зазеркалье', curse_static: 'Помехи',
-  curseD_dark: 'Видно только вокруг курсора.', curseD_fever: 'Рука дрожит и сама перемешивается.', curseD_mirror: 'Рука и кнопки отражены.', curseD_static: 'Помехи поверх экрана.',
+  curseD_dark: 'Видно только вокруг курсора.', curseD_fever: 'Рука дрожит и сама перемешивается.', curseD_mirror: 'Весь стол отражён зеркально.', curseD_static: 'Помехи поверх экрана.',
   horseRides: 'ВЪЕЗЖАЕТ ВСАДНИК', horseLeft: k => `${k}/10 ходов`, yourCurse: 'Ваше проклятие'
 });
 RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>The Horsemen</h3><ul>
