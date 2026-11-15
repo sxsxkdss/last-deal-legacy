@@ -153,7 +153,7 @@ class Game {
     let top;
     do { top = this.newCard(); } while (top.L.c === 'w' || isNaN(+top.L.v));
     this.top = top; this.color = top.L.c; this.dir = 1;
-    this.pile = [cardCode(top)]; this.pileN = 1; // recent discards, so the pile can show a few cards underneath
+    this.pile = [cardCode(top) + '!' + top.id]; this.pileN = 1; // recent discards, so the pile can show a few cards underneath
     this.turn = Math.floor(Math.random() * names.length);
     this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.roulette = null; this.flipBack = null;
     this.debt = null; // cards someone must draw by hand before play moves on: { pi, n | until, got, kind }
@@ -523,7 +523,7 @@ class Game {
         const pool = p.hand.filter(c => !c.uniq), n = Math.floor(p.hand.length / 2);
         const burn = pool.sort(() => Math.random() - 0.5).slice(0, n);
         p.hand = p.hand.filter(c => !burn.includes(c));
-        for (const c of burn) { this.pile.splice(Math.max(0, this.pile.length - 1), 0, cardCode(c)); this.pileN++; }
+        for (const c of burn) { this.pile.splice(Math.max(0, this.pile.length - 1), 0, cardCode(c) + '!' + c.id); this.pileN++; }
         if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
         this.addLog(`The oven eats ${burn.length} of ${p.name}'s cards.`, 'win', 'oven', { n: p.name, k: burn.length });
         this.ev('oven', { pi, k: burn.length });
@@ -648,7 +648,7 @@ class Game {
     const last = chain[k - 1];
     const prevFace = this.top ? this.f(this.top) : null; // what Echo copies
     this.top = last;
-    for (const c of chain) { this.pile.push(cardCode(c)); this.pileN++; }
+    for (const c of chain) { this.pile.push(cardCode(c) + '!' + c.id); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
     if (!blank) this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
     this.seq++; this.drawRun = 0;
@@ -1424,11 +1424,12 @@ function serialize(g, viewer = -1, logN = 8) {
       p.hand.map((c, k) => (c.lock || c.chain ? [k, c.chain || 0, c.lock ? 1 : 0] : null)).filter(Boolean),
       [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0) | (p.signedNow ? 32 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
       p.hand.map(c => (c.uniq ? 1 : 0)).join(''),
-      [(p.inv || []).join(','), Object.entries(p.fx || {}).map(([k, v]) => v === true ? k : k + ':' + v).join(','), p.buff || 0]]),
+      [(p.inv || []).join(','), Object.entries(p.fx || {}).map(([k, v]) => v === true ? k : k + ':' + v).join(','), p.buff || 0],
+      (viewer < 0 || i === viewer) ? p.hand.map(c => c.id) : null]),
     of: g.offer ? [g.offer.pi, g.offer.kind, g.offer.opts] : null,
     hz: g.horse && g.horse.left > 0 ? [g.horse.k, g.horse.v, g.horse.left, (g.horse.curses || []).join(',')] : null,
     nf: viewer >= 0 && g.players[viewer] && hasDeal(g.players[viewer], 'sharp') ? cardCode(g.next) : null,
-    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+    t: cardCode(g.top), ti: g.top.id, cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
     ev: g.events.slice(-12), es: g.evSeq
@@ -1453,10 +1454,11 @@ function deserialize(st) {
     const h = g.players[i].hand;
     if (Array.isArray(a[7])) for (const [k, ch, lk] of a[7]) if (h[k]) { h[k].chain = ch; h[k].lock = !!lk; }
     const u = String(a[9] || ''); for (let k = 0; k < u.length; k++) if (u[k] === '1' && h[k]) h[k].uniq = true;
+    if (Array.isArray(a[11])) a[11].forEach((w, k) => { if (h[k]) h[k].wid = w; });
   });
   g.horse = Array.isArray(st.hz) ? { k: st.hz[0], v: st.hz[1], left: st.hz[2], curses: String(st.hz[3] || '').split(',').filter(Boolean) } : null;
   g.offer = Array.isArray(st.of) ? { pi: st.of[0], kind: st.of[1], opts: st.of[2] || [] } : null;
-  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
+  g.top = codeCard(st.t); g.top.wid = st.ti; if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   if (typeof st.nf === 'string' && st.nf.length === 2) g.next = codeCard(st.nf);
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;

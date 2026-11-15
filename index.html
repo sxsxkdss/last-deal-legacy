@@ -611,9 +611,10 @@ button.tok:hover:not(:disabled) { transform: translateY(-2px); }
 }
 /* unique and deal cards: a different, oily iridescence that moves with the tilt */
 .card.uniq { border-color: #a8913f; }
-.card.uniq::after { mix-blend-mode: color-dodge; border-color: rgba(255, 230, 160, .5);
-  background: repeating-linear-gradient(125deg, rgba(255, 60, 90, .16) 0 5%, rgba(255, 210, 60, .14) 5% 10%, rgba(60, 255, 170, .14) 10% 15%, rgba(70, 140, 255, .16) 15% 20%, rgba(200, 80, 255, .14) 20% 25%);
-  background-size: 260% 260%; background-position: var(--gx, 30%) var(--gy, 30%); opacity: .8; }
+.card.tier-h { border-color: #8a8f99; }
+.card.tier-h::after { mix-blend-mode: color-dodge; border-color: rgba(220, 240, 255, .55);
+  background: repeating-linear-gradient(125deg, rgba(255, 60, 90, .3) 0 5%, rgba(255, 210, 60, .26) 5% 10%, rgba(60, 255, 170, .26) 10% 15%, rgba(70, 140, 255, .3) 15% 20%, rgba(200, 80, 255, .26) 20% 25%);
+  background-size: 260% 260%; background-position: var(--gx, 30%) var(--gy, 30%); opacity: .9; }
 .card.uniq.c-w { --cc: #19120a; }
 .card.uniq .mid { color: #f2d98a; }
 /* chained cards */
@@ -922,6 +923,28 @@ body.curse-mirror #cardtip { scale: -1 1; }
 .contract.both .bothcols > .contract { margin: 0; min-width: 0; padding: 16px; }
 .contract.both .bothcols .clauses { grid-template-columns: 1fr 1fr; }
 
+/* ---------- shine by rarity: plain cards keep the old lacquer; wilds get a gold foil;
+   house cards a prism (above); the unique ones a living black opal ---------- */
+.card.tier-w { border-color: #8c7442; }
+.card.tier-w::after { mix-blend-mode: screen; border-color: rgba(240, 200, 120, .55); opacity: .9;
+  background:
+    linear-gradient(118deg, transparent 26%, rgba(255, 200, 110, calc(.34 + var(--sheen, .07))) 44%, rgba(255, 244, 210, calc(.28 + var(--sheen, .07))) 50%, rgba(255, 200, 110, calc(.2 + var(--sheen, .07))) 56%, transparent 70%),
+    repeating-linear-gradient(96deg, rgba(255, 220, 150, 0) 0 2px, rgba(255, 220, 150, .12) 2px 3px);
+  background-size: 240% 240%, auto; background-position: var(--gx, 30%) var(--gy, 30%), 0 0; }
+.card.tier-u { border-color: #b8933a; }
+.card.tier-u::after { mix-blend-mode: color-dodge; border-color: rgba(255, 210, 150, .7); opacity: 1;
+  background:
+    radial-gradient(circle at 22% 30%, rgba(255, 255, 255, .55) 0 .6%, transparent 1.2%),
+    radial-gradient(circle at 70% 64%, rgba(255, 255, 255, .45) 0 .5%, transparent 1.1%),
+    radial-gradient(circle at 58% 18%, rgba(255, 255, 255, .4) 0 .4%, transparent .9%),
+    conic-gradient(from var(--opal, 0deg) at 50% 50%, rgba(255, 40, 80, .42), rgba(255, 170, 40, .34), rgba(80, 255, 160, .34), rgba(60, 130, 255, .42), rgba(190, 60, 255, .4), rgba(255, 40, 80, .42));
+  animation: opalTurn 7s linear infinite; }
+@property --opal { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes opalTurn { to { --opal: 360deg; } }
+.card.tier-u .mid { color: #f6dc96; text-shadow: 0 0 6px rgba(255, 190, 90, .55); }
+body.lite .card.tier-u::after { animation: none; }
+.tipmini .card::after { animation: none; }
+
 </style>
 </head>
 <body>
@@ -1175,7 +1198,7 @@ class Game {
     let top;
     do { top = this.newCard(); } while (top.L.c === 'w' || isNaN(+top.L.v));
     this.top = top; this.color = top.L.c; this.dir = 1;
-    this.pile = [cardCode(top)]; this.pileN = 1; // recent discards, so the pile can show a few cards underneath
+    this.pile = [cardCode(top) + '!' + top.id]; this.pileN = 1; // recent discards, so the pile can show a few cards underneath
     this.turn = Math.floor(Math.random() * names.length);
     this.pending = 0; this.stackMin = 0; this.stackFrom = -1; this.roulette = null; this.flipBack = null;
     this.debt = null; // cards someone must draw by hand before play moves on: { pi, n | until, got, kind }
@@ -1545,7 +1568,7 @@ class Game {
         const pool = p.hand.filter(c => !c.uniq), n = Math.floor(p.hand.length / 2);
         const burn = pool.sort(() => Math.random() - 0.5).slice(0, n);
         p.hand = p.hand.filter(c => !burn.includes(c));
-        for (const c of burn) { this.pile.splice(Math.max(0, this.pile.length - 1), 0, cardCode(c)); this.pileN++; }
+        for (const c of burn) { this.pile.splice(Math.max(0, this.pile.length - 1), 0, cardCode(c) + '!' + c.id); this.pileN++; }
         if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
         this.addLog(`The oven eats ${burn.length} of ${p.name}'s cards.`, 'win', 'oven', { n: p.name, k: burn.length });
         this.ev('oven', { pi, k: burn.length });
@@ -1670,7 +1693,7 @@ class Game {
     const last = chain[k - 1];
     const prevFace = this.top ? this.f(this.top) : null; // what Echo copies
     this.top = last;
-    for (const c of chain) { this.pile.push(cardCode(c)); this.pileN++; }
+    for (const c of chain) { this.pile.push(cardCode(c) + '!' + c.id); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
     if (!blank) this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
     this.seq++; this.drawRun = 0;
@@ -2446,11 +2469,12 @@ function serialize(g, viewer = -1, logN = 8) {
       p.hand.map((c, k) => (c.lock || c.chain ? [k, c.chain || 0, c.lock ? 1 : 0] : null)).filter(Boolean),
       [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0) | (p.signedNow ? 32 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
       p.hand.map(c => (c.uniq ? 1 : 0)).join(''),
-      [(p.inv || []).join(','), Object.entries(p.fx || {}).map(([k, v]) => v === true ? k : k + ':' + v).join(','), p.buff || 0]]),
+      [(p.inv || []).join(','), Object.entries(p.fx || {}).map(([k, v]) => v === true ? k : k + ':' + v).join(','), p.buff || 0],
+      (viewer < 0 || i === viewer) ? p.hand.map(c => c.id) : null]),
     of: g.offer ? [g.offer.pi, g.offer.kind, g.offer.opts] : null,
     hz: g.horse && g.horse.left > 0 ? [g.horse.k, g.horse.v, g.horse.left, (g.horse.curses || []).join(',')] : null,
     nf: viewer >= 0 && g.players[viewer] && hasDeal(g.players[viewer], 'sharp') ? cardCode(g.next) : null,
-    t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+    t: cardCode(g.top), ti: g.top.id, cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
     ev: g.events.slice(-12), es: g.evSeq
@@ -2475,10 +2499,11 @@ function deserialize(st) {
     const h = g.players[i].hand;
     if (Array.isArray(a[7])) for (const [k, ch, lk] of a[7]) if (h[k]) { h[k].chain = ch; h[k].lock = !!lk; }
     const u = String(a[9] || ''); for (let k = 0; k < u.length; k++) if (u[k] === '1' && h[k]) h[k].uniq = true;
+    if (Array.isArray(a[11])) a[11].forEach((w, k) => { if (h[k]) h[k].wid = w; });
   });
   g.horse = Array.isArray(st.hz) ? { k: st.hz[0], v: st.hz[1], left: st.hz[2], curses: String(st.hz[3] || '').split(',').filter(Boolean) } : null;
   g.offer = Array.isArray(st.of) ? { pi: st.of[0], kind: st.of[1], opts: st.of[2] || [] } : null;
-  g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
+  g.top = codeCard(st.t); g.top.wid = st.ti; if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   if (typeof st.nf === 'string' && st.nf.length === 2) g.next = codeCard(st.nf);
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
@@ -4276,11 +4301,13 @@ function onState(m) {
   MATCH = m.match || null; if (MATCH) MATCH.until = Date.now() + (MATCH.left || 0);
   // keep card ids stable so only genuinely new cards animate in
   if (G && G.players[ME] && g.gid === lastGid && m.seat === ME) {
-    const pool = {}; for (const c of G.players[ME].hand) (pool[cardCode(c)] = pool[cardCode(c)] || []).push(c.id);
-    for (const c of g.players[m.seat].hand) { const l = pool[cardCode(c)]; if (l && l.length) c.id = l.shift(); }
+    const kOf = c => c.wid != null ? 'w' + c.wid : cardCode(c);
+    const pool = {}; for (const c of G.players[ME].hand) (pool[kOf(c)] = pool[kOf(c)] || []).push(c.id);
+    for (const c of g.players[m.seat].hand) { const l = pool[kOf(c)]; if (l && l.length) c.id = l.shift(); }
   }
   const fresh = g.gid !== lastGid || $('game').classList.contains('hidden');
   G = g; ME = m.seat; lastGid = g.gid;
+  WID.clear(); if (g.players[ME]) for (const c of g.players[ME].hand) if (c.wid != null) WID.set(String(c.id), c.wid);
   if (fresh) beginGameView(); else tick();
 }
 
@@ -4876,19 +4903,24 @@ const WEAR = (() => {
     return { cls: 'tear' + Math.floor(r() * N) + (edge ? ' burnt h' + bi : ''), burn: burn ? 'b' + bi : '', style: Object.entries(v).map(([k, x]) => k + ':' + x).join(';') };
   }
 })();
-function faceHTML(f, side, cls = '', id = '') {
+// wear follows the real card: WID maps a hand card's local id to the server's card id
+const WID = new Map();
+function faceHTML(f, side, cls = '', id = '', wk = null) {
   // a drawn sprite from the asset pack wins; otherwise the built-in card
   const spr = ASSETS.cardClass(f, side);
   const tip = `data-f="${side}|${esc(f.c)}|${esc(f.v)}"`;
-  const W = WEAR(id !== '' ? 'c' + id : f.c + f.v + side), stain = ' ' + W.cls;
+  const wkey = wk != null ? wk : (id !== '' && WID.has(String(id)) ? WID.get(String(id)) : null);
+  const W = WEAR(wkey != null ? 'w' + wkey : id !== '' ? 'c' + id : f.c + f.v + side), stain = ' ' + W.cls;
   if (spr) return `<div class="card s-${side} c-${esc(f.c)} spr ${spr} ${cls}" style="" ${tip} ${id !== '' ? `data-id="${id}"` : ''}></div>`;
   const [m, subKey, sz] = SYM[f.v] || [esc(f.v)];
   const sub = subKey ? CARD_TXT[LANG][subKey] : '';
   const cor = CORNER[f.v] || esc(f.v);
   const uniq = f.v === 'swind' || f.v === 'sacr' || /\buniq\b/.test(cls) ? ' uniq' : '';
+  // how rare the face is decides its shine: plain lacquer, a gold foil for wilds, prism for house cards, a living opal for the unique ones
+  const tier = uniq ? ' tier-u' : EXTRA_CARDS.includes(f.v) ? ' tier-h' : f.c === 'w' ? ' tier-w' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];
   const chains = /\blocked\b/.test(cls) ? `<i class="chainglow"></i><i class="chainov cv${(parseInt(id, 10) || 0) % CHAIN_SVGS.length}"></i><i class="lock">${LOCK_SVG}${chainN ? `<b>${chainN}</b>` : ''}</i>` : '';
-  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${W.burn ? `<i class="burn ${W.burn}"></i>` : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
+  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq}${tier} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${W.burn ? `<i class="burn ${W.burn}"></i>` : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
 function sortedHand(h) {
@@ -4913,8 +4945,8 @@ function discardHTML() {
   const codes = (G.pile && G.pile.length ? G.pile : [cardCode(G.top)]).slice(-5);
   const base = (G.pileN || codes.length) - codes.length;
   return codes.map((code, k) => {
-    const card = codeCard(code), sp = pileSpot(base + k), top = k === codes.length - 1;
-    return faceHTML(card[G.side], G.side, top ? 'topc' : 'under').replace('style="', `style="--rot:${sp.rot}deg;--dx:${sp.dx}px;--dy:${sp.dy}px;transform:translate(${sp.dx}px,${sp.dy}px) rotate(${sp.rot}deg);z-index:${k};`);
+    const card = codeCard(code), sp = pileSpot(base + k), top = k === codes.length - 1, w = String(code).length > 2 ? String(code).slice(3) : null;
+    return faceHTML(card[G.side], G.side, top ? 'topc' : 'under', '', w != null ? w : top && G.top.wid != null ? G.top.wid : null).replace('style="', `style="--rot:${sp.rot}deg;--dx:${sp.dx}px;--dy:${sp.dy}px;transform:translate(${sp.dx}px,${sp.dy}px) rotate(${sp.rot}deg);z-index:${k};`);
   }).join('');
 }
 function render() {
@@ -5154,8 +5186,8 @@ function processEvents() {
         const from = e.pi === ME && lastPlayRect ? lastPlayRect : centerRect(seatRect(e.pi) || cw, cw.width * 0.6, cw.height * 0.6);
         els.forEach(el => el.style.opacity = '0');
         codes.forEach((code, j) => {
-          const card = codeCard(code), el = els[j];
-          fly(faceHTML(card[e.side], e.side), from, el ? rectOf(el) : cw, { delay: j * 110, onDone: () => {
+          const card = codeCard(code), el = els[j], w = String(code).length > 2 ? String(code).slice(3) : null;
+          fly(faceHTML(card[e.side], e.side, '', '', w != null ? w : null), from, el ? rectOf(el) : cw, { delay: j * 110, onDone: () => {
             if (!el) return; el.style.opacity = ''; el.classList.remove('land'); void el.offsetWidth; el.classList.add('land');
             if (j) SFX.play('play');
           } });
