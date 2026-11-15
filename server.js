@@ -62,7 +62,8 @@ function buildManifest() {
   const ext = f => path.extname(f).toLowerCase();
   const m = { cards: list('cards').filter(f => IMG.includes(ext(f))), sounds: {}, font: {}, bg: null, config: {} };
   for (const f of list('sounds').filter(f => SND.includes(ext(f)))) {
-    const name = path.basename(f, path.extname(f)).replace(/[-_]\d+$/, '').toLowerCase();
+    let name = path.basename(f, path.extname(f)).replace(/[-_]\d+$/, '').toLowerCase();
+    if (/^music[-_ ]?\d*$/.test(name)) name = 'music'; // music.mp3, music2.mp3, music-3.ogg … form one playlist
     (m.sounds[name] = m.sounds[name] || []).push(f);
   }
   for (const f of list('font').filter(f => FONT.includes(ext(f)))) {
