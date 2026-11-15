@@ -877,11 +877,11 @@ body.lite #curseStatic { animation: none; }
 .card.locked { filter: none; }
 .card .chainov { filter: none; }
 .card .chainglow { position: absolute; inset: 0; z-index: 6; pointer-events: none; mix-blend-mode: screen;
-  background: radial-gradient(ellipse 70% 50% at 32% 38%, rgba(190, 50, 45, .55), transparent 70%), radial-gradient(ellipse at 50% 45%, rgba(110, 12, 12, .72), rgba(40, 4, 4, .9) 75%), linear-gradient(to top, rgba(6, 1, 1, .7), transparent 40%);
+  background: radial-gradient(ellipse 70% 50% at 32% 38%, rgba(190, 50, 45, .3), transparent 70%), radial-gradient(ellipse at 50% 45%, rgba(110, 12, 12, .32), rgba(40, 4, 4, .62) 80%), linear-gradient(to top, rgba(6, 1, 1, .45), transparent 35%);
   animation: chainPulse 2.4s ease-in-out infinite; }
 .card .chainglow { mix-blend-mode: normal; }
 @keyframes chainPulse { 0%, 100% { opacity: .82; } 50% { opacity: 1; } }
-.card .lock { width: 32%; top: 50%; transform: translate(-50%, -50%); filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .9)) drop-shadow(0 0 4px rgba(255, 50, 10, .5)); }
+.card .lock { width: 30%; left: 70%; top: 74%; transform: translate(-50%, -50%); filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .9)) drop-shadow(0 0 4px rgba(255, 50, 10, .5)); }
 .card .lock b { top: 50%; translate: 0 -50%; color: #ffd9c8; text-shadow: 0 0 4px #ff3d1a, 0 1px 0 #000; font-size: calc(var(--cw) * .14); }
 body.lite .card .chainglow { animation: none; }
 /* Mirror world reaches the card tooltips too */
@@ -4474,8 +4474,8 @@ const DEAL_ICON = (() => {
 const isLightDeal = d => LIGHT_DEALS.includes(d);
 // iron chain across a locked card: links alternate face-on and edge-on, shaded like old metal
 // chained cards: thorned chains of black iron lit red from behind, thin barbed strands under them, a red haze over the face
-const CHAIN_SVG = (() => {
-  let seed = 977; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const CHAIN_SVGS = [0, 1, 2, 3, 4, 5].map(vi => {
+  let seed = 977 + vi * 7919; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const thorns = (len, w, n, big) => { let d = ''; for (let i = 0; i < n; i++) { const x = -len / 2 + (i + 0.5) * len / n + (r() - 0.5) * 2, side = i % 2 ? 1 : -1, h = big * (0.6 + r() * 0.8), lean = (r() - 0.5) * 3; d += `M${(x - 1.4).toFixed(1)} ${(side * w).toFixed(1)}L${(x + lean).toFixed(1)} ${(side * (w + h)).toFixed(1)}L${(x + 1.4).toFixed(1)} ${(side * w).toFixed(1)}Z`; } return d; };
   // a heavy chain: long rectangular links, alternating face-on and edge-on, thorns on the edge-on ones
   const chain = (x0, y0, ang, n, L, W, t) => {
@@ -4497,14 +4497,18 @@ const CHAIN_SVG = (() => {
     const len = Math.hypot(x1 - x0, y1 - y0), ang = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;
     return `<g transform="translate(${((x0 + x1) / 2).toFixed(1)} ${((y0 + y1) / 2).toFixed(1)}) rotate(${ang.toFixed(1)})"><rect x="${(-len / 2).toFixed(1)}" y="-.5" width="${len.toFixed(1)}" height="1"/><path d="${thorns(len, 0.4, n, 2.6)}"/></g>`;
   };
-  const A = chain(-10, 160, -60, 13, 24, 10, 4.4), B = chain(110, 160, -120, 13, 24, 10, 4.4);
-  const wires = strand(-5, 40, 105, 62, 26) + strand(-5, 104, 105, 84, 26) + strand(20, -5, 0, 150, 22);
+  // never a mirrored pair: each variant throws its chains at its own angles and offsets
+  const rr = (a, b) => a + r() * (b - a), flip = vi % 2 ? -1 : 1, cx = x => flip > 0 ? x : 100 - x, ca = a => flip > 0 ? a : -180 - a;
+  const a1 = rr(-72, -48), a2 = rr(-150, -128), t1 = rr(4.6, 5.4), t2 = rr(2.8, 3.6);
+  const A = chain(cx(rr(-14, 18)), rr(150, 175), ca(a1), 14, rr(23, 27), rr(9.5, 11), t1);
+  const B = chain(cx(rr(95, 118)), rr(118, 150), ca(a2), 13, rr(15, 18), rr(6, 7.5), t2);
+  const wires = strand(-5, rr(20, 60), 105, rr(40, 90), 26) + strand(-5, rr(90, 130), 105, rr(70, 120), 24) + (r() < 0.6 ? strand(rr(10, 90), -5, rr(0, 100), 152, 22) : '');
   return `<svg viewBox="0 0 100 147" preserveAspectRatio="none"><defs><filter id="chg" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.1"/></filter></defs>`
     + `<g fill="#1a0507" stroke="#1a0507" opacity=".8">${wires}</g><g fill="#c41e1a" stroke="none" opacity=".35" filter="url(#chg)">${wires}</g>`
     + `<g stroke="#e0281e" fill="#e0281e" opacity=".75" filter="url(#chg)">${A.rim}${B.rim}</g>`
     + `<g stroke="#0c0203" fill="#0c0203">${A.body}${B.body}</g>`
     + `<g stroke="#ff4a30" fill="none" stroke-width=".35" opacity=".55">${A.rim.replace(/stroke-width="[\d.]+"/g, '')}${B.rim.replace(/stroke-width="[\d.]+"/g, '')}</g></svg>`;
-})();
+});
 const LOCK_SVG = `<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#120807" stroke="#2c1612" stroke-width="3"/>`
   + `<g fill="#120807" stroke="#2c1612" stroke-width="1.2">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<path transform="rotate(${a} 20 20)" d="M18 4.5 20 0l2 4.5z"/>`).join('')}</g>`
   + `<circle cx="20" cy="20" r="12.5" fill="none" stroke="#ff3d1a" stroke-width="1" stroke-opacity=".8"/>`
@@ -4631,7 +4635,7 @@ function faceHTML(f, side, cls = '', id = '') {
   const cor = CORNER[f.v] || esc(f.v);
   const uniq = f.v === 'swind' || f.v === 'sacr' || /\buniq\b/.test(cls) ? ' uniq' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];
-  const chains = /\blocked\b/.test(cls) ? `<i class="chainglow"></i><i class="chainov">${CHAIN_SVG}</i><i class="lock">${LOCK_SVG}${chainN ? `<b>${chainN}</b>` : ''}</i>` : '';
+  const chains = /\blocked\b/.test(cls) ? `<i class="chainglow"></i><i class="chainov">${CHAIN_SVGS[(parseInt(id, 10) || 0) % CHAIN_SVGS.length]}</i><i class="lock">${LOCK_SVG}${chainN ? `<b>${chainN}</b>` : ''}</i>` : '';
   return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${W.burn ? `<i class="burn ${W.burn}"></i>` : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
