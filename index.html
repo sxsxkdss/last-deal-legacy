@@ -1196,7 +1196,7 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
         <div class="actions">
         <button class="btn" id="btnPass" data-i18n="pass"></button>
         <button class="btn gamble hidden" id="btnGamble"></button>
-        <button class="btn quiet" id="btnSelect"></button>
+        <button class="btn quiet mob" id="btnSelect"></button>
         <button class="btn quiet desk" id="btnSort">Sort</button>
         <button class="btn quiet desk" data-rules data-i18n="rules"></button>
         <button class="btn quiet desk" id="btnQuit">Quit</button>
@@ -5333,6 +5333,7 @@ function render() {
   dealOffer();
   drawHorse();
   $('btnSort').textContent = t('sort', sortMode);
+  if (innerWidth > 820 && selMode) selMode = false; // tap-to-pick is a phone thing; on a computer the right click picks
   $('btnSelect').textContent = innerWidth <= 820 ? (selMode ? t('selectOnShort') : t('selectShort')) : (selMode ? t('selectOn') : t('selectOff')); $('btnSelect').classList.toggle('on', selMode); $('btnSelect').classList.toggle('hidden', !G.rules.multi);
   $('btnQuit').textContent = t('leave');
   // hand (left alone while a card is being dragged)
