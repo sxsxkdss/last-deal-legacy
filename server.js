@@ -8,7 +8,7 @@ const zlib = require('zlib');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
-const { Game, Bot, serialize, cardCode, PRESETS, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS } = require('./engine.js');
+const { Game, Bot, serialize, cardCode, PRESETS, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, hasDeal, canLight, canDark, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, WAR_SECS } = require('./engine.js');
 
 const PORT = process.env.PORT || 3000;
 const MAX_SEATS = 6;
@@ -142,6 +142,7 @@ function sync(room) {
   if (M && M.phase === 'play' && room.G && room.G.winner !== null) settle(room);
   // mark who is connected, so seats show "away"
   if (room.G) room.seats.forEach((t, i) => { const m = room.members.get(t); room.G.players[i].away = !(m && online(m)); });
+  armTimer(room);
   for (const m of room.members.values()) {
     if (m.bot || !online(m)) continue;
     const seat = room.G ? seatOf(room, m.token) : null;
@@ -151,7 +152,6 @@ function sync(room) {
       send(m.ws, { t: 'state', code: room.code, seat, host: m.token === room.host, st, lobby: lobbyFor(room, m.token), match: matchFor(room, seat) });
     } else send(m.ws, { t: 'lobby', lobby: lobbyFor(room, m.token) });
   }
-  armTimer(room);
   armBots(room);
 }
 // skip the turn of someone who is away or idle, so the table never freezes
@@ -160,6 +160,15 @@ function armTimer(room) {
   const G = room.G; if (!G || G.winner !== null || (room.M && room.M.phase !== 'play')) return;
   const pi = G.offer ? G.offer.pi : G.roulette !== null ? G.roulette : G.turn;
   const m = room.members.get(room.seats[pi]);
+  // War (timer): a short clock on every human turn
+  if (G.horseOn('war', 'timer') && !G.offer && G.roulette === null && !(m && m.bot)) {
+    const wk = G.turnKey + ':' + G.turn;
+    if (G.owes(G.turn) || room.warKey !== wk) { room.warKey = wk; room.warPi = G.turn; room.warAt = Date.now() + (WAR_SECS + 1) * 1000; }
+    const at = room.warAt;
+    room.timer = setTimeout(() => { if (room.G === G && room.warAt === at && room.warKey === wk && G.warTimeout(G.turn)) { room.warAt = 0; sync(room); } }, Math.max(0, at - Date.now()));
+    return;
+  }
+  room.warAt = 0;
   if (m && m.bot) return; // bots act on their own clock
   if (G.offer) {
     const o = G.offer;
@@ -243,8 +252,8 @@ function startGame(room) {
     room.M = { names, limit: room.limit, round: 0, phase: 'play', debt: Array(n).fill(0), chips: Array(n).fill(0), tokens: names.map(() => []),
       col: Array(n).fill(false), colUsed: Array(n).fill(false), setup: Array(n).fill(0), offers: names.map(() => []), done: Array(n).fill(false),
       pass: names.map(() => null), last: null, champ: null, deadline: 0,
-      ds: names.map(() => ({ angel: 0, demon: 0, deal: null, dealLight: false, dealDark: false, fallen: false, markT: null })),
-      carry: names.map(() => []), hist: names.map(() => [0]) };
+      ds: names.map(() => ({ angel: 0, demon: 0, deals: [], fallen: false, markT: null })),
+      carry: names.map(() => []), hist: names.map(() => [0]), horse: null, horseUsed: false };
     newDeal(room);
     return null;
   }
@@ -262,7 +271,8 @@ function matchFor(room, seat) {
   return { round: M.round, limit: M.limit, phase: M.phase, left: Math.max(0, M.deadline - Date.now()), debt: M.debt, chips: M.chips, tokens: M.tokens,
     col: M.col, colUsed: seat !== null ? M.colUsed[seat] : true, setup: M.setup, offers: seat !== null ? M.offers[seat] : [], done: M.done,
     passed: seat !== null && !!M.pass[seat], last: M.last, champ: M.champ, limits: M.ds.map(d => d.limitAdj || M.limit), hist: M.hist,
-    hope: seat !== null && M.ds[seat] ? [M.ds[seat].angel || 0, M.ds[seat].demon || 0, !!M.ds[seat].fallen || !!M.ds[seat].dealLight, !!M.ds[seat].dealDark] : null };
+    war: room.warAt && room.G && room.G.horseOn('war', 'timer') ? [room.warPi, Math.max(0, room.warAt - Date.now() - 1000)] : null,
+    hope: seat !== null && M.ds[seat] ? [M.ds[seat].angel || 0, M.ds[seat].demon || 0, !canLight(M.ds[seat]), !canDark(M.ds[seat])] : null };
 }
 function phaseTimer(room, ms, fn) {
   clearTimeout(room.phaseTimer);
@@ -273,8 +283,9 @@ function houseCard(G) { for (let k = 0; k < 80; k++) { const c = G.newCard(); if
 function newDeal(room) {
   const M = room.M, n = M.names.length;
   M.round++;
-  const deals = M.ds.map((d, i) => Object.assign({}, d, { debt: M.debt[i], limit: d.deal === 'bail' && d.limitAdj ? d.limitAdj : M.limit }));
-  const G = new Game(M.names, M.names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0, deals }));
+  const deals = M.ds.map((d, i) => Object.assign({}, d, { debt: M.debt[i], limit: hasDeal(d, 'bail') && d.limitAdj ? d.limitAdj : M.limit }));
+  if (process.env.HORSE_FORCE && !M.horseUsed) { const [k, v] = process.env.HORSE_FORCE.split(':'); M.horse = { k, v, left: 10, fresh: true, curses: M.names.map((_, i) => (process.env.CURSE || 'dark,fever,mirror,static').split(',')[i % 4]) }; M.horseUsed = true; }
+  const G = new Game(M.names, M.names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0, deals, horse: M.horse, horseUsed: M.horseUsed }));
   for (let i = 0; i < n; i++) {
     const p = G.players[i];
     if (M.col[i]) { p.hand = []; p.out = true; p.elim = true; p.collector = true; continue; }
@@ -308,7 +319,7 @@ function endDraft(room) {
   const give = live.map(i => ({ to: G.nextIdx(i, 1), cards: M.pass[i].filter(c => G.players[i].hand.includes(c)) }));
   live.forEach((i, k) => { G.players[i].hand = G.players[i].hand.filter(c => !give[k].cards.includes(c)); });
   for (const g of give) G.players[g.to].hand.push(...g.cards);
-  for (const i of live) if (G.players[i].deal === 'alms') G.payDebt(i, -10, 'alms');
+  for (const i of live) if (hasDeal(G.players[i], 'alms')) G.payDebt(i, -10, 'alms');
   G.addLog('Everyone passes two cards along. The deal begins.', 'n', 'draftDone', {});
   M.phase = 'play'; clearTimeout(room.phaseTimer); M.deadline = 0;
   sync(room);
@@ -322,9 +333,9 @@ function settle(room) {
     turnD[i] = Math.max(0, (p.debt || 0) - M.debt[i]);
     M.carry[i] = p.hand.filter(c => c.uniq).map(c => G.f(c).v);
     let vals = p.hand.filter(c => !c.uniq).map(c => debtValue(G.f(c)));
-    if (p.deal === 'grace') vals = vals.sort((a, b) => b - a).slice(3);
+    if (hasDeal(p, 'grace')) vals = vals.sort((a, b) => b - a).slice(3);
     paid[i] = i === G.winner ? 0 : vals.reduce((a, b) => a + b, 0);
-    if (p.deal === 'rosary') paid[i] = Math.round(paid[i] * 0.85);
+    if (hasDeal(p, 'rosary')) paid[i] = Math.round(paid[i] * 0.85);
   }
   const total = paid.reduce((a, b) => a + b, 0);
   for (const i of live) {
@@ -332,10 +343,11 @@ function settle(room) {
     let chips = (G.chipsWon && G.chipsWon[i]) || 0;
     if (i === G.winner) chips += 5 + Math.round(total * 0.1);
     M.chips[i] += chips; M.debt[i] = (p.debt || 0) + paid[i];
-    M.ds[i] = { angel: p.angel, demon: p.demon, deal: p.deal, dealLight: p.dealLight, dealDark: p.dealDark, fallen: p.fallen, markT: p.markT, limitAdj: p.deal === 'bail' ? p.limit : 0 };
+    M.ds[i] = { angel: p.angel, demon: p.demon, deals: (p.deals || []).slice(), fallen: p.fallen, markT: p.markT, limitAdj: hasDeal(p, 'bail') ? p.limit : 0 };
     rows.push({ i, cards: p.hand.length, paid: paid[i], turn: turnD[i], chips });
     M.hist[i].push(M.debt[i]);
   }
+  M.horse = G.horse && G.horse.left > 0 ? G.horse : null; M.horseUsed = !!G.horseUsed;
   const out = live.filter(i => M.debt[i] > (M.ds[i].limitAdj || M.limit));
   for (const i of out) M.col[i] = true;
   M.last = { round: M.round, winner: G.winner, rows, out };
@@ -373,11 +385,11 @@ function buy(M, i, a) {
     M.chips[i] -= PRICES.pay; M.debt[i] = Math.max(0, M.debt[i] - PRICES.payAmount); return true;
   }
   if (a.k === 'candle') {
-    const d = M.ds[i]; if (M.chips[i] < PRICES.candle || d.fallen || d.dealLight) return false;
+    const d = M.ds[i]; if (M.chips[i] < PRICES.candle || !canLight(d)) return false;
     M.chips[i] -= PRICES.candle; d.angel = Math.min(100, (d.angel || 0) + 5); return true;
   }
   if (a.k === 'blood') {
-    const d = M.ds[i]; if (M.chips[i] < PRICES.blood || d.dealDark) return false;
+    const d = M.ds[i]; if (M.chips[i] < PRICES.blood || !canDark(d)) return false;
     M.chips[i] -= PRICES.blood; d.demon = (d.demon || 0) + 10; return true;
   }
   if (a.k === 'setup' || a.k === 'interest') {

@@ -52,12 +52,17 @@ function debtValue(f) {
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
 const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
 // per-turn debt: at the start of your turn you pay for every card past the free ones
-const DEBT_TURN = { free: 10, rate: 1 };
+const DEBT_TURN = { free: 12, rate: 0.5, cap: 5 };
 const ANGEL_STEP = 2.5, DEMON_BASE = 20, DEMON_STEP = 3, DEMON_MIN = 10;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
 const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25, candle: 10, blood: 10 };
 const DEBT_LIMITS = [250, 500, 1000];
+// ---- the Horsemen: once per match, when anyone's debt reaches 70% of their limit, one rides in for 10 table turns ----
+const HORSEMEN = { death: ['curse'], war: ['timer', 'fury', 'arms'], famine: ['two', 'tithe'], plague: ['blank', 'rot'] };
+const CURSES = ['dark', 'fever', 'mirror', 'static'];
+const HORSE_TURNS = 10, HORSE_AT = 0.7, WAR_SECS = 5;
+const ATTACK_VALS = { L: ['d1', 'd2', 'd4'], D: ['d5'] };
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
 const PRESETS = (() => {
@@ -88,6 +93,13 @@ const ALPHA = (Array.from({ length: 92 }, (_, i) => String.fromCharCode(35 + i))
 const faceIdx = (s, f) => FACES[s].findIndex(x => x.c === f.c && x.v === f.v);
 let CARD_ID = 1;
 const pick2 = list => list.slice().sort(() => Math.random() - 0.5).slice(0, 2);
+// several deals can be held at once: up to 2 from the angel, up to 3 from the demon
+const DEAL_MAX = { light: 2, dark: 3 };
+function hasDeal(p, id) { return !!(p && p.deals && p.deals.includes(id)); }
+function nLight(p) { return p && p.deals ? p.deals.filter(d => LIGHT_DEALS.includes(d)).length : 0; }
+function nDark(p) { return p && p.deals ? p.deals.filter(d => DARK_DEALS.includes(d)).length : 0; }
+function canLight(p) { return !p.fallen && nLight(p) < DEAL_MAX.light; }
+function canDark(p) { return nDark(p) < DEAL_MAX.dark; }
 const uniqueCard = v => ({ id: CARD_ID++, L: { c: 'w', v }, D: { c: 'w', v }, uniq: true });
 function randFace(s) {
   const w = FACE_W[s]; let r = Math.random() * w.reduce((a, b) => a + b, 0);
@@ -122,10 +134,13 @@ class Game {
     const ds = Array.isArray(rules.deals) ? rules.deals : [];
     this.players.forEach((p, i) => {
       const d = ds[i] || {};
-      Object.assign(p, { angel: d.angel || 0, demon: d.demon || 0, deal: d.deal || null, dealLight: !!d.dealLight, dealDark: !!d.dealDark, fallen: !!d.fallen, markT: d.markT ?? null,
+      Object.assign(p, { angel: d.angel || 0, demon: d.demon || 0, deals: Array.isArray(d.deals) ? d.deals.slice() : (d.deal ? [d.deal] : []), fallen: !!d.fallen, markT: d.markT ?? null,
         debt: d.debt || 0, limit: d.limit || 0, used: {}, peace: null, dayAt: null, skipNext: false, broke: false });
     });
     delete this.rules.deals;
+    this.horse = rules.horse && rules.horse.left > 0 ? JSON.parse(JSON.stringify(rules.horse)) : null;
+    this.horseUsed = !!rules.horseUsed || !!this.horse;
+    delete this.rules.horse; delete this.rules.horseUsed;
     this.chipsWon = this.players.map(() => 0);
     this.padUsed = this.players.map(() => false);
     let top;
@@ -164,6 +179,7 @@ class Game {
   canPlay(card) {
     if (this.roulette !== null || this.debt || this.offer || card.hidden || card.lock || this.owes(this.turn)) return false;
     const f = this.f(card), t = this.f(this.top);
+    if (this.pending > 0 && f.c === 'w' && !card.uniq && this.horseOn('plague', 'blank')) return false;
     if (this.pending > 0) return f.v === 'mirror' || f.v === 'mul2' || f.v === 'mul3' || (f.v === 'echo' && (DRAW_VAL[this.f(this.top).v] || 0) >= this.stackMin) || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
     if (this.lock > 0) return f.c === 'w' || f.c === this.color;
     return f.c === 'w' || f.c === this.color || f.v === t.v;
@@ -208,11 +224,79 @@ class Game {
     if (this.roulette !== null && this.players[this.roulette].out) { this.roulette = null; }
     if (this.debt && this.players[this.debt.pi].out) this.debt = null;
   }
+  // ================= THE HORSEMEN =================
+  horseOn(k, v) { const h = this.horse; return !!(h && h.left > 0 && h.k === k && (!v || h.v === v)); }
+  horseCheck() {
+    if (this.horseUsed || this.horse) return;
+    const who = this.players.findIndex(p => !p.out && p.limit > 0 && (p.debt || 0) >= p.limit * HORSE_AT);
+    if (who < 0) return;
+    const ks = Object.keys(HORSEMEN), k = ks[Math.floor(Math.random() * ks.length)];
+    const vs = HORSEMEN[k], v = vs[Math.floor(Math.random() * vs.length)];
+    this.horse = { k, v, left: HORSE_TURNS, fresh: true, curses: k === 'death' ? this.players.map(() => CURSES[Math.floor(Math.random() * CURSES.length)]) : [] };
+    this.horseUsed = true;
+    this.addLog(`A horseman rides in: ${k}. ${HORSE_TURNS} turns.`, 'bad', 'horse', { k, v, n: this.players[who].name });
+    this.ev('horse', { k, v, pi: who });
+  }
+  // the horseman's work at the start of pi's turn
+  horseTurn(pi) {
+    const h = this.horse; if (!h || h.left <= 0) return;
+    if (h.fresh) h.fresh = false;
+    else if (--h.left <= 0) {
+      this.addLog(`The horseman rides off. The table is back to normal.`, 'win', 'horseEnd', { k: h.k });
+      this.ev('horseEnd', { k: h.k });
+      return;
+    }
+    const p = this.players[pi], rnd = a => a[Math.floor(Math.random() * a.length)];
+    if (h.k === 'famine' && h.v === 'tithe' && this.prevTurnPi != null && this.prevTurnPi !== pi) {
+      const gi = this.prevTurnPi, g = this.players[gi];
+      if (g && !g.out && g.hand.length > 1) {
+        const live = this.players.map((q, i) => i).filter(i => !this.players[i].out);
+        const min = Math.min(...live.map(i => this.players[i].hand.length));
+        const to = live.filter(i => i !== gi && this.players[i].hand.length === min);
+        const free = g.hand.filter(c => !c.lock && !c.uniq);
+        if (to.length && free.length && !(g.hand.length === min && to.length === 0)) {
+          const c = rnd(free), ti = rnd(to);
+          g.hand.splice(g.hand.indexOf(c), 1); this.players[ti].hand.push(c);
+          this.addLog(`Famine: ${g.name} hands a card to ${this.players[ti].name}.`, 'swap', 'tithe', { n: g.name, t: this.players[ti].name });
+          this.ev('tithe', { pi: gi, t: ti });
+        }
+      }
+    }
+    if (h.k === 'war' && h.v === 'arms') {
+      const calm = p.hand.filter(c => { const f = this.f(c); return !c.lock && !c.uniq && f.c !== 'w' && !DRAW_VAL[f.v] && !ATTACK_FACES.has(f.v); });
+      if (calm.length) {
+        const c = rnd(calm), f = this.f(c);
+        c[this.side] = { c: f.c, v: rnd(ATTACK_VALS[this.side]) };
+        this.addLog(`War arms ${p.name}: a card turns into ${faceName(c[this.side])}.`, 'bad', 'arms', { n: p.name, f: c[this.side] });
+        this.ev('arms', { pi });
+      }
+    }
+    if (h.k === 'plague' && h.v === 'rot') {
+      const pool = p.hand.filter(c => !c.uniq && !c.lock);
+      let n = 0;
+      for (let r = 0; r < 2 && pool.length; r++) { const c = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; p.hand[p.hand.indexOf(c)] = this.newCard(); n++; }
+      if (n) { this.addLog(`Plague: ${n} of ${p.name}'s cards rot and are replaced.`, 'bad', 'rot', { n: p.name, k: n }); this.ev('rot', { pi, k: n }); }
+    }
+  }
+  // War (timer): the clock ran out on pi's turn. The turn ends and pi picks up 2 more.
+  warTimeout(pi) {
+    if (!this.horseOn('war', 'timer') || this.turn !== pi || this.winner !== null || this.offer || this.roulette !== null) return false;
+    const p = this.players[pi]; if (!p || p.out) return false;
+    if (this.debt && this.debt.pi === pi) { if (this.debt.n) p.oweN = (p.oweN || 0) + this.debt.n; this.debt = null; }
+    else if (this.pending > 0) { p.oweN = (p.oweN || 0) + this.pending; this.afterHit(this.stackFrom, pi, this.pending); this.pending = 0; this.stackMin = 0; this.stackFrom = -1; }
+    p.oweN = (p.oweN || 0) + 2;
+    this.drewBy = -1; this.drawRun = 0; this.seq++;
+    this.addLog(`War: ${p.name} ran out of time and picks up 2.`, 'bad', 'warTime', { n: p.name });
+    this.ev('warTime', { pi });
+    this.turn = this.nextIdx(pi, 1);
+    this.applyShield(); this.checkFlipBack(); this.lastCallCheck();
+    return true;
+  }
   // ================= DEALS =================
-  dmul(pi) { const p = this.players[pi]; return p && p.deal === 'double' ? 2 : 1; }
+  dmul(pi) { const p = this.players[pi]; return p && hasDeal(p, 'double') ? 2 : 1; }
   payDebt(pi, amt, why) {
     const p = this.players[pi]; if (!p) return 0;
-    if (amt > 0 && p.deal === 'rosary') amt = Math.round(amt * 0.85);
+    if (amt > 0 && hasDeal(p, 'rosary')) amt = Math.round(amt * 0.85);
     p.debt = Math.max(0, Math.round((p.debt || 0) + amt));
     if (amt) this.ev('debt', { pi, k: amt, why });
     return amt;
@@ -221,7 +305,7 @@ class Game {
   attacked(pi) {
     const p = this.players[pi]; if (!p) return;
     p.peace = false; p.angel = 0;
-    if (p.deal === 'double') { const add = Math.ceil((p.debt || 0) * 0.05); if (add) this.payDebt(pi, add, 'double'); }
+    if (hasDeal(p, 'double')) { const add = Math.ceil((p.debt || 0) * 0.05); if (add) this.payDebt(pi, add, 'double'); }
   }
   // cards forced on someone by an attack: deals bend the number, then the demon and friends take note
   hit(from, to, n) {
@@ -229,10 +313,11 @@ class Game {
     if (!t || t.out || n <= 0) return 0;
     if (from === to || !a) { t.oweN = (t.oweN || 0) + n; return n; }
     n *= this.dmul(from);
-    if (t.deal === 'chains') n = Math.ceil(n * 1.5);
-    if (a.deal === 'mark' && a.markT === to) n += 2;
-    if (t.deal === 'mark' && t.markT === from) n += 2;
-    if (t.deal === 'guardian' && !t.used.guardian) {
+    if (this.horseOn('war', 'fury')) n += 2;
+    if (hasDeal(t, 'chains')) n = Math.ceil(n * 1.5);
+    if (hasDeal(a, 'mark') && a.markT === to) n += 2;
+    if (hasDeal(t, 'mark') && t.markT === from) n += 2;
+    if (hasDeal(t, 'guardian') && !t.used.guardian) {
       t.used.guardian = true; a.oweN = (a.oweN || 0) + n;
       this.addLog(`${t.name}'s guardian turns the hit back on ${a.name}: +${n}.`, 'win', 'guardian', { n: t.name, t: a.name, k: n });
       this.ev('guardian', { pi: to, t: from, k: n });
@@ -244,18 +329,19 @@ class Game {
   }
   afterHit(from, to, n) {
     const a = this.players[from]; if (!a || from === to || from < 0) return;
-    if (n >= DEMON_MIN && !a.dealDark && !a.out) { const ch = DEMON_BASE + (n - DEMON_MIN) * DEMON_STEP; if (ch > (a.demon || 0)) { a.demon = ch; this.ev('demonCharge', { pi: from, k: ch }); } }
-    if (a.deal === 'blood' && this.chipsWon) this.chipsWon[from] += n;
-    if (n >= 10) this.players.forEach((q, i) => { if (i !== to && !q.out && q.deal === 'devour') this.payDebt(i, -10, 'devour'); });
+    if (n >= DEMON_MIN && canDark(a) && !a.out) { const ch = DEMON_BASE + (n - DEMON_MIN) * DEMON_STEP; if (ch > (a.demon || 0)) { a.demon = ch; this.ev('demonCharge', { pi: from, k: ch }); } }
+    if (hasDeal(a, 'blood') && this.chipsWon) this.chipsWon[from] += n;
+    if (n >= 10) this.players.forEach((q, i) => { if (i !== to && !q.out && hasDeal(q, 'devour')) this.payDebt(i, -10, 'devour'); });
   }
   // a stack lands on pi; returns true if a guardian bounced it back to whoever sent it
   takeStack(pi, sf) {
     const p = this.players[pi], a = sf >= 0 ? this.players[sf] : null;
+    if (this.horseOn('war', 'fury')) this.pending += 2;
     if (a && sf !== pi) {
-      if (p.deal === 'chains') this.pending = Math.ceil(this.pending * 1.5);
-      if (a.deal === 'mark' && a.markT === pi) this.pending += 2;
-      if (p.deal === 'mark' && p.markT === sf) this.pending += 2;
-      if (p.deal === 'guardian' && !p.used.guardian && !a.out) {
+      if (hasDeal(p, 'chains')) this.pending = Math.ceil(this.pending * 1.5);
+      if (hasDeal(a, 'mark') && a.markT === pi) this.pending += 2;
+      if (hasDeal(p, 'mark') && p.markT === sf) this.pending += 2;
+      if (hasDeal(p, 'guardian') && !p.used.guardian && !a.out) {
         p.used.guardian = true; const n = this.pending;
         a.oweN = (a.oweN || 0) + n;
         this.addLog(`${p.name}'s guardian turns the +${n} stack back on ${a.name}.`, 'win', 'guardian', { n: p.name, t: a.name, k: n });
@@ -265,7 +351,7 @@ class Game {
         return true;
       }
     }
-    if (p.deal === 'halo' && !p.used.halo) {
+    if (hasDeal(p, 'halo') && !p.used.halo) {
       p.used.halo = true; this.pending = Math.ceil(this.pending / 2);
       this.addLog(`${p.name}'s halo takes half the hit: +${this.pending}.`, 'win', 'halo', { n: p.name, k: this.pending });
       this.ev('halo', { pi, k: this.pending });
@@ -275,10 +361,10 @@ class Game {
   // per-turn debt for pi's hand right now
   turnDebt(pi) {
     const p = this.players[pi];
-    const counted = p.hand.filter(c => { if (c.uniq) return false; if (p.deal !== 'clean') return true; const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length;
-    let d = Math.max(0, counted - DEBT_TURN.free) * DEBT_TURN.rate;
-    if (this.players.some((q, i) => i !== pi && !q.out && q.deal === 'usury')) d *= 1.5;
-    if (p.deal === 'blood') d *= 1.25;
+    const counted = p.hand.filter(c => { if (c.uniq) return false; if (!hasDeal(p, 'clean')) return true; const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length;
+    let d = Math.min(DEBT_TURN.cap, Math.max(0, counted - DEBT_TURN.free) * DEBT_TURN.rate);
+    if (this.players.some((q, i) => i !== pi && !q.out && hasDeal(q, 'usury'))) d *= 1.5;
+    if (hasDeal(p, 'blood')) d *= 1.25;
     return Math.round(d);
   }
   // Called after every action (server, simulator): runs the start of the current player's turn once.
@@ -290,10 +376,13 @@ class Game {
     const key = (this.turnNo || 0) + ':' + pi;
     if (this.turnKey === key) return false;
     this.turnKey = key;
+    this.horseCheck();
+    this.horseTurn(pi);
+    this.prevTurnPi = pi;
     // the angel counts the turn you just finished: peaceful, and by day
     if (p.peace === true) {
-      if (p.dayAt === 'L' && !p.fallen && !p.dealLight) p.angel = Math.min(100, (p.angel || 0) + ANGEL_STEP);
-      if (p.deal === 'candle' && p.debt > 0) this.payDebt(pi, -5, 'candle');
+      if (p.dayAt === 'L' && canLight(p)) p.angel = Math.min(100, (p.angel || 0) + ANGEL_STEP);
+      if (hasDeal(p, 'candle') && p.debt > 0) this.payDebt(pi, -5, 'candle');
     }
     // chains: cards from a Sacrifice count down; anything else from last turn falls off
     for (const c of p.hand) { if (c.chain > 0) { c.lock = true; c.chain--; } else c.lock = false; }
@@ -304,7 +393,7 @@ class Game {
       if (p.debt > p.limit && !p.overWarned) { p.overWarned = true; this.ev('overLimit', { pi, d: p.debt, l: p.limit }); }
     }
     // the demon's chains on an opponent's hand, for this turn
-    if (this.players.some((q, i) => i !== pi && !q.out && q.deal === 'chains') && p.hand.length > 1) {
+    if (this.players.some((q, i) => i !== pi && !q.out && hasDeal(q, 'chains')) && p.hand.length > 1) {
       const free = p.hand.filter(c => !c.lock).sort(() => Math.random() - 0.5);
       const n = Math.max(1, Math.floor(p.hand.length * 0.2));
       for (const c of free.slice(0, n)) c.lock = true;
@@ -321,12 +410,12 @@ class Game {
     // the visitors: the demon only by night, the angel only by day
     const roll = x => Math.random() * 100 < x;
     if (!(p.limit > 0)) { /* single deal: no house, no visitors */ }
-    else if (this.side === 'D' && !p.dealDark && (p.demon || 0) > 0) {
+    else if (this.side === 'D' && canDark(p) && (p.demon || 0) > 0) {
       const ch = Math.min(100, p.demon); p.demon = 0;
-      if (roll(ch)) this.offer = { pi, kind: 'dark', opts: pick2(DARK_DEALS) };
+      if (roll(ch)) this.offer = { pi, kind: 'dark', opts: pick2(DARK_DEALS.filter(d => !hasDeal(p, d))) };
       else this.ev('demonMiss', { pi, k: ch });
-    } else if (this.side === 'L' && !p.fallen && !p.dealLight && (p.angel || 0) > 0 && roll(p.angel)) {
-      this.offer = { pi, kind: 'light', opts: pick2(LIGHT_DEALS) };
+    } else if (this.side === 'L' && canLight(p) && (p.angel || 0) > 0 && roll(p.angel)) {
+      this.offer = { pi, kind: 'light', opts: pick2(LIGHT_DEALS.filter(d => !hasDeal(p, d))) };
     }
     if (this.offer) { this.addLog(`${this.offer.kind === 'dark' ? 'The demon' : 'The angel'} comes to ${p.name}.`, 'n', this.offer.kind === 'dark' ? 'demonCome' : 'angelCome', { n: p.name }); this.ev('offer', { pi, kind: this.offer.kind }); }
     p.peace = true; p.dayAt = this.side;
@@ -345,17 +434,18 @@ class Game {
       this.ev('dealNo', { pi });
       return true;
     }
-    if (o.kind === 'light') { p.dealLight = true; p.angel = 0; }
+    if (o.kind === 'light') { p.angel = 0; }
     else {
-      if (p.deal && LIGHT_DEALS.includes(p.deal)) {
+      if (nLight(p)) {
         // the fall: the light deal burns and a Sacrifice is left in your hand
         this.addLog(`${p.name}'s light deal burns. A Sacrifice is left behind.`, 'bad', 'fall', { n: p.name });
         this.ev('fall', { pi });
         p.hand.push(uniqueCard('sacr'));
+        p.deals = p.deals.filter(d => !LIGHT_DEALS.includes(d));
       }
-      p.dealDark = true; p.fallen = true; p.angel = 0; p.demon = 0;
+      p.fallen = true; p.angel = 0; p.demon = 0;
     }
-    p.deal = id;
+    p.deals.push(id);
     switch (id) {
       case 'wind': p.hand.push(uniqueCard('swind')); break;
       case 'penance': this.payDebt(pi, -Math.round(p.debt * 0.25), 'penance'); break;
@@ -375,20 +465,20 @@ class Game {
   ability(pi, k, cards) {
     const p = this.players[pi];
     if (!p || p.out || this.turn !== pi || this.winner !== null || this.offer || this.roulette !== null || this.debt || this.pending > 0 || this.owes(pi)) return false;
-    if (k === 'confess' && p.deal === 'confess' && !p.used.confess && Array.isArray(cards)) {
+    if (k === 'confess' && hasDeal(p, 'confess') && !p.used.confess && Array.isArray(cards)) {
       const pick = []; for (const id of cards.slice(0, 3)) { const c = p.hand.find(x => x.id === id && !x.lock && !pick.includes(x)); if (c) pick.push(c); }
       if (!pick.length || p.hand.length - pick.length < 1) return false;
       p.hand = p.hand.filter(c => !pick.includes(c)); p.used.confess = true;
       this.addLog(`${p.name} confesses: ${pick.length} cards are let go.`, 'win', 'confess', { n: p.name, k: pick.length });
       this.ev('confess', { pi, k: pick.length }); this.seq++; return true;
     }
-    if (k === 'puppet' && p.deal === 'puppet' && !p.used.puppet) {
+    if (k === 'puppet' && hasDeal(p, 'puppet') && !p.used.puppet) {
       const t = this.nextIdx(pi, 1); if (t === pi) return false;
       this.players[t].skipNext = true; p.used.puppet = true; this.payDebt(pi, 15, 'puppet');
       this.addLog(`${p.name} pulls the strings: ${this.players[t].name} will miss a turn.`, 'bad', 'puppet', { n: p.name, t: this.players[t].name });
       this.ev('puppet', { pi, t }); this.seq++; return true;
     }
-    if (k === 'burn' && p.deal === 'sharp') {
+    if (k === 'burn' && hasDeal(p, 'sharp')) {
       this.next = this.newCard(); this.payDebt(pi, 5, 'sharp');
       this.addLog(`${p.name} burns the top card.`, 'stk', 'burn', { n: p.name });
       this.ev('burn', { pi }); this.seq++; return true;
@@ -419,6 +509,8 @@ class Game {
     const jump = pi !== this.turn;
     if (jump ? !this.canJumpIn(pi, card) : !this.canPlay(card)) return false;
     const face = this.f(card);
+    const blank = face.c === 'w' && !card.uniq && this.horseOn('plague', 'blank'); // Plague: wilds go down as blank paper
+    if (this.horseOn('famine', 'two') && Array.isArray(opts.extra)) opts = Object.assign({}, opts, { extra: opts.extra.slice(0, 1) });
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
     if (this.rules.multi && Array.isArray(opts.extra)) {
@@ -445,16 +537,18 @@ class Game {
     this.top = last;
     for (const c of chain) { this.pile.push(cardCode(c)); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
-    this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
+    if (!blank) this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
     this.seq++; this.drawRun = 0;
     let extra = '';
     if (face.v === 'discall') {
       const cols = new Set(chain.map(c => this.f(c).c));
-      const same = p.hand.filter(c => cols.has(this.f(c).c)); p.handDumped = same.length;
-      p.hand = p.hand.filter(c => !cols.has(this.f(c).c));
+      let same = p.hand.filter(c => cols.has(this.f(c).c));
+      if (this.horseOn('famine', 'two')) same = same.filter(c => !c.lock).slice(0, Math.max(0, 2 - k));
+      p.handDumped = same.length;
+      p.hand = p.hand.filter(c => !same.includes(c));
       if (same.length) extra = ` and discards ${same.length} more card${same.length > 1 ? 's' : ''} of ${k > 1 ? 'those colors' : 'that color'}`;
     }
-    const showColor = face.c === 'w' && face.v !== 'roul';
+    const showColor = face.c === 'w' && face.v !== 'roul' && !blank;
     const what = k > 1 ? chain.map(c => faceName(this.f(c))).join(', ') : faceName(face);
     this.addLog(`${jump ? p.name + ' jumps in with' : p.name + ' plays'} ${what}${showColor ? ' → ' + COLOR_NAME[this.color] : ''}${extra}.`, jump ? 'jump' : '', 'play',
       { n: p.name, j: jump ? 1 : 0, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
@@ -462,8 +556,8 @@ class Game {
     if (k > 1) this.ev('multi', { pi, k });
     let combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
     if (combo && combo.key === 'pair' && this.hasPerk(pi, 'sharp')) combo = Object.assign({}, combo, { key: 'three', d: COMBOS.three.d, mult: Math.max(1, COMBOS.three.d) }); // Sharp: a pair plays as three of a kind
-    if (combo && this.chipsWon && p.deal !== 'devour') this.chipsWon[pi] += Math.max(1, Math.round(combo.chips * combo.mult / 10));
-    if (DRAW_VAL[face.v] || ATTACK_FACES.has(face.v) || (face.v === 'echo' && DRAW_VAL[this.f(this.top).v]) || (combo && (combo.m || (this.side === 'D' && combo.d)))) this.attacked(pi);
+    if (combo && this.chipsWon && !hasDeal(p, 'devour')) this.chipsWon[pi] += Math.max(1, Math.round(combo.chips * combo.mult / 10));
+    if (!blank && (DRAW_VAL[face.v] || ATTACK_FACES.has(face.v)) || (face.v === 'echo' && DRAW_VAL[this.f(this.top).v]) || (combo && (combo.m || (this.side === 'D' && combo.d)))) this.attacked(pi);
     if (this.chipsWon && !/^\d$/.test(face.v) && this.hasPerk(pi, 'counter')) this.chipsWon[pi] += 1; // Bookkeeper
     if (showColor) this.ev('color', { c: this.color });
     this.turn = pi;
@@ -489,7 +583,7 @@ class Game {
       this.addLog(`${p.name} plays a ${combo.key}: ${combo.chips} × ${combo.mult}.${tossed ? ` ${tossed} more cards gone.` : ''}${hit.length ? ` Everyone else picks up ${combo.m}.` : ''}`, 'stack', 'combo', { n: p.name, h: combo.key, c: combo.chips, x: combo.mult, d: tossed, m: hit.length ? combo.m : 0, s: slap >= 0 ? this.players[slap].name : null, sd: slap >= 0 ? combo.d : 0 });
       this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0 });
     }
-    switch (face.v) {
+    switch (blank ? '' : face.v) {
       case 'skip':
         steps = 1 + k;
         for (let s = 1; s <= k; s++) this.ev('skip', { pi: this.nextIdx(pi, s) });
@@ -566,7 +660,7 @@ class Game {
         const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
         let given = 0;
         for (let r = 0; r < 2 * k && p.hand.length > 1; r++) { const free = p.hand.filter(c => !c.lock); if (!free.length) break; const c = free[Math.floor(Math.random() * free.length)]; p.hand.splice(p.hand.indexOf(c), 1); this.players[tgt].hand.push(c); given++; }
-        if (given && p.deal === 'alms') this.payDebt(pi, -10, 'alms');
+        if (given && hasDeal(p, 'alms')) this.payDebt(pi, -10, 'alms');
         if (given) this.players[tgt].vulnerable = false;
         this.addLog(`${p.name} gives ${this.players[tgt].name} ${given} cards.`, 'swap', 'gift', { n: p.name, t: this.players[tgt].name, g: given });
         this.ev('gift', { a: pi, b: tgt, g: given });
@@ -702,7 +796,7 @@ class Game {
         // a contract: half your hand burns (chained cards stay), and the demon takes notice: +15% to its charge
         const gone = Math.floor(p.hand.filter(c => !c.lock).length / 2);
         for (let r = 0; r < gone; r++) { const free = p.hand.filter(c => !c.lock); p.hand.splice(p.hand.indexOf(free[Math.floor(Math.random() * free.length)]), 1); }
-        if (!p.dealDark) p.demon = (p.demon || 0) + 15;
+        if (canDark(p)) p.demon = (p.demon || 0) + 15;
         this.addLog(`${p.name} signs a contract: ${gone} cards burn. The demon takes notice.`, 'bad', 'deal2', { n: p.name, g: gone });
         this.ev('deal', { pi, g: gone });
         break;
@@ -724,7 +818,7 @@ class Game {
         t.vulnerable = false;
         this.addLog(`${p.name} offers a sacrifice: ${t.name} takes 10 chained cards.`, 'bad', 'sacr', { n: p.name, t: t.name });
         this.ev('sacr', { pi, t: tgt }); this.ev('draw', { pi: tgt, k: 10 });
-        if (this.chipsWon && p.deal === 'blood') this.chipsWon[pi] += 10;
+        if (this.chipsWon && hasDeal(p, 'blood')) this.chipsWon[pi] += 10;
         break;
       }
       case 'monstro': {
@@ -795,7 +889,7 @@ class Game {
       this.addLog(`REVENGE: ${p.name}'s card counts double. The stack is +${this.pending}.`, 'stack', 'revenge', { n: p.name, k: this.pending });
       this.ev('revenge', { pi, k: this.pending });
     }
-    if (face.v === 'roul') this.turn = this.roulette;
+    if (face.v === 'roul' && !blank) this.turn = this.roulette;
     else if (steps >= 0) this.turn = steps === 0 ? pi : this.nextIdx(pi, steps);
     this.applyShield();
     this.checkFlipBack();
@@ -818,7 +912,7 @@ class Game {
       if (Math.random() < 0.5 && steps >= 0 && face.v !== 'roul') { this.dir *= -1; this.turn = steps === 0 ? pi : this.nextIdx(pi, steps); this.ev('reverse', { dir: this.dir }); this.addLog('The maze twists: direction flips.', 'flip', 'mazeTwist', {}); }
     }
     if (this.rules.chaos && this.winner === null && this.side === 'L' && --this.chaosIn <= 0) this.rollChaos(); // the slot machine only runs by day
-    if (this.pending > 0 && DRAW_VAL[face.v]) {
+    if (this.pending > 0 && DRAW_VAL[face.v] && !blank) {
       this.addLog(`Stack is now +${this.pending}. ${this.players[this.turn].name} must stack or take it.`, 'stack', 'stack', { k: this.pending, n: this.players[this.turn].name });
       this.ev('stack', { k: this.pending, pi: this.turn });
     }
@@ -1046,7 +1140,7 @@ class Game {
     if (!this.canGamble(pi)) return null;
     const p = this.players[pi], k = this.pending;
     this.seq++;
-    const drum = p.deal === 'drum';
+    const drum = hasDeal(p, 'drum');
     if (Math.random() < (drum || this.hasPerk(pi, 'luck') ? 2 / 3 : 0.5)) {
       this.addLog(`${p.name} spins the revolver… click. The +${k} stack is gone.`, 'win', 'gambleWin', { n: p.name, k });
       this.ev('gamble', { pi, ok: 1, k });
@@ -1202,10 +1296,11 @@ function serialize(g, viewer = -1, logN = 8) {
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
       (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.vulnerable ? 4 : 0) | (p.unoCalled ? 8 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
       p.hand.map((c, k) => (c.lock || c.chain ? [k, c.chain || 0, c.lock ? 1 : 0] : null)).filter(Boolean),
-      [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, p.deal || '', (p.dealLight ? 1 : 0) | (p.dealDark ? 2 : 0) | (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
+      [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
       p.hand.map(c => (c.uniq ? 1 : 0)).join('')]),
     of: g.offer ? [g.offer.pi, g.offer.kind, g.offer.opts] : null,
-    nf: viewer >= 0 && g.players[viewer] && g.players[viewer].deal === 'sharp' ? cardCode(g.next) : null,
+    hz: g.horse && g.horse.left > 0 ? [g.horse.k, g.horse.v, g.horse.left, (g.horse.curses || []).join(',')] : null,
+    nf: viewer >= 0 && g.players[viewer] && hasDeal(g.players[viewer], 'sharp') ? cardCode(g.next) : null,
     t: cardCode(g.top), cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
@@ -1223,7 +1318,7 @@ function deserialize(st) {
     else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
       out: !!(a[4] & 1), elim: !!(a[4] & 2), vulnerable: !!(a[4] & 4), unoCalled: !!(a[4] & 8), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
-      ...(() => { const d = Array.isArray(a[8]) ? a[8] : []; return { angel: d[0] || 0, demon: d[1] || 0, deal: d[2] || null, dealLight: !!(d[3] & 1), dealDark: !!(d[3] & 2), fallen: !!(d[3] & 4), broke: !!(d[3] & 8), skipNext: !!(d[3] & 16), debt: d[4] || 0, limit: d[5] || 0, markT: d[6] >= 0 ? d[6] : null, used: Object.fromEntries(String(d[7] || '').split(',').filter(Boolean).map(k => [k, true])) }; })() };
+      ...(() => { const d = Array.isArray(a[8]) ? a[8] : []; return { angel: d[0] || 0, demon: d[1] || 0, deals: String(d[2] || '').split('+').filter(Boolean), fallen: !!(d[3] & 4), broke: !!(d[3] & 8), skipNext: !!(d[3] & 16), debt: d[4] || 0, limit: d[5] || 0, markT: d[6] >= 0 ? d[6] : null, used: Object.fromEntries(String(d[7] || '').split(',').filter(Boolean).map(k => [k, true])) }; })() };
   });
   // chains and unique cards travel by position in the hand
   st.p.forEach((a, i) => {
@@ -1231,10 +1326,11 @@ function deserialize(st) {
     if (Array.isArray(a[7])) for (const [k, ch, lk] of a[7]) if (h[k]) { h[k].chain = ch; h[k].lock = !!lk; }
     const u = String(a[9] || ''); for (let k = 0; k < u.length; k++) if (u[k] === '1' && h[k]) h[k].uniq = true;
   });
-  if (typeof st.nf === 'string' && st.nf.length === 2) g.next = codeCard(st.nf);
+  g.horse = Array.isArray(st.hz) ? { k: st.hz[0], v: st.hz[1], left: st.hz[2], curses: String(st.hz[3] || '').split(',').filter(Boolean) } : null;
   g.offer = Array.isArray(st.of) ? { pi: st.of[0], kind: st.of[1], opts: st.of[2] || [] } : null;
   g.top = codeCard(st.t); if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
+  if (typeof st.nf === 'string' && st.nf.length === 2) g.next = codeCard(st.nf);
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
   g.roulette = st.o < 0 ? null : st.o; g.drewBy = st.w; g.winner = st.x < 0 ? null : st.x; g.seq = st.s;
   g.log = (st.l || []).map(([msg, cls, k, a]) => ({ msg: String(msg), cls: String(cls || ''), k: typeof k === 'string' ? k : null, a: a && typeof a === 'object' ? a : null }));
@@ -1248,4 +1344,4 @@ Object.defineProperty(Game.prototype, 'turn', {
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN };
+if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
