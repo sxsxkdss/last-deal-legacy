@@ -277,7 +277,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 #bottom .me .bar > div { background: var(--chalk-2); }
 #meName { font: 600 14px var(--f-type); color: var(--chalk); }
 #meTags { color: var(--chalk-2); }
-.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 #hand { display: flex; justify-content: center; padding: 36px 16px 8px; overflow: visible; }
 #hand .brk { flex-basis: 100%; height: 0; }
 #hand .card { flex: none; width: var(--hcw, var(--cw)); height: calc(var(--hcw, var(--cw)) * 1.47); cursor: grab; touch-action: none; -webkit-touch-callout: none;
@@ -971,6 +971,26 @@ body.lite .card.tier-w::after, body.lite .card.tier-h::after { animation: none; 
 @keyframes psychoTear { 0% { transform: translateX(-12%) scaleY(1); opacity: .9; } 25% { transform: translateX(9%) scaleY(.4); } 50% { transform: translateX(-4%) scaleY(1.6); opacity: .6; } 75% { transform: translateX(14%); opacity: 0; } 100% { opacity: 0; } }
 @keyframes psychoText { 0% { opacity: 0; } 15% { opacity: 1; translate: -52% -50%; } 35% { opacity: .3; translate: -47% -50%; } 50% { opacity: 1; translate: -50% -50%; } 80% { opacity: .8; } 100% { opacity: 0; } }
 body.lite #psycho { display: none !important; }
+.abbar, .invbar { justify-content: center; }
+
+/* ---------- picking several cards in the hand ---------- */
+#hand .card.sel { transform: translateY(calc(var(--dy, 0px) - 26px)) rotate(var(--rot, 0deg)); border-color: #f2e6cf; z-index: 50 !important; }
+#hand .card.sel:hover { transform: translateY(calc(var(--dy, 0px) - 30px)) rotate(0deg) scale(1.04) var(--tilt, rotate(0deg)); }
+.selbar { position: absolute; left: 50%; translate: -50% 0; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 4px 8px; white-space: nowrap;
+  background: #14100d var(--noise); background-blend-mode: overlay; border: 1px solid #3a2f24; border-radius: var(--ui-r); color: #d8cdb2; font: 600 12px/16px var(--f-type); }
+.selbar.hidden { display: none; }
+.selbar .sbN { font: 700 18px/1 var(--f-stamp); color: #f2e6cf; padding: 0 4px; border-right: 1px solid #3a2f24; }
+.selbar b { font: 700 14px/16px var(--f-stamp); text-transform: uppercase; letter-spacing: .06em; color: #f2e6cf; }
+.selbar b.bad, .selbar em.bad { color: #ff8a70; }
+.selbar em { font-style: normal; color: #c9b98f; }
+.selbar .chips, .selbar .mult { font: 700 14px/16px var(--f-stamp); padding: 0 6px; }
+.selbar .btn { height: 28px; padding: 0 12px; font-size: 12px; }
+.selbar .hint { color: #c9b98f; font: 600 12px/16px var(--f-type); text-decoration: underline dotted; }
+.selbar .hint:hover { color: #f2e6cf; }
+#btnSelect.on { color: #f2e6cf; text-decoration: underline; }
+@media (max-width: 820px) { .selbar { font-size: 11px; gap: 4px; } .selbar b { font-size: 12px; } }
+#bottom .me .actions, #bottom .me .abbar, #bottom .me .invbar { flex: 1 1 100%; justify-content: center; }
+.selbar .chips, .selbar .mult { width: auto; height: auto; min-width: 0; border-radius: var(--ui-r); box-shadow: none; display: inline-block; font-size: 13px; line-height: 18px; padding: 0 6px; }
 
 </style>
 </head>
@@ -1050,6 +1070,7 @@ body.lite #psycho { display: none !important; }
         <button class="btn" id="btnPass" data-i18n="pass"></button>
         <button class="btn gamble hidden" id="btnGamble"></button>
         <button class="btn uno" id="btnUno" data-i18n="uno"></button>
+        <button class="btn quiet" id="btnSelect"></button>
         <button class="btn quiet desk" id="btnSort">Sort</button>
         <button class="btn quiet desk" data-rules data-i18n="rules"></button>
         <button class="btn quiet desk" id="btnQuit">Quit</button>
@@ -1057,6 +1078,7 @@ body.lite #psycho { display: none !important; }
       </div>
     </div>
     <div id="ticker"></div>
+    <div id="selBar" class="selbar hidden"></div>
     <div id="hand"></div>
   </div>
   <div id="side"><div class="sidehead"><span class="label" data-i18n="log"></span><span class="label" id="netTag"></span><button class="btn quiet" id="btnFx"></button><button class="btn quiet" id="btnSound">Sound on</button></div><div id="log"></div></div>
@@ -1086,11 +1108,14 @@ const VALUE_NAME = {
 // ---------- Balatro combos: number cards played together in one drop ----------
 // d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
 const COMBOS = {
-  pair: { d: 0, m: 0 }, twopair: { d: 1, m: 0 }, three: { d: 1, m: 0 }, straight: { d: 1, m: 0 }, flush: { d: 2, m: 0 },
-  fullhouse: { d: 2, m: 0 }, four: { d: 0, m: 1 }, straightflush: { d: 1, m: 2 }, five: { d: 1, m: 2 }
+  // d: cards thrown away by day / slapped on the next player by night; m: everyone else picks up; r: debt the house forgives by day
+  pair: { d: 0, m: 0, r: 2 }, twopair: { d: 1, m: 0, r: 4 }, three: { d: 1, m: 0, r: 4 }, straight: { d: 1, m: 0, r: 3 }, flush: { d: 2, m: 0, r: 8 },
+  fullhouse: { d: 2, m: 1, r: 10 }, four: { d: 1, m: 1, r: 10 }, rainbow: { d: 2, m: 1, r: 12 }, straightflush: { d: 2, m: 2, r: 15 }, five: { d: 2, m: 2, r: 15 }
 };
-// faces: [{c, v}] in play order. Returns { key, m, all, chips } for a valid combo, null otherwise.
-function comboOf(faces) {
+const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'flush', 'fullhouse', 'four', 'rainbow', 'straightflush', 'five'];
+// a plain Wild (no draw on it) can stand in for any number in a hand, one per hand
+const isJoker = f => f && f.c === 'w' && f.v === 'wild';
+function comboPlain(faces) {
   if (!faces || faces.length < 2 || faces.some(f => !/^\d$/.test(f.v) || f.c === 'w')) return null;
   const n = faces.length, nums = faces.map(f => +f.v), chips = nums.reduce((a, b) => a + b, 0);
   const cnt = Object.values(nums.reduce((o, x) => (o[x] = (o[x] || 0) + 1, o), {})).sort((a, b) => b - a);
@@ -1098,26 +1123,44 @@ function comboOf(faces) {
   const sorted = nums.slice().sort((a, b) => a - b);
   const run = cnt[0] === 1 && sorted.every((x, i) => !i || x === sorted[i - 1] + 1);
   let key = null;
-  if (cnt[0] === n) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
+  if (cnt[0] === n && n === 4 && new Set(faces.map(f => f.c)).size === 4) key = 'rainbow';
+  else if (cnt[0] === n) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
   else if (oneColor && run && n >= 3) key = n >= 5 ? 'straightflush' : 'straight';
   else if (n === 4 && cnt[0] === 2 && cnt[1] === 2) key = 'twopair';
   else if (n === 5 && cnt[0] === 3 && cnt[1] === 2) key = 'fullhouse';
   else if (oneColor && n >= 5) key = 'flush';
   if (!key) return null;
   const C = COMBOS[key];
-  const d = key === 'straight' ? n - 2 : C.d;
-  return { key, d, m: C.m, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
+  const d = key === 'straight' ? n - 2 : C.d, r = key === 'straight' ? C.r * (n - 2) : C.r;
+  return { key, d, m: C.m, r, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
+}
+// faces: [{c, v}] in play order. Returns { key, d, m, r, chips, mult } for a valid hand, null otherwise.
+function comboOf(faces) {
+  if (!faces || faces.length < 2) return null;
+  const jokers = faces.filter(isJoker);
+  if (!jokers.length) return comboPlain(faces);
+  if (jokers.length > 1) return null;
+  const rest = faces.filter(f => !isJoker(f));
+  if (!rest.length || rest.some(f => !/^\d$/.test(f.v) || f.c === 'w')) return null;
+  const side = SIDE_COLORS.L.includes(rest[0].c) ? 'L' : 'D';
+  let best = null;
+  for (const c of SIDE_COLORS[side]) for (let v = 0; v <= 9; v++) {
+    if (side === 'D' && v === 0) continue;
+    const cb = comboPlain(rest.concat([{ c, v: String(v) }]));
+    if (cb && (!best || COMBO_RANK.indexOf(cb.key) > COMBO_RANK.indexOf(best.key) || (cb.key === best.key && cb.chips * cb.mult > best.chips * best.mult))) best = cb;
+  }
+  return best ? Object.assign(best, { joker: true }) : null;
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const LAST_CALL = 250;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
-  if (/^\d$/.test(f.v) && f.c !== 'w') return Math.round(+f.v * 1.25);
-  if (f.c === 'w') return ['wild'].includes(f.v) ? 40 : 50;
-  if (['d4', 'd5', 'skipall'].includes(f.v)) return 30;
-  if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 20;
-  return 50; // house cards (and the unique ones)
+  if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
+  if (f.c === 'w') return ['wild'].includes(f.v) ? 25 : 35;
+  if (['d4', 'd5', 'skipall'].includes(f.v)) return 20;
+  if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 12;
+  return 35; // house cards (and the unique ones)
 }
 // tokens sold in the shop; price in chips
 // ---- deals: the angel (light, by day) and the demon (dark, by night). One active at a time, one of each per match. ----
@@ -1699,10 +1742,14 @@ class Game {
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
     if (this.rules.multi && Array.isArray(opts.extra)) {
-      if (this.rules.combos !== false && /^\d$/.test(face.v) && face.c !== 'w') {
+      if (this.rules.combos !== false && ((/^\d$/.test(face.v) && face.c !== 'w') || isJoker(face))) {
         const want = [card];
         for (const id of opts.extra) { const c = p.hand.find(x => x.id === id); if (c && !c.lock && !want.includes(c)) want.push(c); }
-        if (want.length > 1 && comboOf(want.map(c => this.f(c)))) chain.push(...want.slice(1));
+        if (want.length > 1 && comboOf(want.map(c => this.f(c)))) {
+          // a joker never ends the hand: the pile shows a real number and colour
+          if (want.length > 2 && isJoker(this.f(want[want.length - 1]))) { const j = want.pop(); want.splice(want.length - 1, 0, j); }
+          chain.push(...want.slice(1));
+        }
       }
       if (chain.length === 1) for (const id of opts.extra) {
         const c = p.hand.find(x => x.id === id);
@@ -1723,7 +1770,7 @@ class Game {
     this.top = last; this.topBy = pi;
     for (const c of chain) { this.pile.push(cardCode(c) + '!' + c.id); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
-    if (!blank) this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
+    if (!blank) this.color = k > 1 && this.f(last).c !== 'w' ? this.f(last).c : (this.f(last).c === 'w' || face.c === 'w') ? this.validColor(opts.color || (face.c !== 'w' ? face.c : null), pi) : this.f(last).c;
     this.seq++; this.drawRun = 0;
     let extra = '';
     if (face.v === 'discall') {
@@ -1764,10 +1811,12 @@ class Game {
       let tossed = 0, slap = -1;
       if (this.side === 'D' && combo.d) { slap = this.nextIdx(pi, 1); this.hit(pi, slap, combo.d); } // by night a hand hurts the next player
       else for (let r = 0; r < combo.d && p.hand.length > 1; r++) { const free = p.hand.filter(c => !c.lock); if (!free.length) break; p.hand.splice(p.hand.indexOf(free[Math.floor(Math.random() * free.length)]), 1); tossed++; }
+      let relief = 0;
+      if (this.side === 'L' && combo.r && p.limit > 0 && p.debt > 0) { relief = Math.min(p.debt, combo.r); this.payDebt(pi, -relief, 'combo'); }
       const hit = combo.m ? this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out) : [];
       for (const i of hit) this.hit(pi, i, combo.m);
       this.addLog(`${p.name} plays a ${combo.key}: ${combo.chips} × ${combo.mult}.${tossed ? ` ${tossed} more cards gone.` : ''}${hit.length ? ` Everyone else picks up ${combo.m}.` : ''}`, 'stack', 'combo', { n: p.name, h: combo.key, c: combo.chips, x: combo.mult, d: tossed, m: hit.length ? combo.m : 0, s: slap >= 0 ? this.players[slap].name : null, sd: slap >= 0 ? combo.d : 0 });
-      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0 });
+      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0, r: relief, j: combo.joker ? 1 : 0 });
     }
     switch (blank ? '' : face.v) {
       case 'skip':
@@ -2560,7 +2609,7 @@ Object.defineProperty(Game.prototype, 'turn', {
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
+if (typeof module !== 'undefined') module.exports = { comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
 
 </script>
 <script>
@@ -2850,7 +2899,7 @@ function fmtLog(l, myName) {
     potato: () => `Динамит взрывается у ${N(a.n)}: +3.`,
     potatoLit: () => 'Под столом зажигают новый динамит.',
     snitch: () => `Стукач: ${N(a.n)} скидывает игроку ${N(a.t)} ${a.g} ${cardsAcc(a.g)}.`,
-    combo: () => `${N(a.n)}: ${STR.ru['combo_' + a.h]} ${a.c} × ${a.x}.${a.d ? ` Ещё ${a.d} ${cardsAcc(a.d)} из руки.` : ''}${a.m ? ` Все остальные берут ${a.m}.` : ''}`,
+    combo: () => `${N(a.n)}: ${STR.ru['combo_' + a.h] || a.h} ${a.c} × ${a.x}.${a.d ? ` Ещё ${a.d} ${cardsAcc(a.d)} из руки.` : ''}${a.m ? ` Все остальные берут ${a.m}.` : ''}`,
     gift: () => `${N(a.n)} оставляет чаевые игроку ${N(a.t)}: ${a.g} ${cardsAcc(a.g)}.`,
     echo: () => `Бис! ${N(a.n)} повторяет: ${cardName(a.f)}.`,
     echoNone: () => `Бис ${N(a.n)} не удался: повторять нечего.`,
@@ -2928,7 +2977,7 @@ function fmtLog(l, myName) {
     potato: () => `The dynamite goes off on ${N(a.n)}: +3.`,
     potatoLit: () => 'Someone lights new dynamite under the table.',
     snitch: () => `Snitch: ${N(a.n)} also dumps ${a.g} card on ${N(a.t)}.`,
-    combo: () => `${N(a.n)}: ${STR.en['combo_' + a.h]} ${a.c} × ${a.x}.${a.d ? ` ${a.d} more cards gone.` : ''}${a.m ? ` Everyone else picks up ${a.m}.` : ''}`,
+    combo: () => `${N(a.n)}: ${STR.en['combo_' + a.h] || a.h} ${a.c} × ${a.x}.${a.d ? ` ${a.d} more cards gone.` : ''}${a.m ? ` Everyone else picks up ${a.m}.` : ''}`,
     gift: () => `${N(a.n)} tips ${N(a.t)} ${a.g} cards.`,
     echo: () => `Encore! ${N(a.n)} repeats ${cardName(a.f)}.`,
     echoNone: () => `${N(a.n)}'s encore falls flat: nothing to repeat.`,
@@ -3326,9 +3375,11 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
     <li><b>Russian roulette</b>: facing a big enough stack, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
 </ul>
     <h3>Poker hands</h3><ul>
-    <li>Number cards can go down together as poker hands. They land left to right in the chooser; the first must fit the pile, the last sets the color.</li>
-    <li><b>Pair</b>: just the drop. <b>Two Pair</b>, <b>Three of a Kind</b>: 1 extra card. <b>Straight</b> (3+ in a row, one color): 1 extra per card beyond 2. <b>Flush</b> (5 of one color), <b>Full House</b>: 2 extra. By day extra cards leave your hand; at night the next player picks them up.</li>
-    <li><b>Four of a Kind</b>: everyone else picks up 1. <b>Five of a Kind</b>, <b>Straight Flush</b>: 1 extra and everyone else picks up 2.</li></ul>
+    <li><b>How to pick</b>: right-click cards (or Ctrl/Shift+click, or press <b>Pick several</b> and tap them). A bar above your hand shows the hand and its payout; press Play, click the pile or drag a picked card onto it. A plain click still plays one card. The bar also hints the best hand you hold.</li>
+    <li>Numbers make poker hands; one plain <b>Wild</b> can stand in for any number. The first card that fits the pile leads; the last sets the colour.</li>
+    <li><b>Pair</b>: debt −2. <b>Two Pair</b>, <b>Three of a Kind</b>: 1 extra card, debt −4. <b>Straight</b> (3+ in a row, one colour): 1 extra per card beyond 2, debt −3 each. <b>Flush</b> (5+ of one colour): 2 extra, debt −8. <b>Full House</b>: 2 extra, everyone else +1, debt −10.</li>
+    <li><b>Four of a Kind</b>: 1 extra, everyone else +1, debt −10. <b>Rainbow</b> (one number in all four colours): 2 extra, everyone else +1, debt −12. <b>Five of a Kind</b>, <b>Straight Flush</b>: 2 extra, everyone else +2, debt −15.</li>
+    <li>By day the extra cards leave your hand and the house forgives the debt; at night the next player picks up the extras and nothing is forgiven.</li></ul>
     <h3>Table rules</h3><ul>
     <li><b>Same-symbol drops</b>: play every card with the same symbol together.</li>
     <li><b>Last card</b>: call it at two cards or right after dropping to one. Caught: you draw 2.</li>
@@ -3363,9 +3414,11 @@ RULES_HTML.ru = `<p class="rulestag">Подпольный карточный п�
     <li><b>Русская рулетка</b>: перед достаточно большой стопкой нажмите «Рулетка»: 50% — стопка исчезает и ход уходит дальше, 50% — берёте её вдвойне.</li>
 </ul>
     <h3>Покерные комбинации</h3><ul>
-    <li>Числовые карты можно класть вместе покерными комбинациями. Они ложатся слева направо; первая должна подходить к сбросу, последняя задаёт цвет.</li>
-    <li><b>Пара</b>: просто сброс. <b>Две пары</b>, <b>Сет</b>: 1 лишняя карта. <b>Стрит</b> (3+ подряд одного цвета): по 1 лишней за каждую сверх двух. <b>Флеш</b> (5 одного цвета), <b>Фулл-хаус</b>: 2 лишние. Днём лишние карты уходят из вашей руки, ночью их берёт следующий.</li>
-    <li><b>Каре</b>: все остальные берут 1. <b>Покер</b>, <b>Стрит-флеш</b>: 1 лишняя и все остальные берут 2.</li></ul>
+    <li><b>Как выбрать</b>: правый клик по картам (или Ctrl/Shift+клик, или кнопка <b>Выбрать несколько</b> и тапы). Над рукой появляется панель с комбинацией и выплатой; жмите «Сыграть», кликните по сбросу или перетащите выбранную карту на него. Обычный клик по-прежнему играет одну карту. Панель подсказывает лучшую комбинацию в руке.</li>
+    <li>Комбинации собираются из цифр; один простой <b>Джокер</b> может заменить любую цифру. Ведёт первая карта, которая подходит к сбросу; последняя задаёт цвет.</li>
+    <li><b>Пара</b>: долг −2. <b>Две пары</b>, <b>Сет</b>: 1 лишняя карта, долг −4. <b>Стрит</b> (3+ подряд одного цвета): по 1 лишней за каждую сверх двух, долг −3 за каждую. <b>Флеш</b> (5+ одного цвета): 2 лишние, долг −8. <b>Фулл-хаус</b>: 2 лишние, всем остальным +1, долг −10.</li>
+    <li><b>Каре</b>: 1 лишняя, всем остальным +1, долг −10. <b>Радуга</b> (одна цифра всех четырёх цветов): 2 лишние, всем +1, долг −12. <b>Покер</b> (5 одинаковых), <b>Стрит-флеш</b>: 2 лишние, всем +2, долг −15.</li>
+    <li>Днём лишние карты уходят из руки и дом прощает долг; ночью лишние берёт следующий игрок, а долг не прощается.</li></ul>
     <h3>Правила стола</h3><ul>
     <li><b>Сброс одинаковых</b>: все карты с одним символом вместе.</li>
     <li><b>«Одна»</b>: крикните на двух картах или сразу после того, как осталась одна. Поймали — берёте 2.</li>
@@ -3429,13 +3482,13 @@ Object.assign(STR.ru, {
 });
 RULES_HTML.en = RULES_HTML.en.replace('<h3>', `<h3>Debt match</h3><ul>
     <li>A match is a run of deals. Before each deal you <b>draft</b>: pass two cards to your neighbour, get two from the other side.</li>
-    <li>When someone empties their hand, everyone else <b>pays the house</b> for what they still hold: numbers at face value ×1.25, action cards 20, big draws 30, wilds 40, wild draws and house cards 50.</li>
+    <li>When someone empties their hand, everyone else <b>pays the house</b> for what they still hold: numbers at face value, action cards 12, big draws 20, wilds 25, wild draws and house cards 35.</li>
     <li>Go over the <b>debt limit</b> (250 / 500 / 1000, the host picks) and you become the house's <b>collector</b>: you can't win any more, but once per deal you can slip someone two cards or pull the slot lever.</li>
     <li>The last player under the limit beats the house.</li>
     <li><b>Chips</b>: the deal winner takes 10% of what the others paid, poker hands pay chips too. Spend them in the <b>house shop</b> between deals: tokens that last the whole match (3 slots), paying down debt, or dirty tricks on a rival.</li></ul><h3>`);
 RULES_HTML.ru = RULES_HTML.ru.replace('<h3>', `<h3>Матч на долг</h3><ul>
     <li>Матч — это несколько раздач. Перед каждой идёт <b>драфт</b>: две карты отдаёте соседу, две получаете с другой стороны.</li>
-    <li>Когда кто-то сбросил руку, остальные <b>платят дому</b> за оставшиеся карты: цифры по номиналу ×1,25, карты действия 20, большие «Возьми» 30, джокеры 40, джокеры «Возьми» и карты дома 50.</li>
+    <li>Когда кто-то сбросил руку, остальные <b>платят дому</b> за оставшиеся карты: цифры по номиналу, карты действия 12, большие «Возьми» 20, джокеры 25, джокеры «Возьми» и карты дома 35.</li>
     <li>Перевалили за <b>лимит долга</b> (250 / 500 / 1000, выбирает хозяин) — становитесь <b>коллектором</b> дома: выиграть уже нельзя, но раз в раздачу можно подкинуть кому-то две карты или дёрнуть рычаг слотов.</li>
     <li>Последний, кто остался под лимитом, обыгрывает дом.</li>
     <li><b>Фишки</b>: победитель раздачи забирает 10% от всего, что заплатили остальные, покерные комбинации тоже платят фишками. Тратятся в <b>лавке дома</b> между раздачами: жетоны на весь матч (3 слота), погашение долга или пакости сопернику.</li></ul><h3>`);
@@ -3509,7 +3562,7 @@ Object.assign(STR.ru, {
   tSacr: n => `${n}: ЖЕРТВА`, tSwind: n => `${n}: второе дыхание`, tBroke: n => `${n} разорён`, tChained: k => `${k} в цепях`, tPuppet: n => `${n} на нитях`
 });
 RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>Debt</h3><ul>
-    <li>At the start of each of your turns you pay <b>½ debt for every card past 13</b> in your hand, <b>4 at most</b> per turn. When a deal ends, everyone who still holds cards pays for them too: numbers at face value ×1.25, action cards 20, big draws 30, wilds 40, wild draws and house cards 50.</li>
+    <li>At the start of each of your turns you pay <b>½ debt for every card past 13</b> in your hand, <b>4 at most</b> per turn. When a deal ends, everyone who still holds cards pays for them too: numbers at face value, action cards 12, big draws 20, wilds 25, wild draws and house cards 35.</li>
     <li>Go over your <b>debt limit</b> and the house takes your seat: you become a <b>collector</b>.</li></ul>
   <h3>The angel and the demon</h3><ul>
     <li><b>The angel</b> (by day): every peaceful turn you take by day (no attack card played) adds <b>1.25%</b> to the chance the angel comes at the start of your turn. Any attack resets it to 0. The angel offers 2 light deals; you must take one.</li>
@@ -3518,7 +3571,7 @@ RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>Debt</h3><ul>
     <li>Deals stack: you can hold up to <b>2 light</b> and up to <b>3 dark</b> at once, for the whole match, each one different. <b>One deal per hand dealt</b>: after you sign, the visitors wait for the next deal. Signing a dark deal while you hold light ones burns them all, closes the way to the angel for good and leaves a <b>Sacrifice</b> in your hand: a wild that makes a chosen player take 10 cards, chained for 2 of their turns. Nothing blocks it.</li>
     <li>Chained cards can’t be played or thrown away, but they still cost debt.</li></ul><h3>Debt match</h3>`);
 RULES_HTML.ru = RULES_HTML.ru.replace('<h3>Матч на долг</h3>', `<h3>Долг</h3><ul>
-    <li>В начале каждого своего хода вы платите <b>½ долга за каждую карту сверх 13</b>, но <b>не больше 4</b> за ход. Когда раздача заканчивается, все, у кого остались карты, платят и за них: цифры по номиналу ×1,25, карты действия 20, большие «Возьми» 30, джокеры 40, джокеры «Возьми» и карты дома 50.</li>
+    <li>В начале каждого своего хода вы платите <b>½ долга за каждую карту сверх 13</b>, но <b>не больше 4</b> за ход. Когда раздача заканчивается, все, у кого остались карты, платят и за них: цифры по номиналу, карты действия 12, большие «Возьми» 20, джокеры 25, джокеры «Возьми» и карты дома 35.</li>
     <li>Перевалили за <b>лимит долга</b> — дом забирает ваше место, и вы становитесь <b>коллектором</b>.</li></ul>
   <h3>Ангел и демон</h3><ul>
     <li><b>Ангел</b> (днём): каждый ваш мирный дневной ход (без атакующих карт) добавляет <b>1,25%</b> к шансу, что в начале хода придёт ангел. Любая атака обнуляет шанс. Ангел предлагает 2 светлые сделки, и одну нужно взять.</li>
@@ -3576,7 +3629,7 @@ Object.assign(STR.ru, { horseGone: k => `${k} уезжает` });
 Object.assign(STR.en, { tipLightDeal: 'Light deal · from the angel', tipDarkDeal: 'Dark deal · from the demon' }); Object.assign(STR.ru, { tipLightDeal: 'Светлая сделка · от ангела', tipDarkDeal: 'Тёмная сделка · от демона' });
 Object.assign(STR.en, { oddsWait: 'One deal per hand: the visitors come back next deal' }); Object.assign(STR.ru, { oddsWait: 'Одна сделка за раздачу: гости вернутся в следующей' });
 Object.assign(STR.en, {
-  darkShop: 'The Dark shop · once per match', invHave: 'In your inventory', itemAuto: 'auto', itemUsed: (n, it) => `${n}: ${it}`,
+  darkShop: 'The Dark shop', invHave: 'In your inventory', itemAuto: 'auto', itemUsed: (n, it) => `${n}: ${it}`,
   eclipseBuff: 'Eclipse: extra chance of a deal until the next one', twofaceSub: 'Both visitors lay out their papers. Pick any one: no fall, no limits, and it is not this hand\'s deal.',
   item_rent: 'Rent', item_veil: 'Veil of night', item_dawn: 'Ray of dawn', item_shell: 'Shell', item_oven: 'Oven', item_eclipse: 'Eclipse', item_twoface: 'Two-faced', item_ward: 'Ward',
   itemD_rent: '+3¢ for every change of day and night, up to 10 times. Until the end of the hand.',
@@ -3591,7 +3644,7 @@ Object.assign(STR.en, {
   itemKind_oven: 'Use · instant', itemKind_eclipse: 'Use · instant', itemKind_twoface: 'Automatic', itemKind_ward: 'Automatic · until the end of the hand'
 });
 Object.assign(STR.ru, {
-  darkShop: 'Тёмная лавка · раз за матч', invHave: 'В инвентаре', itemAuto: 'авто', itemUsed: (n, it) => `${n}: ${it}`,
+  darkShop: 'Тёмная лавка', invHave: 'В инвентаре', itemAuto: 'авто', itemUsed: (n, it) => `${n}: ${it}`,
   eclipseBuff: 'Затмение: больше шанс сделки до следующей сделки', twofaceSub: 'Оба гостя кладут свои бумаги. Выберите любую: без падения, без лимитов, и она не считается сделкой этой раздачи.',
   item_rent: 'Рента', item_veil: 'Покров ночи', item_dawn: 'Луч рассвета', item_shell: 'Панцирь', item_oven: 'Печь', item_eclipse: 'Затмение', item_twoface: 'Двуличие', item_ward: 'Оберег',
   itemD_rent: '+3¢ за каждую смену дня и ночи, до 10 раз. До конца раздачи.',
@@ -3608,16 +3661,24 @@ Object.assign(STR.ru, {
 for (const L of ['en', 'ru']) {
   const ru = L === 'ru';
   const html = ru ? `<h3>Тёмная лавка и предметы</h3><ul>
-    <li>Один раз за матч, сразу после 1-й раздачи, у каждого своя Тёмная лавка: 3 случайных предмета. Можно купить все, если хватает фишек. Цена 25¢, Рента 10¢, Двуличие 40¢.</li>
+    <li>После каждой раздачи у каждого своя Тёмная лавка: 3 новых случайных предмета. Можно купить все, если хватает фишек. Цена 25¢, Рента 10¢, Двуличие 40¢.</li>
     <li>Предметы лежат в отдельном инвентаре без предела и переходят из раздачи в раздачу. Включаются в любой момент, даже в чужой ход. Эффект держится до конца раздачи или срабатывает сразу, потом предмет исчезает. Двуличие и Оберег срабатывают сами.</li>
     <li>Инвентарь и включённые предметы видны всем.</li></ul><h3>Матч на долг</h3>`
     : `<h3>The Dark shop and items</h3><ul>
-    <li>Once per match, right after the 1st deal, everyone gets their own Dark shop: 3 random items. Buy all of them if your chips allow. 25¢ each, Rent 10¢, Two-faced 40¢.</li>
+    <li>After every deal everyone gets their own Dark shop: 3 fresh random items. Buy all of them if your chips allow. 25¢ each, Rent 10¢, Two-faced 40¢.</li>
     <li>Items go to a separate inventory with no limit and carry from deal to deal. Use them at any moment, even on someone else's turn. The effect lasts until the end of the hand or fires at once, then the item is gone. Two-faced and Ward fire by themselves.</li>
     <li>Everyone can see your inventory and what's running.</li></ul><h3>Debt match</h3>`;
   RULES_HTML[L] = RULES_HTML[L].replace(ru ? '<h3>Матч на долг</h3>' : '<h3>Debt match</h3>', html);
 }
 Object.assign(STR.en, { tAgain: 'Your turn again' }); Object.assign(STR.ru, { tAgain: 'Ваш ход ещё раз' });
+Object.assign(STR.en, {
+  combo_rainbow: 'Rainbow', withJoker: 'with a joker', togetherN: n => `${n} together`, oneCard: 'One card', multiOff: 'Multi-drop is off at this table',
+  hintCombo: (h, n) => `In your hand: ${h} (${n}) · pick it`, selectOn: 'Picking: on', selectOff: 'Pick several', comboRelief: n => `debt −${n}`
+});
+Object.assign(STR.ru, {
+  combo_rainbow: 'Радуга', withJoker: 'с джокером', togetherN: n => `${n} вместе`, oneCard: 'Одна карта', multiOff: 'Мультисброс за этим столом выключен',
+  hintCombo: (h, n) => `В руке: ${h} (${n}) · выбрать`, selectOn: 'Выбор: вкл', selectOff: 'Выбрать несколько', comboRelief: n => `долг −${n}`
+});
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -3939,9 +4000,8 @@ const JUICE = (() => {
   function glitch() {
     if (!full()) return;
     const g = document.getElementById('game'); if (!g) return;
-    if (!psy) { psy = document.createElement('div'); psy.id = 'psycho'; psy.innerHTML = '<i></i><i></i><i></i><b></b>'; document.body.appendChild(psy); }
+    if (!psy) { psy = document.createElement('div'); psy.id = 'psycho'; psy.innerHTML = '<i></i><i></i><i></i>'; document.body.appendChild(psy); }
     const L = PSY_LINES[(typeof LANG !== 'undefined' && LANG) || 'en'] || PSY_LINES.en;
-    psy.querySelector('b').textContent = L[Math.floor(Math.random() * L.length)];
     psy.querySelectorAll('i').forEach(el => { el.style.top = (Math.random() * 90).toFixed(1) + '%'; el.style.height = (2 + Math.random() * 9).toFixed(1) + '%'; });
     g.classList.remove('glitch'); psy.classList.remove('on'); void g.offsetWidth; g.classList.add('glitch'); psy.classList.add('on');
     clearTimeout(psyT); psyT = setTimeout(() => { g.classList.remove('glitch'); psy.classList.remove('on'); }, 560);
@@ -4536,32 +4596,13 @@ function myTurnNow() { return !!(G && G.turn === ME && G.roulette === null && G.
 // could this card go down right now (ignores whether a choice dialog is open)
 function fits(card) { if (!G || G.winner !== null || (MATCH && MATCH.phase !== 'play') || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
 function usable(card) { return !busy && fits(card); }
-async function useCard(card, el, fromRect) {
+async function useCard(card, el, fromRect, extrasIn) {
   if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
   const me = G.players[ME];
   let face = G.f(card), back = G.back(card);
   busy = true;
   let color = null, flipColor = null, target = null, extra = [];
-  if (G.rules.multi) {
-    const isNum = f => /^\d$/.test(f.v) && f.c !== 'w';
-    const same = me.hand.filter(c => c !== card && G.f(c).v === face.v && (G.f(c).c === 'w') === (face.c === 'w'));
-    let cands = same, pre = same;
-    if (G.rules.combos !== false && isNum(face)) {
-      // Balatro combos: any of your number cards can join, if some combo is possible at all
-      const nums = me.hand.filter(c => c !== card && isNum(G.f(c)));
-      const col = nums.filter(c => G.f(c).c === face.c), byN = {};
-      for (const c of col) byN[+G.f(c).v] = byN[+G.f(c).v] || c;
-      let lo = +face.v, hi = +face.v; while (byN[lo - 1]) lo--; while (byN[hi + 1]) hi++;
-      const run = []; for (let x = lo; x <= hi; x++) if (x !== +face.v) run.push(byN[x]);
-      if (same.length || run.length >= 2 || col.length >= 4) { cands = nums; pre = same.length ? same : run.length >= 2 ? run : []; }
-    }
-    if (cands.length) {
-      const pick = await pickExtras(card, cands, pre);
-      if (pick === null) { busy = false; tick(); return; }
-      // play order = left-to-right order of the picked cards in the chooser
-      card = pick.lead; extra = pick.extra; face = G.f(card); back = G.back(card);
-    }
-  }
+  if (Array.isArray(extrasIn) && extrasIn.length) extra = extrasIn;
   if (face.c === 'w' && face.v !== 'roul' && !(G.horseOn('plague', 'blank', ME) && !card.uniq)) color = await pickColor(t('pickColor'), cardName(face), G.side);
   if ((face.v === 'flip' || face.v === 'dflip') && back.c === 'w') flipColor = await pickColor(t('flipWild'), t('flipWildSub', cardName(back)), G.side === 'L' ? 'D' : 'L');
   const keep = me.hand.length - 1 - extra.length;
@@ -4570,9 +4611,85 @@ async function useCard(card, el, fromRect) {
   busy = false;
   if (!G || !G.players[ME].hand.some(c => cardCode(c) === cardCode(card))) { tick(); return; }
   lastPlayRect = fromRect || rectOf(el);
-  act('play', { card: cardCode(card), color, flipColor, target, extra: extra.map(cardCode) });
+  act('play', { card: cardCode(card), id: card.wid, color, flipColor, target, extra: extra.map(cardCode), extraIds: extra.map(c => c.wid) });
 }
 function overDiscard(x, y) { const r = rectOf($('discard')); return r && x > r.left - 40 && x < r.right + 40 && y > r.top - 40 && y < r.bottom + 40; }
+// ---------- several cards at once: pick them in the hand (right click, Ctrl/Shift+click, or the Select button), then play ----------
+let selIds = [], selMode = false;
+const isNumF = f => /^\d$/.test(f.v) && f.c !== 'w';
+function selCards() { const h = G && G.players[ME] ? G.players[ME].hand : []; return selIds.map(id => h.find(c => c.id === id)).filter(c => c && !c.lock); }
+function toggleSel(card) {
+  if (!G || !card || card.lock) return;
+  if (!G.rules.multi) { toast(t('multiOff')); return; }
+  const i = selIds.indexOf(card.id);
+  if (i >= 0) selIds.splice(i, 1); else selIds.push(card.id);
+  SFX.play('click'); render();
+}
+function clearSel() { if (selIds.length) { selIds = []; render(); } }
+// what the picked cards make: a poker hand (numbers + one plain Wild), or cards of the same value; and which one leads
+function selInfo(list) {
+  const cards = list || selCards(), n = cards.length;
+  if (!n) return null;
+  const faces = cards.map(c => G.f(c));
+  if (n === 1) return { cards, lead: cards[0], extra: [], ok: fits(cards[0]), kind: 'one' };
+  let kind = null, cb = null;
+  if (G.rules.combos !== false && faces.every(f => isNumF(f) || isJoker(f))) { cb = comboOf(faces); if (cb) kind = 'combo'; }
+  if (!kind && faces.every(f => f.v === faces[0].v && (f.c === 'w') === (faces[0].c === 'w'))) kind = 'same';
+  if (!kind) return { cards, ok: false, kind: 'none' };
+  const lead = cards.find(c => fits(c) && (kind !== 'combo' || isNumF(G.f(c)) || isJoker(G.f(c))));
+  if (!lead) return { cards, ok: false, kind, cb, why: 'lead' };
+  return { cards, lead, extra: cards.filter(c => c !== lead), ok: true, kind, cb };
+}
+// the best poker hand you could lay down right now (for the hint)
+function bestCombo(hand) {
+  if (!G || G.rules.combos === false || !G.rules.multi) return null;
+  const nums = hand.filter(c => !c.lock && isNumF(G.f(c))), jok = hand.find(c => !c.lock && isJoker(G.f(c)));
+  const cands = [], byV = {}, byC = {};
+  for (const c of nums) { const f = G.f(c); (byV[f.v] = byV[f.v] || []).push(c); (byC[f.c] = byC[f.c] || []).push(c); }
+  for (const g of Object.values(byV)) { const x = g.slice(0, 5); cands.push(x); if (jok && x.length < 5) cands.push(x.concat([jok])); const cols = []; const seen = new Set(); for (const c of g) if (!seen.has(G.f(c).c)) { seen.add(G.f(c).c); cols.push(c); } if (cols.length >= 3) cands.push(cols.length >= 4 ? cols.slice(0, 4) : (jok ? cols.concat([jok]) : cols)); }
+  const pairs = Object.values(byV).filter(g => g.length >= 2), trips = Object.values(byV).filter(g => g.length >= 3);
+  if (pairs.length >= 2) cands.push(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)));
+  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) cands.push(t3.slice(0, 3).concat(p2.slice(0, 2)));
+  for (const g of Object.values(byC)) {
+    if (g.length + (jok ? 1 : 0) >= 5) cands.push(jok && g.length < 5 ? g.concat([jok]) : g.slice());
+    const by = {}; for (const c of g) by[+G.f(c).v] = by[+G.f(c).v] || c;
+    for (let lo = 0; lo <= 9; lo++) { const run = []; let used = false; for (let v = lo; v <= 9; v++) { if (by[v]) run.push(by[v]); else if (jok && !used && run.length) { run.push(jok); used = true; } else break; } if (run.length >= 3) cands.push(run); }
+  }
+  let best = null, bestScore = -1;
+  for (const cs of cands) { const cb = comboOf(cs.map(c => G.f(c))); if (!cb) continue; const sc = (cs.some(c => fits(c) && (isNumF(G.f(c)) || isJoker(G.f(c)))) ? 10000 : 0) + COMBO_RANK.indexOf(cb.key) * 100 + cs.length * 10 + cb.mult; if (sc > bestScore) { bestScore = sc; best = { cards: cs, cb }; } }
+  return best;
+}
+function drawSelBar() {
+  const bar = $('selBar'); if (!G || !G.players[ME]) { bar.classList.add('hidden'); return; }
+  const me = G.players[ME];
+  selIds = selIds.filter(id => me.hand.some(c => c.id === id && !c.lock));
+  const info = selInfo(), myTurn = myTurnNow(), canGo = info && info.ok && myTurn && !busy;
+  let html = '';
+  if (info) {
+    const cb = info.cb, night = G.side === 'D';
+    const pay = cb ? [cb.d ? (night ? t('comboNightSlap', nm(G.nextIdx(ME, 1)), cb.d) : t('comboToss', cb.d)) : '', cb.m ? t('comboHit', cb.m) : '', !night && cb.r && me.limit > 0 ? t('comboRelief', cb.r) : ''].filter(Boolean).join(' · ') : '';
+    const what = info.kind === 'combo' ? `<b>${t('combo_' + cb.key)}</b><span class="chips">${cb.chips}</span><i>×</i><span class="mult">${cb.mult}</span>${cb.joker ? `<em>${t('withJoker')}</em>` : ''}${pay ? `<em>${esc(pay)}</em>` : ''}`
+      : info.kind === 'same' ? `<b>${t('togetherN', info.cards.length)}</b>` : info.kind === 'one' ? `<b>${t('oneCard')}</b>` : `<b class="bad">${t('noCombo')}</b>`;
+    html = `<span class="sbN">${info.cards.length}</span>${what}${info.why === 'lead' ? `<em class="bad">${t('firstMustFit')}</em>` : ''}<button class="btn primary" id="selGo" ${canGo ? '' : 'disabled'}>${t('playN', info.cards.length)}</button><button class="btn quiet" id="selClear">${t('cancel')}</button>`;
+  } else if (G.rules.multi && !me.out) {
+    const b = bestCombo(me.hand);
+    if (b) html = `<button class="hint" id="selHint">${t('hintCombo', t('combo_' + b.cb.key), b.cards.length)}</button>`;
+  }
+  setHTML(bar, html); bar.classList.toggle('hidden', !html);
+  if ($('selGo')) $('selGo').onclick = () => playSelection();
+  if ($('selClear')) $('selClear').onclick = () => clearSel();
+  if ($('selHint')) $('selHint').onclick = () => { const b = bestCombo(me.hand); if (b) { selIds = b.cards.map(c => c.id); SFX.play('click'); render(); } };
+  // sit just above the hand, out of the layout flow
+  // sits on the felt just above your strip, so it never covers the buttons or the cards
+  const mr = $('bottom').querySelector('.me').getBoundingClientRect(), br = $('bottom').getBoundingClientRect();
+  bar.style.top = (mr.top - br.top - 44) + 'px';
+}
+function playSelection() {
+  const info = selInfo(); if (!info || !info.ok || !myTurnNow()) { SFX.play('bad'); return false; }
+  const el = $('hand').querySelector(`.card[data-id="${info.lead.id}"]`);
+  selIds = []; useCard(info.lead, el, null, info.extra); return true;
+}
+
 // ---------- drag to reorder, Balatro style: the others slide apart to open a gap ----------
 function slotRects(els) { return els.map(e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, l: r.left, t: r.top }; }); }
 function nearestSlot(rects, x, y, allowed) {
@@ -4589,6 +4706,7 @@ function previewOrder(els, rects, src, to) {
 function clearPreview(els) { els.forEach(e => { e.style.translate = ''; }); }
 
 function attachCard(el, card) {
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (!confessSel) toggleSel(card); });
   el.addEventListener('pointermove', e => { if (!dragging) JUICE.tilt(el, e); });
   el.addEventListener('pointerleave', () => JUICE.untilt(el));
   el.onpointerdown = e => {
@@ -4623,7 +4741,7 @@ function attachCard(el, card) {
       }
       if (ghost) {
         want = { x: r0.left + dx, y: r0.top + dy };
-        const onPile = usable(card) && overDiscard(ev.clientX, ev.clientY);
+        const onPile = (usable(card) || (selIds.includes(card.id) && selInfo() && selInfo().ok)) && overDiscard(ev.clientX, ev.clientY);
         $('discard').classList.toggle('drop', onPile);
         const t2 = !onPile && inHand(ev.clientY) && src >= 0 ? nearestSlot(rects, r0.left + dx + r0.width / 2, r0.top + dy + r0.height / 2) : src;
         if (t2 !== target) { target = t2; order = previewOrder(els, rects, src, target); if (target !== src) SFX.play('click'); }
@@ -4634,9 +4752,9 @@ function attachCard(el, card) {
       el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
       $('discard').classList.remove('drop');
       if (ghost) {
-        const gr = ghost.getBoundingClientRect(), hit = ev.type === 'pointerup' && usable(card) && overDiscard(ev.clientX, ev.clientY);
+        const gr = ghost.getBoundingClientRect(), hit = ev.type === 'pointerup' && (usable(card) || (selIds.includes(card.id) && selInfo() && selInfo().ok)) && overDiscard(ev.clientX, ev.clientY);
         dragging = false; $('hand').classList.remove('reorder');
-        if (hit) { clearPreview(els); ghost.remove(); el.classList.remove('lifted'); useCard(card, el, gr); }
+        if (hit) { clearPreview(els); ghost.remove(); el.classList.remove('lifted'); if (selIds.includes(card.id) && selIds.length > 1) playSelection(); else { selIds = []; useCard(card, el, gr); } }
         else if (ev.type === 'pointerup' && target >= 0 && target !== src) {
           // keep the new order: from now on the hand is sorted by hand
           handOrder = order.map(i => els[i].dataset.id); sortMode = 'manual';
@@ -4651,6 +4769,7 @@ function attachCard(el, card) {
         }
       } else if (ev.type === 'pointerup' && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) {
         if (confessSel) { if (!card.lock) { confessSel.has(card.id) ? confessSel.delete(card.id) : confessSel.size < 3 && confessSel.add(card.id); SFX.play('click'); render(); } }
+        else if (selMode || ev.ctrlKey || ev.shiftKey || ev.metaKey || selIds.length) toggleSel(card);
         else useCard(card, el);
       }
     };
@@ -4662,6 +4781,8 @@ $('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act(
 $('btnGamble').onclick = () => { if (!busy && G && G.canGamble && G.canGamble(ME)) act('gamble'); };
 $('btnUno').onclick = () => { if (G && G.players[ME]) act('uno'); };
 $('drawpile').onclick = () => $('btnDraw').onclick();
+$('btnSelect').onclick = () => { selMode = !selMode; if (!selMode) selIds = []; SFX.play('click'); render(); };
+$('discard').addEventListener('click', () => { if (selIds.length) playSelection(); });
 $('btnSort').onclick = () => { sortMode = { color: 'value', value: 'none', none: 'color', manual: 'color' }[sortMode]; render(); };
 $('btnQuit').onclick = () => {
   openModal(`<h2>${t('leaveQ')}</h2><p>${t('leaveSub')}</p><button class="btn primary wide" id="lvGo">${t('leave')}</button><button class="textlink" id="lvNo">${t('stay')}</button>`);
@@ -5134,6 +5255,7 @@ function render() {
   dealOffer();
   drawHorse();
   $('btnSort').textContent = t('sort', sortMode);
+  $('btnSelect').textContent = selMode ? t('selectOn') : t('selectOff'); $('btnSelect').classList.toggle('on', selMode); $('btnSelect').classList.toggle('hidden', !G.rules.multi);
   $('btnQuit').textContent = t('leave');
   // hand (left alone while a card is being dragged)
   if (!dragging) {
@@ -5172,6 +5294,7 @@ function render() {
       if (c.lock) cls += ' locked' + (c.chain ? ' ch' + (c.chain + 1) : '');
       if (c.uniq) cls += ' uniq';
       if (confessSel && confessSel.has(c.id)) cls += ' picked';
+      { const si = selIds.indexOf(c.id); if (si >= 0) cls += ' sel sel' + Math.min(si, 9); }
       const off = col - (inRow - 1) / 2, step = inRow > 1 ? Math.min(3, (2 * MAX_TILT) / (inRow - 1)) : 0;
       let st = `--i:${k};margin-left:${col ? (strip - cw).toFixed(1) : 0}px;z-index:${k};--rot:${(off * step).toFixed(2)}deg;--dy:${Math.min(12, off * off * step * 0.1).toFixed(1)}px`;
       if (row > 0) st += `;margin-top:${(-rowLift).toFixed(1)}px`;
@@ -5187,6 +5310,7 @@ function render() {
       wrap.querySelectorAll('.card').forEach(el => attachCard(el, byId[el.dataset.id]));
     }
     lastHandIds = new Set(me.hand.map(c => c.id));
+    drawSelBar();
     wrap.classList.toggle('big', hand.length > 24);
   }
   // log
@@ -5761,7 +5885,7 @@ let comboTimer = 0;
 function showCombo(e) {
   let el = $('combo');
   if (!el) { el = document.createElement('div'); el.id = 'combo'; $('game').appendChild(el); }
-  const pay = [e.d ? t('comboToss', e.d) : '', e.slap >= 0 && e.sd ? t('comboNightSlap', nm(e.slap), e.sd) : '', e.m ? t('comboHit', e.m) : ''].filter(Boolean).join(' · ');
+  const pay = [e.d ? t('comboToss', e.d) : '', e.slap >= 0 && e.sd ? t('comboNightSlap', nm(e.slap), e.sd) : '', e.m ? t('comboHit', e.m) : '', e.r ? t('comboRelief', e.r) : ''].filter(Boolean).join(' · ');
   el.innerHTML = `<span class="cwho">${esc(nm(e.pi))}</span><b class="cname">${t('combo_' + e.key)}</b><div class="cscore"><span class="chips">${e.chips}</span><i>×</i><span class="mult">${e.mult}</span></div>${pay ? `<span class="cpay">${esc(pay)}</span>` : ''}`;
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   const big = e.m > 0 || e.mult >= 3;

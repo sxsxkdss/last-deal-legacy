@@ -14,11 +14,14 @@ const VALUE_NAME = {
 // ---------- Balatro combos: number cards played together in one drop ----------
 // d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
 const COMBOS = {
-  pair: { d: 0, m: 0 }, twopair: { d: 1, m: 0 }, three: { d: 1, m: 0 }, straight: { d: 1, m: 0 }, flush: { d: 2, m: 0 },
-  fullhouse: { d: 2, m: 0 }, four: { d: 0, m: 1 }, straightflush: { d: 1, m: 2 }, five: { d: 1, m: 2 }
+  // d: cards thrown away by day / slapped on the next player by night; m: everyone else picks up; r: debt the house forgives by day
+  pair: { d: 0, m: 0, r: 2 }, twopair: { d: 1, m: 0, r: 4 }, three: { d: 1, m: 0, r: 4 }, straight: { d: 1, m: 0, r: 3 }, flush: { d: 2, m: 0, r: 8 },
+  fullhouse: { d: 2, m: 1, r: 10 }, four: { d: 1, m: 1, r: 10 }, rainbow: { d: 2, m: 1, r: 12 }, straightflush: { d: 2, m: 2, r: 15 }, five: { d: 2, m: 2, r: 15 }
 };
-// faces: [{c, v}] in play order. Returns { key, m, all, chips } for a valid combo, null otherwise.
-function comboOf(faces) {
+const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'flush', 'fullhouse', 'four', 'rainbow', 'straightflush', 'five'];
+// a plain Wild (no draw on it) can stand in for any number in a hand, one per hand
+const isJoker = f => f && f.c === 'w' && f.v === 'wild';
+function comboPlain(faces) {
   if (!faces || faces.length < 2 || faces.some(f => !/^\d$/.test(f.v) || f.c === 'w')) return null;
   const n = faces.length, nums = faces.map(f => +f.v), chips = nums.reduce((a, b) => a + b, 0);
   const cnt = Object.values(nums.reduce((o, x) => (o[x] = (o[x] || 0) + 1, o), {})).sort((a, b) => b - a);
@@ -26,26 +29,44 @@ function comboOf(faces) {
   const sorted = nums.slice().sort((a, b) => a - b);
   const run = cnt[0] === 1 && sorted.every((x, i) => !i || x === sorted[i - 1] + 1);
   let key = null;
-  if (cnt[0] === n) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
+  if (cnt[0] === n && n === 4 && new Set(faces.map(f => f.c)).size === 4) key = 'rainbow';
+  else if (cnt[0] === n) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
   else if (oneColor && run && n >= 3) key = n >= 5 ? 'straightflush' : 'straight';
   else if (n === 4 && cnt[0] === 2 && cnt[1] === 2) key = 'twopair';
   else if (n === 5 && cnt[0] === 3 && cnt[1] === 2) key = 'fullhouse';
   else if (oneColor && n >= 5) key = 'flush';
   if (!key) return null;
   const C = COMBOS[key];
-  const d = key === 'straight' ? n - 2 : C.d;
-  return { key, d, m: C.m, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
+  const d = key === 'straight' ? n - 2 : C.d, r = key === 'straight' ? C.r * (n - 2) : C.r;
+  return { key, d, m: C.m, r, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
+}
+// faces: [{c, v}] in play order. Returns { key, d, m, r, chips, mult } for a valid hand, null otherwise.
+function comboOf(faces) {
+  if (!faces || faces.length < 2) return null;
+  const jokers = faces.filter(isJoker);
+  if (!jokers.length) return comboPlain(faces);
+  if (jokers.length > 1) return null;
+  const rest = faces.filter(f => !isJoker(f));
+  if (!rest.length || rest.some(f => !/^\d$/.test(f.v) || f.c === 'w')) return null;
+  const side = SIDE_COLORS.L.includes(rest[0].c) ? 'L' : 'D';
+  let best = null;
+  for (const c of SIDE_COLORS[side]) for (let v = 0; v <= 9; v++) {
+    if (side === 'D' && v === 0) continue;
+    const cb = comboPlain(rest.concat([{ c, v: String(v) }]));
+    if (cb && (!best || COMBO_RANK.indexOf(cb.key) > COMBO_RANK.indexOf(best.key) || (cb.key === best.key && cb.chips * cb.mult > best.chips * best.mult))) best = cb;
+  }
+  return best ? Object.assign(best, { joker: true }) : null;
 }
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const LAST_CALL = 250;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
-  if (/^\d$/.test(f.v) && f.c !== 'w') return Math.round(+f.v * 1.25);
-  if (f.c === 'w') return ['wild'].includes(f.v) ? 40 : 50;
-  if (['d4', 'd5', 'skipall'].includes(f.v)) return 30;
-  if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 20;
-  return 50; // house cards (and the unique ones)
+  if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
+  if (f.c === 'w') return ['wild'].includes(f.v) ? 25 : 35;
+  if (['d4', 'd5', 'skipall'].includes(f.v)) return 20;
+  if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 12;
+  return 35; // house cards (and the unique ones)
 }
 // tokens sold in the shop; price in chips
 // ---- deals: the angel (light, by day) and the demon (dark, by night). One active at a time, one of each per match. ----
@@ -627,10 +648,14 @@ class Game {
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
     if (this.rules.multi && Array.isArray(opts.extra)) {
-      if (this.rules.combos !== false && /^\d$/.test(face.v) && face.c !== 'w') {
+      if (this.rules.combos !== false && ((/^\d$/.test(face.v) && face.c !== 'w') || isJoker(face))) {
         const want = [card];
         for (const id of opts.extra) { const c = p.hand.find(x => x.id === id); if (c && !c.lock && !want.includes(c)) want.push(c); }
-        if (want.length > 1 && comboOf(want.map(c => this.f(c)))) chain.push(...want.slice(1));
+        if (want.length > 1 && comboOf(want.map(c => this.f(c)))) {
+          // a joker never ends the hand: the pile shows a real number and colour
+          if (want.length > 2 && isJoker(this.f(want[want.length - 1]))) { const j = want.pop(); want.splice(want.length - 1, 0, j); }
+          chain.push(...want.slice(1));
+        }
       }
       if (chain.length === 1) for (const id of opts.extra) {
         const c = p.hand.find(x => x.id === id);
@@ -651,7 +676,7 @@ class Game {
     this.top = last; this.topBy = pi;
     for (const c of chain) { this.pile.push(cardCode(c) + '!' + c.id); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
-    if (!blank) this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
+    if (!blank) this.color = k > 1 && this.f(last).c !== 'w' ? this.f(last).c : (this.f(last).c === 'w' || face.c === 'w') ? this.validColor(opts.color || (face.c !== 'w' ? face.c : null), pi) : this.f(last).c;
     this.seq++; this.drawRun = 0;
     let extra = '';
     if (face.v === 'discall') {
@@ -692,10 +717,12 @@ class Game {
       let tossed = 0, slap = -1;
       if (this.side === 'D' && combo.d) { slap = this.nextIdx(pi, 1); this.hit(pi, slap, combo.d); } // by night a hand hurts the next player
       else for (let r = 0; r < combo.d && p.hand.length > 1; r++) { const free = p.hand.filter(c => !c.lock); if (!free.length) break; p.hand.splice(p.hand.indexOf(free[Math.floor(Math.random() * free.length)]), 1); tossed++; }
+      let relief = 0;
+      if (this.side === 'L' && combo.r && p.limit > 0 && p.debt > 0) { relief = Math.min(p.debt, combo.r); this.payDebt(pi, -relief, 'combo'); }
       const hit = combo.m ? this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out) : [];
       for (const i of hit) this.hit(pi, i, combo.m);
       this.addLog(`${p.name} plays a ${combo.key}: ${combo.chips} × ${combo.mult}.${tossed ? ` ${tossed} more cards gone.` : ''}${hit.length ? ` Everyone else picks up ${combo.m}.` : ''}`, 'stack', 'combo', { n: p.name, h: combo.key, c: combo.chips, x: combo.mult, d: tossed, m: hit.length ? combo.m : 0, s: slap >= 0 ? this.players[slap].name : null, sd: slap >= 0 ? combo.d : 0 });
-      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0 });
+      this.ev('combo', { pi, key: combo.key, chips: combo.chips, mult: combo.mult, d: tossed, m: hit.length ? combo.m : 0, slap, sd: slap >= 0 ? combo.d : 0, r: relief, j: combo.joker ? 1 : 0 });
     }
     switch (blank ? '' : face.v) {
       case 'skip':
@@ -1488,4 +1515,4 @@ Object.defineProperty(Game.prototype, 'turn', {
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
+if (typeof module !== 'undefined') module.exports = { comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };

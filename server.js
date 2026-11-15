@@ -369,8 +369,8 @@ function openShop(room) {
   const M = room.M;
   M.phase = 'shop'; M.done = M.names.map((_, i) => !!M.col[i]);
   M.offers = M.names.map(() => []);
-  // the Dark shop: once, right after the first deal, three items of its own for each player
-  M.dark = M.names.map(() => M.round === 1 ? ITEMS.slice().sort(() => Math.random() - 0.5).slice(0, 3) : []);
+  // the Dark shop: after every deal, three fresh items of its own for each player
+  M.dark = M.names.map(() => ITEMS.slice().sort(() => Math.random() - 0.5).slice(0, 3));
   for (const i of alive(M)) if (isBotSeat(room, i)) setTimeout(() => { if (room.M === M && M.phase === 'shop') { botShop(M, i); M.done[i] = true; maybeEndShop(room); } }, 2500 + Math.random() * 4000);
   phaseTimer(room, SHOP_MS, () => endShop(room));
 }
@@ -437,12 +437,16 @@ function applyAct(G, pi, a) {
   const col = typeof a.color === 'string' ? a.color : null, fcol = typeof a.flipColor === 'string' ? a.flipColor : null;
   switch (a.k) {
     case 'play': {
-      if (typeof a.card !== 'string' || a.card.length !== 2) return;
-      const hand = G.players[pi].hand, c = hand.find(x => cardCode(x) === a.card);
+      // cards are named by their real id (codes only as a fallback): two identical cards, one of them chained, can't be mixed up
+      const hand = G.players[pi].hand;
+      const c = (Number.isInteger(a.id) && hand.find(x => x.id === a.id)) || (typeof a.card === 'string' && a.card.length === 2 && (hand.find(x => cardCode(x) === a.card && !x.lock) || hand.find(x => cardCode(x) === a.card)));
       if (!c) return;
       const used = new Set([c]), extra = [];
-      if (Array.isArray(a.extra)) for (const code of a.extra.slice(0, 20)) {
-        const x = hand.find(h => !used.has(h) && cardCode(h) === code);
+      if (Array.isArray(a.extraIds) && a.extraIds.length) for (const id of a.extraIds.slice(0, 20)) {
+        const x = Number.isInteger(id) && hand.find(h => !used.has(h) && h.id === id);
+        if (x) { used.add(x); extra.push(x.id); }
+      } else if (Array.isArray(a.extra)) for (const code of a.extra.slice(0, 20)) {
+        const x = hand.find(h => !used.has(h) && !h.lock && cardCode(h) === code);
         if (x) { used.add(x); extra.push(x.id); }
       }
       G.play(pi, c.id, { color: col, flipColor: fcol, target, extra });
