@@ -162,7 +162,7 @@ function armTimer(room) {
   const m = room.members.get(room.seats[pi]);
   // War (timer): a short clock on every human turn
   if (G.horseOn('war', 'timer') && !G.offer && G.roulette === null && !(m && m.bot)) {
-    const wk = G.turnKey + ':' + G.turn;
+    const wk = G.turnKey + ':' + G.turn + ':' + (G.againN || 0);
     if (G.owes(G.turn) || room.warKey !== wk) { room.warKey = wk; room.warPi = G.turn; room.warAt = Date.now() + (WAR_SECS + 1) * 1000; }
     const at = room.warAt;
     room.timer = setTimeout(() => { if (room.G === G && room.warAt === at && room.warKey === wk && G.warTimeout(G.turn)) { room.warAt = 0; sync(room); } }, Math.max(0, at - Date.now()));

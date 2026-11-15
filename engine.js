@@ -41,7 +41,7 @@ const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky
 const LAST_CALL = 250;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
-  if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
+  if (/^\d$/.test(f.v) && f.c !== 'w') return Math.round(+f.v * 1.25);
   if (f.c === 'w') return ['wild'].includes(f.v) ? 40 : 50;
   if (['d4', 'd5', 'skipall'].includes(f.v)) return 30;
   if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 20;
@@ -52,7 +52,7 @@ function debtValue(f) {
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
 const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
 // per-turn debt: at the start of your turn you pay for every card past the free ones
-const DEBT_TURN = { free: 12, rate: 0.5, cap: 5 };
+const DEBT_TURN = { free: 13, rate: 0.5, cap: 4 };
 const ANGEL_STEP = 1.25, DEMON_BASE = 10, DEMON_STEP = 1.5, DEMON_MIN = 10;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
@@ -65,7 +65,7 @@ const ITEM_AUTO = { twoface: true }; // fires by itself when a deal is offered
 // ---- the Horsemen: once per match, when anyone's debt reaches 70% of their limit, one rides in for 10 table turns ----
 const HORSEMEN = { death: ['curse'], war: ['timer', 'fury', 'arms'], famine: ['two', 'tithe'], plague: ['blank', 'rot'] };
 const CURSES = ['dark', 'fever', 'mirror', 'static'];
-const HORSE_TURNS = 10, HORSE_AT = 0.7, HORSE_AGAIN = 0.05, WAR_SECS = 5;
+const HORSE_TURNS = 10, HORSE_AT = 0.7, HORSE_AGAIN = 0.05, WAR_SECS = 4;
 const ATTACK_VALS = { L: ['d1', 'd2', 'd4'], D: ['d5'] };
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
@@ -81,10 +81,10 @@ const PRESETS = (() => {
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
-  L: { colored: { '0': 2, '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2 },
-       wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0 } },
-  D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
-       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, mul3: 1, deal: 1, swind: 0, sacr: 0 } }
+  L: { colored: { '0': 2, '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1.5, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 1 },
+       wild: { wild: 4, wd2: 2, wd4: 2, wrd4: 2, wd6: 1, wd10: 0.5, roul: 1.5, mul2: 1.5, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0 } },
+  D: { colored: { '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skipall: 2, rev: 2, d5: 1.5, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
+       wild: { wild: 4, wdc: 2, wd6: 1.5, wd10: 1, wrd8: 1, roul: 1.5, wd15: 0.5, mul3: 1, deal: 1, swind: 0, sacr: 0 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
@@ -186,7 +186,7 @@ class Game {
   canPlay(card) {
     if (this.roulette !== null || this.debt || this.offer || card.hidden || card.lock || this.owes(this.turn)) return false;
     const f = this.f(card), t = this.f(this.top);
-    if (this.pending > 0 && f.c === 'w' && !card.uniq && this.horseOn('plague', 'blank', this.turn)) return false;
+    if (this.pending > 0 && (f.c === 'w' || EXTRA_CARDS.includes(f.v)) && !card.uniq && this.horseOn('plague', 'blank', this.turn)) return false;
     if (this.pending > 0) return f.v === 'mirror' || f.v === 'mul2' || f.v === 'mul3' || (f.v === 'echo' && (DRAW_VAL[this.f(this.top).v] || 0) >= this.stackMin) || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
     if (this.lock > 0) return f.c === 'w' || f.c === this.color;
     return f.c === 'w' || f.c === this.color || f.v === t.v;
@@ -271,17 +271,17 @@ class Game {
         const to = live.filter(i => i !== gi && !this.warded(i) && this.players[i].hand.length === min);
         const free = g.hand.filter(c => !c.lock && !c.uniq);
         if (to.length && free.length && !(g.hand.length === min && to.length === 0)) {
-          const c = rnd(free), ti = rnd(to);
-          g.hand.splice(g.hand.indexOf(c), 1); this.players[ti].hand.push(c);
-          this.addLog(`Famine: ${g.name} hands a card to ${this.players[ti].name}.`, 'swap', 'tithe', { n: g.name, t: this.players[ti].name });
+          const ti = rnd(to);
+          for (let r = 0; r < 2 && free.length && g.hand.length > 1; r++) { const c = free.splice(Math.floor(Math.random() * free.length), 1)[0]; g.hand.splice(g.hand.indexOf(c), 1); this.players[ti].hand.push(c); }
+          this.addLog(`Famine: ${g.name} hands two cards to ${this.players[ti].name}.`, 'swap', 'tithe', { n: g.name, t: this.players[ti].name });
           this.ev('tithe', { pi: gi, t: ti });
         }
       }
     }
     if (h.k === 'war' && h.v === 'arms' && !this.warded(pi)) {
       const calm = p.hand.filter(c => { const f = this.f(c); return !c.lock && !c.uniq && f.c !== 'w' && !DRAW_VAL[f.v] && !ATTACK_FACES.has(f.v); });
-      if (calm.length) {
-        const c = rnd(calm), f = this.f(c);
+      for (let r = 0; r < 2 && calm.length; r++) {
+        const c = calm.splice(Math.floor(Math.random() * calm.length), 1)[0], f = this.f(c);
         c[this.side] = { c: f.c, v: rnd(ATTACK_VALS[this.side]) };
         this.addLog(`War arms ${p.name}: a card turns into ${faceName(c[this.side])}.`, 'bad', 'arms', { n: p.name, f: c[this.side] });
         this.ev('arms', { pi });
@@ -290,7 +290,7 @@ class Game {
     if (h.k === 'plague' && h.v === 'rot' && !this.warded(pi)) {
       const pool = p.hand.filter(c => !c.uniq && !c.lock);
       let n = 0;
-      for (let r = 0; r < 2 && pool.length; r++) { const c = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; p.hand[p.hand.indexOf(c)] = this.newCard(); n++; }
+      for (let r = 0; r < 3 && pool.length; r++) { const c = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; p.hand[p.hand.indexOf(c)] = this.newCard(); n++; }
       if (n) { this.addLog(`Plague: ${n} of ${p.name}'s cards rot and are replaced.`, 'bad', 'rot', { n: p.name, k: n }); this.ev('rot', { pi, k: n }); }
     }
   }
@@ -300,9 +300,9 @@ class Game {
     const p = this.players[pi]; if (!p || p.out) return false;
     if (this.debt && this.debt.pi === pi) { if (this.debt.n) p.oweN = (p.oweN || 0) + this.debt.n; this.debt = null; }
     else if (this.pending > 0) { p.oweN = (p.oweN || 0) + this.pending; this.afterHit(this.stackFrom, pi, this.pending); this.pending = 0; this.stackMin = 0; this.stackFrom = -1; }
-    p.oweN = (p.oweN || 0) + 2;
+    p.oweN = (p.oweN || 0) + 3;
     this.drewBy = -1; this.drawRun = 0; this.seq++;
-    this.addLog(`War: ${p.name} ran out of time and picks up 2.`, 'bad', 'warTime', { n: p.name });
+    this.addLog(`War: ${p.name} ran out of time and picks up 3.`, 'bad', 'warTime', { n: p.name });
     this.ev('warTime', { pi });
     this.turn = this.nextIdx(pi, 1);
     this.applyShield(); this.checkFlipBack(); this.lastCallCheck();
@@ -329,7 +329,7 @@ class Game {
     if (!t || t.out || n <= 0) return 0;
     if (from === to || !a) { t.oweN = (t.oweN || 0) + n; return n; }
     n *= this.dmul(from);
-    if (this.horseOn('war', 'fury', to)) n += 2;
+    if (this.horseOn('war', 'fury', to)) n += 3;
     if (hasDeal(t, 'chains')) n = Math.ceil(n * 1.5);
     if (hasDeal(a, 'mark') && a.markT === to) n += 2;
     if (hasDeal(t, 'mark') && t.markT === from) n += 2;
@@ -352,7 +352,7 @@ class Game {
   // a stack lands on pi; returns true if a guardian bounced it back to whoever sent it
   takeStack(pi, sf) {
     const p = this.players[pi], a = sf >= 0 ? this.players[sf] : null;
-    if (this.horseOn('war', 'fury', pi)) this.pending += 2;
+    if (this.horseOn('war', 'fury', pi)) this.pending += 3;
     if (a && sf !== pi) {
       if (hasDeal(p, 'chains')) this.pending = Math.ceil(this.pending * 1.5);
       if (hasDeal(a, 'mark') && a.markT === pi) this.pending += 2;
@@ -622,8 +622,8 @@ class Game {
     const jump = pi !== this.turn;
     if (jump ? !this.canJumpIn(pi, card) : !this.canPlay(card)) return false;
     const face = this.f(card);
-    const blank = face.c === 'w' && !card.uniq && this.horseOn('plague', 'blank', pi); // Plague: wilds go down as blank paper
-    if (this.horseOn('famine', 'two', pi) && Array.isArray(opts.extra)) opts = Object.assign({}, opts, { extra: opts.extra.slice(0, 1) });
+    const blank = (face.c === 'w' || EXTRA_CARDS.includes(face.v)) && !card.uniq && this.horseOn('plague', 'blank', pi); // Plague: wilds go down as blank paper
+    if (this.horseOn('famine', 'two', pi) && Array.isArray(opts.extra)) opts = Object.assign({}, opts, { extra: [] });
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
     if (this.rules.multi && Array.isArray(opts.extra)) {
@@ -646,8 +646,9 @@ class Game {
       this.ev('loanDue', { pi });
     }
     const last = chain[k - 1];
-    const prevFace = this.top ? this.f(this.top) : null; // what Echo copies
-    this.top = last;
+    const prevFace = this.top ? this.f(this.top) : null; // what Echo copies (and what a Mirror throws back)
+    const prevBy = this.topBy != null ? this.topBy : -1;
+    this.top = last; this.topBy = pi;
     for (const c of chain) { this.pile.push(cardCode(c) + '!' + c.id); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
     if (!blank) this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
@@ -717,6 +718,18 @@ class Game {
             this.addLog(`${p.name} mirrors the +${this.pending} stack back to ${this.players[back].name}.`, 'swap', 'mirror', { n: p.name, k: this.pending, t: this.players[back].name });
             this.ev('mirror', { a: pi, b: back, k: this.pending });
             this.stackFrom = pi; this.turn = back; steps = -1;
+          }
+        } else if (prevFace && prevBy >= 0 && prevBy !== pi && !this.players[prevBy].out) {
+          // no stack: the Mirror throws whatever the last card did straight back at whoever played it
+          const v = prevFace.v, q = this.players[prevBy]; let what = null;
+          if (DRAW_VAL[v]) { this.hit(pi, prevBy, DRAW_VAL[v]); what = '+' + DRAW_VAL[v]; }
+          else if (v === 'wdc') { this.hit(pi, prevBy, 4); what = '+4'; }
+          else if (v === 'skip' || v === 'skipall' || v === 'freeze') { q.skipNext = true; what = 'skip'; }
+          else if (v === 'rev') { this.dir *= -1; this.ev('reverse', { dir: this.dir }); what = 'reverse'; }
+          else if (!/^\d$/.test(v) && v !== 'wild' && v !== 'flip' && v !== 'mirror') { this.hit(pi, prevBy, 2); what = '+2'; }
+          if (what) {
+            this.addLog(`${p.name}'s mirror throws ${faceName(prevFace)} back at ${q.name}.`, 'swap', 'mirrorAny', { n: p.name, t: q.name, f: prevFace });
+            this.ev('mirror', { a: pi, b: prevBy, k: DRAW_VAL[v] || 0 });
           }
         }
         break;
@@ -1004,6 +1017,7 @@ class Game {
     }
     if (face.v === 'roul' && !blank) this.turn = this.roulette;
     else if (steps >= 0) this.turn = steps === 0 ? pi : this.nextIdx(pi, steps);
+    if (steps === 0 && this.turn === pi) { this.againN = (this.againN || 0) + 1; this.drewBy = -1; this.addLog(`${p.name} goes again.`, 'stk', 'again', { n: p.name }); this.ev('again', { pi }); }
     this.applyShield();
     this.checkFlipBack();
     if (this.inflate > 0) this.inflate--;

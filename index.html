@@ -265,7 +265,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 #game.shake2 { animation: shake2 .4s; }
 @keyframes shake2 { 10%, 50%, 90% { translate: calc(var(--shk, 8px) * -1) calc(var(--shk, 8px) * .4) } 30%, 70% { translate: var(--shk, 8px) calc(var(--shk, 8px) * -.4) } }
 /* the bulb drops out for a moment (was a colour glitch) */
-#game.glitch { animation: dropout .36s steps(1); }
+#game.glitch { animation: psychoSplit .56s steps(1); }
 @keyframes dropout { 0% { filter: brightness(.3) } 30% { filter: brightness(1.15) } 55% { filter: brightness(.5) } 80%, 100% { filter: none } }
 
 /* ---------- me + my hand ---------- */
@@ -282,7 +282,7 @@ body:not(.lite) #game { animation: vhs 7s steps(1) infinite; }
 #hand .brk { flex-basis: 100%; height: 0; }
 #hand .card { flex: none; width: var(--hcw, var(--cw)); height: calc(var(--hcw, var(--cw)) * 1.47); cursor: grab; touch-action: none; -webkit-touch-callout: none;
   transform-origin: 50% 100%; transform: translateY(var(--dy, 0px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg));
-  transition: transform 150ms ease-out, opacity 150ms ease-out, rotate 120ms ease-out, filter 150ms; }
+  transition: transform 100ms ease-out, opacity 100ms ease-out, rotate 90ms ease-out, filter 120ms; }
 @keyframes sway { 50% { translate: 0 -4px } }
 /* the sway is back, done cheaply: only the compositor-friendly translate moves, each card on its own layer,
    off in Lite and for very big hands; its length follows the music's tempo when one is heard (4 beats) */
@@ -293,7 +293,7 @@ body:not(.lite) #hand:not(.big) .card:not(:hover):not(.new):not(.flipin):not(.no
 #hand .card:not(.ok):hover { transform: translateY(calc(var(--dy, 0px) - 8px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg)); }
 #hand .card.jump { outline: 2px solid var(--gold); outline-offset: 2px; transform: translateY(calc(var(--dy, 0px) - 6px)) rotate(var(--rot, 0deg)) var(--tilt, rotate(0deg)); }
 #hand .card.dim { opacity: 1; }
-#hand .card.new { animation: in 160ms ease-out backwards; }
+#hand .card.new { animation: in 110ms ease-out backwards; }
 #hand .card.flipin { animation: fade 180ms ease-out backwards; }
 #hand .card.lifted { opacity: .25; }
 #hand .card.nope { animation: nope 160ms ease-out; }
@@ -845,17 +845,17 @@ body.dark #cactus svg { filter: brightness(.7) saturate(.8); }
 /* Death's curses: drawn over the game, never in the way of a click */
 #curseDark { position: fixed; inset: 0; z-index: 95; pointer-events: none; --mx: 50vw; --my: 80vh;
   background: radial-gradient(circle at var(--mx) var(--my), transparent 0, transparent 95px, rgba(0, 0, 0, .9) 140px, #000 190px); }
-#curseStatic { position: fixed; inset: -20px; z-index: 96; pointer-events: none; opacity: .3; mix-blend-mode: screen;
+#curseStatic { position: fixed; inset: -20px; z-index: 96; pointer-events: none; opacity: .46; mix-blend-mode: screen;
   background-image: var(--tex-static),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, .08) 0 1px, transparent 1px 3px);
   animation: staticNoise .18s steps(4) infinite; }
 #curseDark.hidden, #curseStatic.hidden { display: none; }
 @keyframes staticNoise { 0% { background-position: 0 0, 0 0; } 25% { background-position: -47px 31px, 0 1px; } 50% { background-position: 63px -19px, 0 2px; } 75% { background-position: -21px -58px, 0 1px; } }
-body.curse-static #game { animation: staticJolt 3.3s steps(1) infinite; }
-@keyframes staticJolt { 0%, 91%, 100% { translate: 0 0; filter: none; } 92% { translate: 7px -2px; filter: hue-rotate(60deg) saturate(2); } 94% { translate: -9px 1px; } 96% { translate: 3px 0; filter: contrast(1.6); } }
+body.curse-static #game { animation: staticJolt 2.1s steps(1) infinite; }
+@keyframes staticJolt { 0%, 84%, 100% { translate: 0 0; filter: none; } 86% { translate: 12px -3px; filter: hue-rotate(60deg) saturate(2.4); } 89% { translate: -14px 2px; filter: invert(.15); } 92% { translate: 5px 0; filter: contrast(1.8); } 95% { translate: -4px 1px; } }
 body.curse-mirror #opps, body.curse-mirror #table, body.curse-mirror #bottom, body.curse-mirror #horseBar { transform: scaleX(-1); }
 body.curse-fever #hand .card { animation: fever .11s steps(2) infinite; }
-@keyframes fever { 0% { translate: 1px -1px; } 50% { translate: -1px 1.5px; } 100% { translate: 1.5px .5px; } }
+@keyframes fever { 0% { translate: 2px -2px; rotate: .6deg; } 50% { translate: -2px 2.5px; rotate: -.6deg; } 100% { translate: 2.5px 1px; rotate: .3deg; } }
 body.lite #curseStatic { animation: none; }
 
 /* a burn: one ragged dark sprite per card, centred on the burn (and on the hole, when it burnt through the edge) */
@@ -950,6 +950,27 @@ body.lite .card.tier-u::after { animation: none; }
 .card.tier-w::after { background-position: calc(var(--gx, 30%) + var(--drift)) calc(var(--gy, 30%) + var(--drift)), 0 0; animation: foilDrift 5.5s ease-in-out infinite; }
 .card.tier-h::after { background-position: calc(var(--gx, 30%) + var(--drift)) calc(var(--gy, 30%) - var(--drift)); animation: foilDrift 7s ease-in-out infinite; }
 body.lite .card.tier-w::after, body.lite .card.tier-h::after { animation: none; }
+
+/* ---------- cyberpsychosis: what a glitch looks like ---------- */
+@keyframes psychoSplit {
+  0% { filter: drop-shadow(4px 0 0 rgba(255, 0, 60, .75)) drop-shadow(-4px 0 0 rgba(0, 255, 240, .6)) brightness(1.2); translate: 6px 0; }
+  14% { filter: drop-shadow(-7px 0 0 rgba(255, 0, 60, .8)) drop-shadow(6px 0 0 rgba(0, 255, 240, .65)) contrast(1.5); translate: -9px 2px; skew: -2deg 0deg; }
+  28% { filter: brightness(.35) saturate(2); translate: 3px -1px; skew: 0deg 0deg; }
+  42% { filter: drop-shadow(10px 0 0 rgba(255, 0, 60, .7)) drop-shadow(-9px 0 0 rgba(0, 255, 240, .6)) hue-rotate(-30deg); translate: -4px 0; }
+  58% { filter: invert(.12) contrast(1.8); translate: 7px 1px; skew: 3deg 0deg; }
+  72% { filter: drop-shadow(-3px 0 0 rgba(255, 0, 60, .6)) drop-shadow(3px 0 0 rgba(0, 255, 240, .5)); translate: -2px 0; skew: 0deg 0deg; }
+  86%, 100% { filter: none; translate: 0 0; skew: 0deg 0deg; }
+}
+#psycho { position: fixed; inset: 0; z-index: 150; pointer-events: none; display: none; mix-blend-mode: screen; }
+#psycho.on { display: block; animation: psychoFlash .56s steps(1); }
+#psycho::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255, 20, 60, .16) 0 2px, transparent 2px 4px), radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(255, 0, 50, .35)); }
+#psycho i { position: absolute; left: -5%; right: -5%; background: linear-gradient(90deg, rgba(0, 255, 240, .5), rgba(255, 0, 80, .55) 40%, rgba(255, 255, 255, .35) 60%, rgba(0, 255, 240, .4)); animation: psychoTear .56s steps(1); }
+#psycho i:nth-child(2) { animation-delay: .08s; } #psycho i:nth-child(3) { animation-delay: .17s; }
+#psycho b { position: absolute; left: 50%; top: 46%; translate: -50% -50%; font: 700 clamp(18px, 3vw, 34px)/1 var(--f-type); letter-spacing: .2em; color: #ff2850; text-shadow: 3px 0 #00fff0, -3px 0 #ff0050; white-space: nowrap; animation: psychoText .56s steps(1); }
+@keyframes psychoFlash { 0% { opacity: 1; } 20% { opacity: .4; } 35% { opacity: 1; } 60% { opacity: .2; } 75% { opacity: .9; } 100% { opacity: 0; } }
+@keyframes psychoTear { 0% { transform: translateX(-12%) scaleY(1); opacity: .9; } 25% { transform: translateX(9%) scaleY(.4); } 50% { transform: translateX(-4%) scaleY(1.6); opacity: .6; } 75% { transform: translateX(14%); opacity: 0; } 100% { opacity: 0; } }
+@keyframes psychoText { 0% { opacity: 0; } 15% { opacity: 1; translate: -52% -50%; } 35% { opacity: .3; translate: -47% -50%; } 50% { opacity: 1; translate: -50% -50%; } 80% { opacity: .8; } 100% { opacity: 0; } }
+body.lite #psycho { display: none !important; }
 
 </style>
 </head>
@@ -1092,7 +1113,7 @@ const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky
 const LAST_CALL = 250;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
-  if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
+  if (/^\d$/.test(f.v) && f.c !== 'w') return Math.round(+f.v * 1.25);
   if (f.c === 'w') return ['wild'].includes(f.v) ? 40 : 50;
   if (['d4', 'd5', 'skipall'].includes(f.v)) return 30;
   if (['skip', 'rev', 'd1', 'd2', 'flip', 'discall'].includes(f.v)) return 20;
@@ -1103,7 +1124,7 @@ function debtValue(f) {
 const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
 const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
 // per-turn debt: at the start of your turn you pay for every card past the free ones
-const DEBT_TURN = { free: 12, rate: 0.5, cap: 5 };
+const DEBT_TURN = { free: 13, rate: 0.5, cap: 4 };
 const ANGEL_STEP = 1.25, DEMON_BASE = 10, DEMON_STEP = 1.5, DEMON_MIN = 10;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
@@ -1116,7 +1137,7 @@ const ITEM_AUTO = { twoface: true }; // fires by itself when a deal is offered
 // ---- the Horsemen: once per match, when anyone's debt reaches 70% of their limit, one rides in for 10 table turns ----
 const HORSEMEN = { death: ['curse'], war: ['timer', 'fury', 'arms'], famine: ['two', 'tithe'], plague: ['blank', 'rot'] };
 const CURSES = ['dark', 'fever', 'mirror', 'static'];
-const HORSE_TURNS = 10, HORSE_AT = 0.7, HORSE_AGAIN = 0.05, WAR_SECS = 5;
+const HORSE_TURNS = 10, HORSE_AT = 0.7, HORSE_AGAIN = 0.05, WAR_SECS = 4;
 const ATTACK_VALS = { L: ['d1', 'd2', 'd4'], D: ['d5'] };
 // Lobby presets. Every rule key the server knows, every house card.
 const RULE_ALL = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'uno', 'chaos'];
@@ -1132,10 +1153,10 @@ const PRESETS = (() => {
 const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, wrd8: 8, wd10: 10, wd15: 15 };
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
-  L: { colored: { '0': 2, '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 2 },
-       wild: { wild: 4, wd2: 2, wd4: 3, wrd4: 3, wd6: 2, wd10: 1, roul: 2, mul2: 2, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0 } },
-  D: { colored: { '1': 3, '2': 3, '3': 3, '4': 3, '5': 3, '6': 3, '7': 3, '8': 3, '9': 3, skipall: 2, rev: 2, d5: 2, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
-       wild: { wild: 4, wdc: 4, wd6: 2, wd10: 2, wrd8: 2, roul: 2, wd15: 1, mul3: 1, deal: 1, swind: 0, sacr: 0 } }
+  L: { colored: { '0': 2, '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1.5, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 1 },
+       wild: { wild: 4, wd2: 2, wd4: 2, wrd4: 2, wd6: 1, wd10: 0.5, roul: 1.5, mul2: 1.5, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0 } },
+  D: { colored: { '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skipall: 2, rev: 2, d5: 1.5, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
+       wild: { wild: 4, wdc: 2, wd6: 1.5, wd10: 1, wrd8: 1, roul: 1.5, wd15: 0.5, mul3: 1, deal: 1, swind: 0, sacr: 0 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
@@ -1237,7 +1258,7 @@ class Game {
   canPlay(card) {
     if (this.roulette !== null || this.debt || this.offer || card.hidden || card.lock || this.owes(this.turn)) return false;
     const f = this.f(card), t = this.f(this.top);
-    if (this.pending > 0 && f.c === 'w' && !card.uniq && this.horseOn('plague', 'blank', this.turn)) return false;
+    if (this.pending > 0 && (f.c === 'w' || EXTRA_CARDS.includes(f.v)) && !card.uniq && this.horseOn('plague', 'blank', this.turn)) return false;
     if (this.pending > 0) return f.v === 'mirror' || f.v === 'mul2' || f.v === 'mul3' || (f.v === 'echo' && (DRAW_VAL[this.f(this.top).v] || 0) >= this.stackMin) || (this.rules.stacking && (DRAW_VAL[f.v] || 0) >= this.stackMin);
     if (this.lock > 0) return f.c === 'w' || f.c === this.color;
     return f.c === 'w' || f.c === this.color || f.v === t.v;
@@ -1322,17 +1343,17 @@ class Game {
         const to = live.filter(i => i !== gi && !this.warded(i) && this.players[i].hand.length === min);
         const free = g.hand.filter(c => !c.lock && !c.uniq);
         if (to.length && free.length && !(g.hand.length === min && to.length === 0)) {
-          const c = rnd(free), ti = rnd(to);
-          g.hand.splice(g.hand.indexOf(c), 1); this.players[ti].hand.push(c);
-          this.addLog(`Famine: ${g.name} hands a card to ${this.players[ti].name}.`, 'swap', 'tithe', { n: g.name, t: this.players[ti].name });
+          const ti = rnd(to);
+          for (let r = 0; r < 2 && free.length && g.hand.length > 1; r++) { const c = free.splice(Math.floor(Math.random() * free.length), 1)[0]; g.hand.splice(g.hand.indexOf(c), 1); this.players[ti].hand.push(c); }
+          this.addLog(`Famine: ${g.name} hands two cards to ${this.players[ti].name}.`, 'swap', 'tithe', { n: g.name, t: this.players[ti].name });
           this.ev('tithe', { pi: gi, t: ti });
         }
       }
     }
     if (h.k === 'war' && h.v === 'arms' && !this.warded(pi)) {
       const calm = p.hand.filter(c => { const f = this.f(c); return !c.lock && !c.uniq && f.c !== 'w' && !DRAW_VAL[f.v] && !ATTACK_FACES.has(f.v); });
-      if (calm.length) {
-        const c = rnd(calm), f = this.f(c);
+      for (let r = 0; r < 2 && calm.length; r++) {
+        const c = calm.splice(Math.floor(Math.random() * calm.length), 1)[0], f = this.f(c);
         c[this.side] = { c: f.c, v: rnd(ATTACK_VALS[this.side]) };
         this.addLog(`War arms ${p.name}: a card turns into ${faceName(c[this.side])}.`, 'bad', 'arms', { n: p.name, f: c[this.side] });
         this.ev('arms', { pi });
@@ -1341,7 +1362,7 @@ class Game {
     if (h.k === 'plague' && h.v === 'rot' && !this.warded(pi)) {
       const pool = p.hand.filter(c => !c.uniq && !c.lock);
       let n = 0;
-      for (let r = 0; r < 2 && pool.length; r++) { const c = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; p.hand[p.hand.indexOf(c)] = this.newCard(); n++; }
+      for (let r = 0; r < 3 && pool.length; r++) { const c = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; p.hand[p.hand.indexOf(c)] = this.newCard(); n++; }
       if (n) { this.addLog(`Plague: ${n} of ${p.name}'s cards rot and are replaced.`, 'bad', 'rot', { n: p.name, k: n }); this.ev('rot', { pi, k: n }); }
     }
   }
@@ -1351,9 +1372,9 @@ class Game {
     const p = this.players[pi]; if (!p || p.out) return false;
     if (this.debt && this.debt.pi === pi) { if (this.debt.n) p.oweN = (p.oweN || 0) + this.debt.n; this.debt = null; }
     else if (this.pending > 0) { p.oweN = (p.oweN || 0) + this.pending; this.afterHit(this.stackFrom, pi, this.pending); this.pending = 0; this.stackMin = 0; this.stackFrom = -1; }
-    p.oweN = (p.oweN || 0) + 2;
+    p.oweN = (p.oweN || 0) + 3;
     this.drewBy = -1; this.drawRun = 0; this.seq++;
-    this.addLog(`War: ${p.name} ran out of time and picks up 2.`, 'bad', 'warTime', { n: p.name });
+    this.addLog(`War: ${p.name} ran out of time and picks up 3.`, 'bad', 'warTime', { n: p.name });
     this.ev('warTime', { pi });
     this.turn = this.nextIdx(pi, 1);
     this.applyShield(); this.checkFlipBack(); this.lastCallCheck();
@@ -1380,7 +1401,7 @@ class Game {
     if (!t || t.out || n <= 0) return 0;
     if (from === to || !a) { t.oweN = (t.oweN || 0) + n; return n; }
     n *= this.dmul(from);
-    if (this.horseOn('war', 'fury', to)) n += 2;
+    if (this.horseOn('war', 'fury', to)) n += 3;
     if (hasDeal(t, 'chains')) n = Math.ceil(n * 1.5);
     if (hasDeal(a, 'mark') && a.markT === to) n += 2;
     if (hasDeal(t, 'mark') && t.markT === from) n += 2;
@@ -1403,7 +1424,7 @@ class Game {
   // a stack lands on pi; returns true if a guardian bounced it back to whoever sent it
   takeStack(pi, sf) {
     const p = this.players[pi], a = sf >= 0 ? this.players[sf] : null;
-    if (this.horseOn('war', 'fury', pi)) this.pending += 2;
+    if (this.horseOn('war', 'fury', pi)) this.pending += 3;
     if (a && sf !== pi) {
       if (hasDeal(p, 'chains')) this.pending = Math.ceil(this.pending * 1.5);
       if (hasDeal(a, 'mark') && a.markT === pi) this.pending += 2;
@@ -1673,8 +1694,8 @@ class Game {
     const jump = pi !== this.turn;
     if (jump ? !this.canJumpIn(pi, card) : !this.canPlay(card)) return false;
     const face = this.f(card);
-    const blank = face.c === 'w' && !card.uniq && this.horseOn('plague', 'blank', pi); // Plague: wilds go down as blank paper
-    if (this.horseOn('famine', 'two', pi) && Array.isArray(opts.extra)) opts = Object.assign({}, opts, { extra: opts.extra.slice(0, 1) });
+    const blank = (face.c === 'w' || EXTRA_CARDS.includes(face.v)) && !card.uniq && this.horseOn('plague', 'blank', pi); // Plague: wilds go down as blank paper
+    if (this.horseOn('famine', 'two', pi) && Array.isArray(opts.extra)) opts = Object.assign({}, opts, { extra: [] });
     // Same-number drop: extra cards with the same value (never wilds) go down with the first one.
     const chain = [card];
     if (this.rules.multi && Array.isArray(opts.extra)) {
@@ -1697,8 +1718,9 @@ class Game {
       this.ev('loanDue', { pi });
     }
     const last = chain[k - 1];
-    const prevFace = this.top ? this.f(this.top) : null; // what Echo copies
-    this.top = last;
+    const prevFace = this.top ? this.f(this.top) : null; // what Echo copies (and what a Mirror throws back)
+    const prevBy = this.topBy != null ? this.topBy : -1;
+    this.top = last; this.topBy = pi;
     for (const c of chain) { this.pile.push(cardCode(c) + '!' + c.id); this.pileN++; }
     if (this.pile.length > 6) this.pile.splice(0, this.pile.length - 6);
     if (!blank) this.color = face.c === 'w' ? this.validColor(opts.color, pi) : this.f(last).c;
@@ -1768,6 +1790,18 @@ class Game {
             this.addLog(`${p.name} mirrors the +${this.pending} stack back to ${this.players[back].name}.`, 'swap', 'mirror', { n: p.name, k: this.pending, t: this.players[back].name });
             this.ev('mirror', { a: pi, b: back, k: this.pending });
             this.stackFrom = pi; this.turn = back; steps = -1;
+          }
+        } else if (prevFace && prevBy >= 0 && prevBy !== pi && !this.players[prevBy].out) {
+          // no stack: the Mirror throws whatever the last card did straight back at whoever played it
+          const v = prevFace.v, q = this.players[prevBy]; let what = null;
+          if (DRAW_VAL[v]) { this.hit(pi, prevBy, DRAW_VAL[v]); what = '+' + DRAW_VAL[v]; }
+          else if (v === 'wdc') { this.hit(pi, prevBy, 4); what = '+4'; }
+          else if (v === 'skip' || v === 'skipall' || v === 'freeze') { q.skipNext = true; what = 'skip'; }
+          else if (v === 'rev') { this.dir *= -1; this.ev('reverse', { dir: this.dir }); what = 'reverse'; }
+          else if (!/^\d$/.test(v) && v !== 'wild' && v !== 'flip' && v !== 'mirror') { this.hit(pi, prevBy, 2); what = '+2'; }
+          if (what) {
+            this.addLog(`${p.name}'s mirror throws ${faceName(prevFace)} back at ${q.name}.`, 'swap', 'mirrorAny', { n: p.name, t: q.name, f: prevFace });
+            this.ev('mirror', { a: pi, b: prevBy, k: DRAW_VAL[v] || 0 });
           }
         }
         break;
@@ -2055,6 +2089,7 @@ class Game {
     }
     if (face.v === 'roul' && !blank) this.turn = this.roulette;
     else if (steps >= 0) this.turn = steps === 0 ? pi : this.nextIdx(pi, steps);
+    if (steps === 0 && this.turn === pi) { this.againN = (this.againN || 0) + 1; this.drewBy = -1; this.addLog(`${p.name} goes again.`, 'stk', 'again', { n: p.name }); this.ev('again', { pi }); }
     this.applyShield();
     this.checkFlipBack();
     if (this.inflate > 0) this.inflate--;
@@ -2700,7 +2735,7 @@ const RULES_I18N = {
 };
 const EXTRA_I18N = {
   en: [
-    ['mirror', 'Mirror', 'Sends a draw stack back to whoever fed it last.'],
+    ['mirror', 'Mirror', 'Reflects anything: a draw stack goes back to whoever fed it; with no stack, the last card\'s effect hits whoever played it (draws, skip, reverse; anything else hits for +2).'],
     ['shield', 'Shield', 'Breaks the next stack that reaches you.'],
     ['dflip', 'Double Flip', 'Flips the table for one turn, then flips it back.'],
     ['wd15', 'Wild Draw 15', 'Dark side. The top of the stack ladder.'],
@@ -2730,7 +2765,7 @@ const EXTRA_I18N = {
     ['monstro', 'Monstro', 'Dark wild. The next player picks up as many cards as you hold (up to 6).']
   ],
   ru: [
-    ['mirror', 'Зеркало', 'Отправляет стопку «Возьми» обратно тому, кто положил последнюю карту.'],
+    ['mirror', 'Зеркало', 'Отражает что угодно: стопку «Возьми» — обратно тому, кто её кормил; без стопки — эффект последней карты в того, кто её сыграл (+карты, пропуск, разворот, остальное бьёт на +2).'],
     ['shield', 'Щит', 'Отбивает следующую стопку, которая дойдёт до вас.'],
     ['dflip', 'Двойной флип', 'Переворачивает стол на один ход, потом обратно.'],
     ['wd15', 'Джокер +15', 'Тёмная сторона. Самая старшая карта стопки.'],
@@ -2773,7 +2808,7 @@ function fmtLog(l, myName) {
     broke: () => `${N(a.n)} перевалил за лимит (${a.d}/${a.l}). Дом забирает место.`, puppetSkip: () => `${N(a.n)} пляшет на нитях и пропускает ход.`,
     angelCome: () => `К ${N(a.n)} приходит ангел.`, demonCome: () => `К ${N(a.n)} приходит демон.`, demonNo: () => `${N(a.n)} рвёт контракт демона.`, fall: () => `Светлая сделка ${N(a.n)} сгорает. В руке остаётся Жертва.`,
     horse: () => `Всадник въезжает: ${STR.ru['horse_' + a.k] || a.k}. ${STR.ru['horseD_' + a.k + '_' + a.v] || ''}`, horseEnd: () => 'Всадник уезжает. Стол снова обычный.',
-    tithe: () => `Голод: ${N(a.n)} отдаёт карту ${N(a.t)}.`, arms: () => `Война вооружает ${N(a.n)}: карта становится атакой.`, rot: () => `Чума: ${a.k} карт ${N(a.n)} сгнили и заменены.`, warTime: () => `Война: у ${N(a.n)} кончилось время, +2 карты.`,
+    tithe: () => `Голод: ${N(a.n)} отдаёт две карты ${N(a.t)}.`, arms: () => `Война вооружает ${N(a.n)}: карта становится атакой.`, rot: () => `Чума: ${a.k} карт ${N(a.n)} сгнили и заменены.`, warTime: () => `Война: у ${N(a.n)} кончилось время, +3 карты.`,
     dealTaken: () => `${N(a.n)} заключает ${a.kind === 'dark' ? 'тёмную' : 'светлую'} сделку: ${STR.ru['deal_' + a.d] || a.d}${a.t ? ` (метка на ${N(a.t)})` : ''}.`,
     confess: () => `${N(a.n)} исповедуется: ${a.k} карт отпущены.`, puppet: () => `${N(a.n)} дёргает нити: ${N(a.t)} пропустит ход.`, burn: () => `${N(a.n)} сжигает верхнюю карту колоды.`,
     draftDone: () => 'Все передали по две карты. Раздача началась.', colGive: () => `Коллектор ${N(a.n)} подкидывает ${N(a.t)} две карты.`, colLever: () => `Коллектор ${N(a.n)} дёргает рычаг.`, pad: () => `Подкладка ${N(a.n)} гасит половину удара: +${a.k}.`,
@@ -2850,7 +2885,7 @@ function fmtLog(l, myName) {
     broke: () => `${N(a.n)} is over the limit (${a.d}/${a.l}). The house takes the seat.`, puppetSkip: () => `${N(a.n)} dances on a string and misses the turn.`,
     angelCome: () => `The angel comes to ${N(a.n)}.`, demonCome: () => `The demon comes to ${N(a.n)}.`, demonNo: () => `${N(a.n)} tears up the demon's contract.`, fall: () => `${N(a.n)}'s light deal burns. A Sacrifice is left behind.`,
     horse: () => `A horseman rides in: ${STR.en['horse_' + a.k] || a.k}. ${STR.en['horseD_' + a.k + '_' + a.v] || ''}`, horseEnd: () => 'The horseman rides off. The table is back to normal.',
-    tithe: () => `Famine: ${N(a.n)} hands a card to ${N(a.t)}.`, arms: () => `War arms ${N(a.n)}: a card turns into an attack.`, rot: () => `Plague: ${a.k} of ${N(a.n)}'s cards rot and are replaced.`, warTime: () => `War: ${N(a.n)} ran out of time, +2 cards.`,
+    tithe: () => `Famine: ${N(a.n)} hands two cards to ${N(a.t)}.`, arms: () => `War arms ${N(a.n)}: a card turns into an attack.`, rot: () => `Plague: ${a.k} of ${N(a.n)}'s cards rot and are replaced.`, warTime: () => `War: ${N(a.n)} ran out of time, +3 cards.`,
     dealTaken: () => `${N(a.n)} takes a ${a.kind} deal: ${STR.en['deal_' + a.d] || a.d}${a.t ? ` (marking ${N(a.t)})` : ''}.`,
     confess: () => `${N(a.n)} confesses: ${a.k} cards let go.`, puppet: () => `${N(a.n)} pulls the strings: ${N(a.t)} will miss a turn.`, burn: () => `${N(a.n)} burns the top card.`,
     draftDone: () => 'Everyone passes two cards along. The deal begins.', colGive: () => `The collector ${N(a.n)} slips ${N(a.t)} two cards.`, colLever: () => `The collector ${N(a.n)} pulls the lever.`, pad: () => `${N(a.n)}'s padding takes half the hit: +${a.k}.`,
@@ -3044,7 +3079,7 @@ const CARD_DESC = {
     flip: 'Every card turns over: the light side becomes dark, or back.',
     dflip: 'Flips the table for one turn, then it flips back.',
     discall: 'Also discard every other card of this color from your hand.',
-    mirror: 'Sends the draw stack on the table back to whoever fed it last.',
+    mirror: 'Reflects anything: a draw stack goes back to whoever fed it; with no stack, the last card\'s effect hits whoever played it (draws, skip, reverse; anything else hits for +2).',
     shield: 'Breaks the next draw stack that reaches you.',
     wild: 'Play on anything and pick the color.',
     wd2: 'Pick the color. The next player picks up 2, unless they stack.',
@@ -3094,7 +3129,7 @@ const CARD_DESC = {
     flip: 'Все карты переворачиваются: светлая сторона становится тёмной или обратно.',
     dflip: 'Переворачивает стол на один ход, потом обратно.',
     discall: 'Сбросьте вместе с ней все остальные карты этого цвета из руки.',
-    mirror: 'Отправляет стопку «Возьми» тому, кто положил в неё последнюю карту.',
+    mirror: 'Отражает что угодно: стопку «Возьми» — обратно тому, кто её кормил; без стопки — эффект последней карты в того, кто её сыграл (+карты, пропуск, разворот, остальное бьёт на +2).',
     shield: 'Отбивает следующую стопку «Возьми», которая дойдёт до вас.',
     wild: 'Кладётся на что угодно, вы выбираете цвет.',
     wd2: 'Выберите цвет. Следующий берёт 2, если не продолжит стопку.',
@@ -3151,7 +3186,7 @@ Object.assign(NAMES.ru.values, {
 Object.assign(CARD_TXT.en, { dflip: 'eclipse', shield: 'vest', bhole: 'the pot', mult: 'double', lucky: 'horseshoe', glass: 'shot', spin: 'jackpot', loan: 'loan', gift: 'tip', echo: 'encore', freeze: 'cuffs', interest: 'interest', bomb: 'shotgun', d6: 'redeal', pill: 'scratch', foot: 'collector', maze: 'spinner', deal: 'contract', monstro: 'all-in' });
 Object.assign(CARD_TXT.ru, { dflip: 'затмение', shield: 'жилет', bhole: 'общак', mult: 'дабл', lucky: 'подкова', glass: 'рюмка', spin: 'джекпот', loan: 'займ', gift: 'чаевые', echo: 'бис', freeze: 'наручники', interest: 'проценты', bomb: 'дробовик', d6: 'пересдача', pill: 'лотерейка', foot: 'коллектор', maze: 'вертушка', deal: 'контракт', monstro: 'ва-банк' });
 EXTRA_I18N.en = [
-  ['mirror', 'Mirror', 'Sends a draw stack back to whoever fed it last.'],
+  ['mirror', 'Mirror', 'Reflects anything: a draw stack goes back to whoever fed it; with no stack, the last card\'s effect hits whoever played it (draws, skip, reverse; anything else hits for +2).'],
   ['shield', 'Vest', 'The next stack that reaches you breaks on it.'],
   ['dflip', 'Eclipse', 'Day becomes night (or night day) for one turn, then it turns back.'],
   ['wd15', 'Wild Draw 15', 'Night. The top of the stack ladder.'],
@@ -3175,7 +3210,7 @@ EXTRA_I18N.en = [
   ['monstro', 'All-In', 'Night wild. The next player picks up as many cards as you hold (up to 6).']
 ];
 EXTRA_I18N.ru = [
-  ['mirror', 'Зеркало', 'Отправляет стопку «Возьми» тому, кто положил в неё последнюю карту.'],
+  ['mirror', 'Зеркало', 'Отражает что угодно: стопку «Возьми» — обратно тому, кто её кормил; без стопки — эффект последней карты в того, кто её сыграл (+карты, пропуск, разворот, остальное бьёт на +2).'],
   ['shield', 'Бронежилет', 'Следующая стопка, дошедшая до вас, разбивается о него.'],
   ['dflip', 'Затмение', 'День становится ночью (или наоборот) на один ход, потом всё возвращается.'],
   ['wd15', 'Джокер +15', 'Ночь. Самая старшая карта стопки.'],
@@ -3394,13 +3429,13 @@ Object.assign(STR.ru, {
 });
 RULES_HTML.en = RULES_HTML.en.replace('<h3>', `<h3>Debt match</h3><ul>
     <li>A match is a run of deals. Before each deal you <b>draft</b>: pass two cards to your neighbour, get two from the other side.</li>
-    <li>When someone empties their hand, everyone else <b>pays the house</b> for what they still hold: numbers at face value, action cards 20, big draws 30, wilds 40, wild draws and house cards 50.</li>
+    <li>When someone empties their hand, everyone else <b>pays the house</b> for what they still hold: numbers at face value ×1.25, action cards 20, big draws 30, wilds 40, wild draws and house cards 50.</li>
     <li>Go over the <b>debt limit</b> (250 / 500 / 1000, the host picks) and you become the house's <b>collector</b>: you can't win any more, but once per deal you can slip someone two cards or pull the slot lever.</li>
     <li>The last player under the limit beats the house.</li>
     <li><b>Chips</b>: the deal winner takes 10% of what the others paid, poker hands pay chips too. Spend them in the <b>house shop</b> between deals: tokens that last the whole match (3 slots), paying down debt, or dirty tricks on a rival.</li></ul><h3>`);
 RULES_HTML.ru = RULES_HTML.ru.replace('<h3>', `<h3>Матч на долг</h3><ul>
     <li>Матч — это несколько раздач. Перед каждой идёт <b>драфт</b>: две карты отдаёте соседу, две получаете с другой стороны.</li>
-    <li>Когда кто-то сбросил руку, остальные <b>платят дому</b> за оставшиеся карты: цифры по номиналу, карты действия 20, большие «Возьми» 30, джокеры 40, джокеры «Возьми» и карты дома 50.</li>
+    <li>Когда кто-то сбросил руку, остальные <b>платят дому</b> за оставшиеся карты: цифры по номиналу ×1,25, карты действия 20, большие «Возьми» 30, джокеры 40, джокеры «Возьми» и карты дома 50.</li>
     <li>Перевалили за <b>лимит долга</b> (250 / 500 / 1000, выбирает хозяин) — становитесь <b>коллектором</b> дома: выиграть уже нельзя, но раз в раздачу можно подкинуть кому-то две карты или дёрнуть рычаг слотов.</li>
     <li>Последний, кто остался под лимитом, обыгрывает дом.</li>
     <li><b>Фишки</b>: победитель раздачи забирает 10% от всего, что заплатили остальные, покерные комбинации тоже платят фишками. Тратятся в <b>лавке дома</b> между раздачами: жетоны на весь матч (3 слота), погашение долга или пакости сопернику.</li></ul><h3>`);
@@ -3474,7 +3509,7 @@ Object.assign(STR.ru, {
   tSacr: n => `${n}: ЖЕРТВА`, tSwind: n => `${n}: второе дыхание`, tBroke: n => `${n} разорён`, tChained: k => `${k} в цепях`, tPuppet: n => `${n} на нитях`
 });
 RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>Debt</h3><ul>
-    <li>At the start of each of your turns you pay <b>½ debt for every card past 12</b> in your hand, <b>5 at most</b> per turn. When a deal ends, everyone who still holds cards pays for them too: numbers at face value, action cards 20, big draws 30, wilds 40, wild draws and house cards 50.</li>
+    <li>At the start of each of your turns you pay <b>½ debt for every card past 13</b> in your hand, <b>4 at most</b> per turn. When a deal ends, everyone who still holds cards pays for them too: numbers at face value ×1.25, action cards 20, big draws 30, wilds 40, wild draws and house cards 50.</li>
     <li>Go over your <b>debt limit</b> and the house takes your seat: you become a <b>collector</b>.</li></ul>
   <h3>The angel and the demon</h3><ul>
     <li><b>The angel</b> (by day): every peaceful turn you take by day (no attack card played) adds <b>1.25%</b> to the chance the angel comes at the start of your turn. Any attack resets it to 0. The angel offers 2 light deals; you must take one.</li>
@@ -3483,7 +3518,7 @@ RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>Debt</h3><ul>
     <li>Deals stack: you can hold up to <b>2 light</b> and up to <b>3 dark</b> at once, for the whole match, each one different. <b>One deal per hand dealt</b>: after you sign, the visitors wait for the next deal. Signing a dark deal while you hold light ones burns them all, closes the way to the angel for good and leaves a <b>Sacrifice</b> in your hand: a wild that makes a chosen player take 10 cards, chained for 2 of their turns. Nothing blocks it.</li>
     <li>Chained cards can’t be played or thrown away, but they still cost debt.</li></ul><h3>Debt match</h3>`);
 RULES_HTML.ru = RULES_HTML.ru.replace('<h3>Матч на долг</h3>', `<h3>Долг</h3><ul>
-    <li>В начале каждого своего хода вы платите <b>½ долга за каждую карту сверх 12</b>, но <b>не больше 5</b> за ход. Когда раздача заканчивается, все, у кого остались карты, платят и за них: цифры по номиналу, карты действия 20, большие «Возьми» 30, джокеры 40, джокеры «Возьми» и карты дома 50.</li>
+    <li>В начале каждого своего хода вы платите <b>½ долга за каждую карту сверх 13</b>, но <b>не больше 4</b> за ход. Когда раздача заканчивается, все, у кого остались карты, платят и за них: цифры по номиналу ×1,25, карты действия 20, большие «Возьми» 30, джокеры 40, джокеры «Возьми» и карты дома 50.</li>
     <li>Перевалили за <b>лимит долга</b> — дом забирает ваше место, и вы становитесь <b>коллектором</b>.</li></ul>
   <h3>Ангел и демон</h3><ul>
     <li><b>Ангел</b> (днём): каждый ваш мирный дневной ход (без атакующих карт) добавляет <b>1,25%</b> к шансу, что в начале хода придёт ангел. Любая атака обнуляет шанс. Ангел предлагает 2 светлые сделки, и одну нужно взять.</li>
@@ -3502,39 +3537,39 @@ Object.assign(STR.ru, { setCactus: 'Кактус на столе', cactusFound: 
 Object.assign(STR.en, {
   horse_death: 'Death', horse_war: 'War', horse_famine: 'Famine', horse_plague: 'Plague',
   horseD_death_curse: 'Every player is cursed until the horseman leaves.',
-  horseD_war_timer: '5 seconds per turn. Run out and the turn ends: +2 cards.',
-  horseD_war_fury: 'Every attack hits for +2 cards.',
-  horseD_war_arms: 'Each turn one of your calm cards (not a wild) turns into an attack.',
-  horseD_famine_two: 'No more than 2 cards played or thrown away per turn. Discard-all takes only itself and one card of its colour.',
-  horseD_famine_tithe: 'After each turn the player hands a random card to whoever holds the fewest. Discard-all takes only itself and one card of its colour.',
-  horseD_plague_blank: 'Wilds lose their powers: they go on anything and do nothing.',
-  horseD_plague_rot: 'At the start of each turn 2 random cards in your hand rot and are replaced.',
+  horseD_war_timer: '4 seconds per turn. Run out and the turn ends: +3 cards.',
+  horseD_war_fury: 'Every attack hits for +3 cards.',
+  horseD_war_arms: 'Each turn two of your calm cards (not wilds) turn into attacks.',
+  horseD_famine_two: 'One card per turn: no multi-drops, no hands. Discard-all takes only itself and one card of its colour.',
+  horseD_famine_tithe: 'After each turn the player hands two random cards to whoever holds the fewest. Discard-all takes only itself and one card of its colour.',
+  horseD_plague_blank: 'Wilds and house cards lose their powers: they go down and do nothing.',
+  horseD_plague_rot: 'At the start of each turn 3 random cards in your hand rot and are replaced.',
   curse_dark: 'Darkness', curse_fever: 'Fever', curse_mirror: 'Mirror world', curse_static: 'Static',
-  curseD_dark: 'You only see around your cursor.', curseD_fever: 'Your hand shakes and shuffles itself.', curseD_mirror: 'The whole table is mirrored (the log stays put).', curseD_static: 'Interference over the screen.',
+  curseD_dark: 'You only see around your cursor.', curseD_fever: 'Your hand shakes and reshuffles every second.', curseD_mirror: 'The whole table is mirrored (the log stays put).', curseD_static: 'Interference over the screen.',
   horseRides: 'A HORSEMAN RIDES IN', horseLeft: k => `${k}/10 turns`, yourCurse: 'Your curse'
 });
 Object.assign(STR.ru, {
   horse_death: 'Смерть', horse_war: 'Война', horse_famine: 'Голод', horse_plague: 'Чума',
   horseD_death_curse: 'Каждый игрок проклят, пока всадник не уедет.',
-  horseD_war_timer: '5 секунд на ход. Не успели — ход окончен и +2 карты.',
-  horseD_war_fury: 'Каждая атака бьёт на +2 карты сильнее.',
-  horseD_war_arms: 'В начале хода одна ваша мирная карта (не джокер) становится атакующей.',
-  horseD_famine_two: 'Не больше 2 карт за ход: разыграть или сбросить. Сброс всего забирает только себя и одну карту своего цвета.',
-  horseD_famine_tithe: 'После хода игрок отдаёт случайную карту тому, у кого меньше всех. Сброс всего забирает только себя и одну карту своего цвета.',
-  horseD_plague_blank: 'Джокеры теряют силу: кладутся на что угодно и ничего не делают.',
-  horseD_plague_rot: 'В начале хода 2 случайные карты в руке гниют и заменяются.',
+  horseD_war_timer: '4 секунды на ход. Не успели — ход окончен и +3 карты.',
+  horseD_war_fury: 'Каждая атака бьёт на +3 карты сильнее.',
+  horseD_war_arms: 'В начале хода две ваши мирные карты (не джокеры) становятся атакующими.',
+  horseD_famine_two: 'Одна карта за ход: никаких мультисбросов и комбинаций. Сброс всего забирает только себя и одну карту своего цвета.',
+  horseD_famine_tithe: 'После хода игрок отдаёт две случайные карты тому, у кого меньше всех. Сброс всего забирает только себя и одну карту своего цвета.',
+  horseD_plague_blank: 'Джокеры и карты дома теряют силу: кладутся и ничего не делают.',
+  horseD_plague_rot: 'В начале хода 3 случайные карты в руке гниют и заменяются.',
   curse_dark: 'Мрак', curse_fever: 'Лихорадка', curse_mirror: 'Зазеркалье', curse_static: 'Помехи',
-  curseD_dark: 'Видно только вокруг курсора.', curseD_fever: 'Рука дрожит и сама перемешивается.', curseD_mirror: 'Весь стол отражён зеркально.', curseD_static: 'Помехи поверх экрана.',
+  curseD_dark: 'Видно только вокруг курсора.', curseD_fever: 'Рука трясётся и перемешивается каждую секунду.', curseD_mirror: 'Весь стол отражён зеркально.', curseD_static: 'Помехи поверх экрана.',
   horseRides: 'ВЪЕЗЖАЕТ ВСАДНИК', horseLeft: k => `${k}/10 ходов`, yourCurse: 'Ваше проклятие'
 });
 RULES_HTML.en = RULES_HTML.en.replace('<h3>Debt match</h3>', `<h3>The Horsemen</h3><ul>
     <li>Once per match, the first time anyone's debt reaches <b>70% of their limit</b>, one of four horsemen rides in for <b>10 table turns</b> (every player's turn counts). If the deal ends first, the rest carries into the next deal.</li>
     <li>After the first one has come, <b>every turn there is a 5% chance</b> another random horseman rides in (once the current one has left).</li>
-    <li><b>Death</b> curses every player: Darkness, Fever, Mirror world or Static. <b>War</b>: a 5-second turn clock (+2 cards if it runs out), or every attack +2, or a calm card turning into an attack each turn. <b>Famine</b>: 2 cards per turn at most, or a card handed to the smallest hand after each turn. <b>Plague</b>: wilds go blank, or 2 cards rot and are replaced each turn.</li></ul><h3>Debt match</h3>`);
+    <li><b>Death</b> curses every player: Darkness, Fever, Mirror world or Static. <b>War</b>: a 4-second turn clock (+3 cards if it runs out), or every attack +3, or two calm cards turning into attacks each turn. <b>Famine</b>: one card per turn, or two cards handed to the smallest hand after each turn. <b>Plague</b>: wilds and house cards go blank, or 3 cards rot and are replaced each turn.</li></ul><h3>Debt match</h3>`);
 RULES_HTML.ru = RULES_HTML.ru.replace('<h3>Матч на долг</h3>', `<h3>Всадники</h3><ul>
     <li>Раз за матч, когда чей-то долг впервые достигает <b>70% лимита</b>, въезжает один из четырёх всадников на <b>10 ходов стола</b> (считается ход любого игрока). Кончилась раздача раньше — остаток переходит в следующую.</li>
     <li>После первого всадника <b>каждый ход есть шанс 5%</b>, что приедет ещё один случайный (когда предыдущий уехал).</li>
-    <li><b>Смерть</b> проклинает каждого: Мрак, Лихорадка, Зазеркалье или Помехи. <b>Война</b>: 5 секунд на ход (не успели — +2 карты), или каждая атака +2, или мирная карта каждый ход становится атакой. <b>Голод</b>: не больше 2 карт за ход, или после хода карта уходит самой маленькой руке. <b>Чума</b>: джокеры пустеют, или каждый ход 2 карты гниют и заменяются.</li></ul><h3>Матч на долг</h3>`);
+    <li><b>Смерть</b> проклинает каждого: Мрак, Лихорадка, Зазеркалье или Помехи. <b>Война</b>: 4 секунды на ход (не успели — +3 карты), или каждая атака +3, или каждый ход две мирные карты становятся атаками. <b>Голод</b>: одна карта за ход, или после хода две карты уходят самой маленькой руке. <b>Чума</b>: джокеры и карты дома пустеют, или каждый ход 3 карты гниют и заменяются.</li></ul><h3>Матч на долг</h3>`);
 
 Object.assign(STR.en, { horseGone: k => `${k} rides off` });
 Object.assign(STR.ru, { horseGone: k => `${k} уезжает` });
@@ -3582,6 +3617,7 @@ for (const L of ['en', 'ru']) {
     <li>Everyone can see your inventory and what's running.</li></ul><h3>Debt match</h3>`;
   RULES_HTML[L] = RULES_HTML[L].replace(ru ? '<h3>Матч на долг</h3>' : '<h3>Debt match</h3>', html);
 }
+Object.assign(STR.en, { tAgain: 'Your turn again' }); Object.assign(STR.ru, { tAgain: 'Ваш ход ещё раз' });
 
 // ===== ASSETS: an optional pack of card sprites, fonts, sounds and a background, loaded from /assets =====
 // Anything missing falls back to the built-in look and synthesized sounds. See template/README.md.
@@ -3896,11 +3932,19 @@ const JUICE = (() => {
     g.classList.remove('shake2'); void g.offsetWidth; g.classList.add('shake2');
     setTimeout(() => g.classList.remove('shake2'), 420);
   }
+  // a glitch is a short burst of cyberpsychosis: the picture splits into red and cyan, slices of it tear sideways,
+  // a red static floods in and a broken system line flashes
+  let psy = null, psyT = 0;
+  const PSY_LINES = { ru: ['ОШИБКА СИНХРОНИЗАЦИИ', 'НЕЙРОСВЯЗЬ НЕСТАБИЛЬНА', 'ПОТЕРЯ КОНТРОЛЯ', 'СИСТЕМА: ПЕРЕГРУЗКА'], en: ['SYNC ERROR', 'NEURAL LINK UNSTABLE', 'LOSS OF CONTROL', 'SYSTEM OVERLOAD'] };
   function glitch() {
     if (!full()) return;
     const g = document.getElementById('game'); if (!g) return;
-    g.classList.remove('glitch'); void g.offsetWidth; g.classList.add('glitch');
-    setTimeout(() => g.classList.remove('glitch'), 360);
+    if (!psy) { psy = document.createElement('div'); psy.id = 'psycho'; psy.innerHTML = '<i></i><i></i><i></i><b></b>'; document.body.appendChild(psy); }
+    const L = PSY_LINES[(typeof LANG !== 'undefined' && LANG) || 'en'] || PSY_LINES.en;
+    psy.querySelector('b').textContent = L[Math.floor(Math.random() * L.length)];
+    psy.querySelectorAll('i').forEach(el => { el.style.top = (Math.random() * 90).toFixed(1) + '%'; el.style.height = (2 + Math.random() * 9).toFixed(1) + '%'; });
+    g.classList.remove('glitch'); psy.classList.remove('on'); void g.offsetWidth; g.classList.add('glitch'); psy.classList.add('on');
+    clearTimeout(psyT); psyT = setTimeout(() => { g.classList.remove('glitch'); psy.classList.remove('on'); }, 560);
   }
 
   // ---- card tilt toward the pointer (desktop) ----
@@ -4202,7 +4246,7 @@ document.addEventListener('pointerdown', () => SFX.init(), { capture: true });
 // ================= FX (short, ease-out, no overshoot) =================
 function rectOf(el) { return el ? el.getBoundingClientRect() : null; }
 function centerRect(r, w, h) { return { left: r.left + r.width / 2 - w / 2, top: r.top + r.height / 2 - h / 2, width: w, height: h }; }
-function fly(html, from, to, { dur = 180, delay = 0, onDone } = {}) {
+function fly(html, from, to, { dur = 120, delay = 0, onDone } = {}) {
   if (!from || !to) { if (onDone) onDone(); return; }
   const wrap = document.createElement('div'); wrap.innerHTML = html; const el = wrap.firstElementChild;
   if (!el) return;
@@ -4518,7 +4562,7 @@ async function useCard(card, el, fromRect) {
       card = pick.lead; extra = pick.extra; face = G.f(card); back = G.back(card);
     }
   }
-  if (face.c === 'w' && face.v !== 'roul' && !(G.horseOn('plague', 'blank') && !card.uniq)) color = await pickColor(t('pickColor'), cardName(face), G.side);
+  if (face.c === 'w' && face.v !== 'roul' && !(G.horseOn('plague', 'blank', ME) && !card.uniq)) color = await pickColor(t('pickColor'), cardName(face), G.side);
   if ((face.v === 'flip' || face.v === 'dflip') && back.c === 'w') flipColor = await pickColor(t('flipWild'), t('flipWildSub', cardName(back)), G.side === 'L' ? 'D' : 'L');
   const keep = me.hand.length - 1 - extra.length;
   if (face.v === 'sacr' && G.active().length > 2) target = await pickTarget(t('sacrQ'), t('sacrSub'));
@@ -4597,12 +4641,12 @@ function attachCard(el, card) {
           // keep the new order: from now on the hand is sorted by hand
           handOrder = order.map(i => els[i].dataset.id); sortMode = 'manual';
           const dest = rects[target];
-          const a = ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${dest.l}px,${dest.t}px)` }], { duration: 120, easing: 'ease-out' });
+          const a = ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${dest.l}px,${dest.t}px)` }], { duration: 90, easing: 'ease-out' });
           a.onfinish = () => { ghost.remove(); clearPreview(els); el.classList.remove('lifted'); render(); };
         }
         else {
           clearPreview(els);
-          const a = ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${r0.left}px,${r0.top}px)` }], { duration: 150, easing: 'ease-out' });
+          const a = ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${r0.left}px,${r0.top}px)` }], { duration: 110, easing: 'ease-out' });
           a.onfinish = () => { ghost.remove(); el.classList.remove('lifted'); render(); };
         }
       } else if (ev.type === 'pointerup' && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) {
@@ -5193,7 +5237,7 @@ function processEvents() {
         els.forEach(el => el.style.opacity = '0');
         codes.forEach((code, j) => {
           const card = codeCard(code), el = els[j], w = String(code).length > 2 ? String(code).slice(3) : null;
-          fly(faceHTML(card[e.side], e.side, '', '', w != null ? w : null), from, el ? rectOf(el) : cw, { delay: j * 110, onDone: () => {
+          fly(faceHTML(card[e.side], e.side, '', '', w != null ? w : null), from, el ? rectOf(el) : cw, { delay: j * 60, onDone: () => {
             if (!el) return; el.style.opacity = ''; el.classList.remove('land'); void el.offsetWidth; el.classList.add('land');
             if (j) SFX.play('play');
           } });
@@ -5207,7 +5251,7 @@ function processEvents() {
         const to = seatRect(e.pi), from = rectOf($('drawpile'));
         if (!to || !from) break;
         const ob = otherSide(), tail = p.hand.slice(-Math.min(e.k, 5));
-        tail.forEach((c, k) => fly(faceHTML(c[ob] || { c: 'w', v: 'wild' }, ob), from, centerRect(to, from.width * 0.5, from.height * 0.5), { delay: k * 30 }));
+        tail.forEach((c, k) => fly(faceHTML(c[ob] || { c: 'w', v: 'wild' }, ob), from, centerRect(to, from.width * 0.5, from.height * 0.5), { delay: k * 18 }));
         floatText(e.pi, '+' + e.k);
         break;
       }
@@ -5269,6 +5313,7 @@ function processEvents() {
       case 'oven': SFX.play('flip'); JUICE.shake(3); break;
       case 'rent': if (e.pi === ME) { SFX.play('coin'); floatText(e.pi, '+3¢'); } break;
       case 'eclipseMiss': if (e.pi === ME) floatText(e.pi, '', ITEM_ICON.eclipse + ' +' + e.k + '%'); break;
+      case 'again': if (e.pi === ME) { SFX.play('turn'); bump(7, t('tAgain')); } break;
       case 'horse': SFX.play('lastcall'); JUICE.shake(8); JUICE.glitch(); setTimeout(() => horsePop(e.k, e.v), 30); break;
       case 'horseEnd': SFX.play('lucky'); bump(8, t('horseGone', t('horse_' + e.k))); break;
       case 'warTime': SFX.play('bad'); JUICE.shake(4); floatText(e.pi, '+2'); break;
@@ -5509,7 +5554,7 @@ function moveDark(x, y) { darkXY = [x, y]; if (darkRaf) return; darkRaf = reques
 addEventListener('pointermove', e => { if (curseOn === 'dark') { curseDarkMoved = true; moveDark(e.clientX, e.clientY); } }, { passive: true });
 addEventListener('pointerdown', e => { if (curseOn === 'dark') { curseDarkMoved = true; moveDark(e.clientX, e.clientY); } }, { passive: true });
 // Fever: the hand reshuffles itself every 2 seconds (never while you hold a card)
-setInterval(() => { if (curseOn === 'fever' && !dragging && G && !document.hidden) { feverSeed++; render(); } }, 2000);
+setInterval(() => { if (curseOn === 'fever' && !dragging && G && !document.hidden) { feverSeed++; render(); } }, 1000);
 function feverShuffle(a) {
   let x = feverSeed * 9301 + 49297; const r = () => (x = (x * 9301 + 49297) % 233280) / 233280;
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
