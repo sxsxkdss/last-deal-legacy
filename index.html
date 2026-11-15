@@ -3403,7 +3403,7 @@ RULES_HTML.en = `<p class="rulestag">An after-hours card den under a casino. The
     <li><b>Russian roulette</b>: facing a big enough stack, press Roulette: 50% the stack is gone and the turn passes, 50% you take it doubled.</li>
 </ul>
     <h3>Poker hands</h3><ul>
-    <li><b>How to pick</b>: right-click cards (or Ctrl/Shift+click, or press <b>Pick several</b> and tap them). A bar above your hand shows the hand and its payout; press Play, click the pile or drag a picked card onto it. A plain click still plays one card. The bar also hints the best hand you hold.</li>
+    <li><b>How to pick</b>: right-click cards (or Ctrl/Shift+click; on a phone press <b>Pick several</b> and tap them). The name of the hand shows above your strip. Left-click any picked card (or drag it onto the pile) to throw them all. A left click on an unpicked card plays just that one.</li>
     <li>Numbers make poker hands; one plain <b>Wild</b> can stand in for any number. The first card that fits the pile leads; the last sets the colour.</li>
     <li><b>Pair</b>: debt −2. <b>Two Pair</b>, <b>Three of a Kind</b>: 1 extra card, debt −4. <b>Straight</b> (3+ in a row, one colour): 1 extra per card beyond 2, debt −3 each. <b>Flush</b> (5+ of one colour): 2 extra, debt −8. <b>Full House</b>: 2 extra, everyone else +1, debt −10.</li>
     <li><b>Four of a Kind</b>: 1 extra, everyone else +1, debt −10. <b>Rainbow</b> (one number in all four colours): 2 extra, everyone else +1, debt −12. <b>Five of a Kind</b>, <b>Straight Flush</b>: 2 extra, everyone else +2, debt −15.</li>
@@ -3442,7 +3442,7 @@ RULES_HTML.ru = `<p class="rulestag">Подпольный карточный п�
     <li><b>Русская рулетка</b>: перед достаточно большой стопкой нажмите «Рулетка»: 50% — стопка исчезает и ход уходит дальше, 50% — берёте её вдвойне.</li>
 </ul>
     <h3>Покерные комбинации</h3><ul>
-    <li><b>Как выбрать</b>: правый клик по картам (или Ctrl/Shift+клик, или кнопка <b>Выбрать несколько</b> и тапы). Над рукой появляется панель с комбинацией и выплатой; жмите «Сыграть», кликните по сбросу или перетащите выбранную карту на него. Обычный клик по-прежнему играет одну карту. Панель подсказывает лучшую комбинацию в руке.</li>
+    <li><b>Как выбрать</b>: правый клик по картам (или Ctrl/Shift+клик; на телефоне кнопка <b>Выбрать несколько</b> и тапы). Над вашей полоской появляется название комбинации. Левый клик по любой выбранной карте (или перетаскивание на сброс) скидывает их все. Левый клик по невыбранной карте играет только её.</li>
     <li>Комбинации собираются из цифр; один простой <b>Джокер</b> может заменить любую цифру. Ведёт первая карта, которая подходит к сбросу; последняя задаёт цвет.</li>
     <li><b>Пара</b>: долг −2. <b>Две пары</b>, <b>Сет</b>: 1 лишняя карта, долг −4. <b>Стрит</b> (3+ подряд одного цвета): по 1 лишней за каждую сверх двух, долг −3 за каждую. <b>Флеш</b> (5+ одного цвета): 2 лишние, долг −8. <b>Фулл-хаус</b>: 2 лишние, всем остальным +1, долг −10.</li>
     <li><b>Каре</b>: 1 лишняя, всем остальным +1, долг −10. <b>Радуга</b> (одна цифра всех четырёх цветов): 2 лишние, всем +1, долг −12. <b>Покер</b> (5 одинаковых), <b>Стрит-флеш</b>: 2 лишние, всем +2, долг −15.</li>
@@ -4711,15 +4711,12 @@ function drawSelBar() {
   selIds = selIds.filter(id => me.hand.some(c => c.id === id && !c.lock));
   const info = selInfo(), myTurn = myTurnNow(), canGo = info && info.ok && myTurn && !busy;
   let html = '';
-  if (info) {
-    const cb = info.cb, night = G.side === 'D';
-    const pay = cb ? [cb.d ? (night ? t('comboNightSlap', nm(G.nextIdx(ME, 1)), cb.d) : t('comboToss', cb.d)) : '', cb.m ? t('comboHit', cb.m) : '', !night && cb.r && me.limit > 0 ? t('comboRelief', cb.r) : ''].filter(Boolean).join(' · ') : '';
-    const what = info.kind === 'combo' ? `<b>${t('combo_' + cb.key)}</b><span class="chips">${cb.chips}</span><i>×</i><span class="mult">${cb.mult}</span>${cb.joker ? `<em>${t('withJoker')}</em>` : ''}${pay ? `<em>${esc(pay)}</em>` : ''}`
-      : info.kind === 'same' ? `<b>${t('togetherN', info.cards.length)}</b>` : info.kind === 'one' ? `<b>${t('oneCard')}</b>` : `<b class="bad">${t('noCombo')}</b>`;
-    html = `<span class="sbN">${info.cards.length}</span>${what}${info.why === 'lead' ? `<em class="bad">${t('firstMustFit')}</em>` : ''}<button class="btn primary" id="selGo" ${canGo ? '' : 'disabled'}>${t('playN', info.cards.length)}</button><button class="btn quiet" id="selClear">${t('cancel')}</button>`;
-  } else if (G.rules.multi && !me.out) {
-    const b = bestCombo(me.hand);
-    if (b) html = `<button class="hint" id="selHint">${t('hintCombo', t('combo_' + b.cb.key), b.cards.length)}</button>`;
+  // just the name of what the picked cards make; the buttons only in tap-to-pick mode (phones)
+  if (info && info.cards.length > 1) {
+    const name = info.kind === 'combo' ? t('combo_' + info.cb.key) : info.kind === 'same' ? t('togetherN', info.cards.length) : t('noCombo');
+    html = `<b class="${info.ok ? '' : 'bad'}">${name}</b>${selMode ? `<button class="btn primary" id="selGo" ${canGo ? '' : 'disabled'}>${t('playN', info.cards.length)}</button><button class="btn quiet" id="selClear">${t('cancel')}</button>` : ''}`;
+  } else if (info && selMode) {
+    html = `<button class="btn primary" id="selGo" ${canGo ? '' : 'disabled'}>${t('playN', 1)}</button><button class="btn quiet" id="selClear">${t('cancel')}</button>`;
   }
   setHTML(bar, html); bar.classList.toggle('hidden', !html);
   if ($('selGo')) $('selGo').onclick = () => playSelection();
@@ -4815,8 +4812,10 @@ function attachCard(el, card) {
         }
       } else if (ev.type === 'pointerup' && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 10) {
         if (confessSel) { if (!card.lock) { confessSel.has(card.id) ? confessSel.delete(card.id) : confessSel.size < 3 && confessSel.add(card.id); SFX.play('click'); render(); } }
-        else if (selMode || ev.ctrlKey || ev.shiftKey || ev.metaKey || selIds.length) toggleSel(card);
-        else useCard(card, el);
+        else if (selMode || ev.ctrlKey || ev.shiftKey || ev.metaKey) toggleSel(card);
+        // picked with the right button, thrown with the left: a click on a picked card plays them all
+        else if (selIds.includes(card.id)) playSelection();
+        else { if (selIds.length) { selIds = []; } useCard(card, el); }
       }
     };
     el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
