@@ -1129,6 +1129,15 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 #comboRef .crcols, .comboref .crcols { font-size: 9px; line-height: 12px; }
 #comboRef .crfoot, .comboref .crfoot { font-size: 10px; line-height: 13px; margin-top: 4px; padding-top: 4px; }
 
+/* every dialog has a close cross; choices the game waits for tuck away into a tab instead */
+.dialog { position: relative; }
+.modalx { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; display: grid; place-items: center; background: none; border: 0; color: inherit; opacity: .55; cursor: pointer; z-index: 2; }
+.modalx:hover { opacity: 1; color: var(--stamp-hi, #c8321e); }
+.dialog > h2:first-of-type, .dialog > .contract .cHead { padding-right: 28px; }
+.modalback { position: fixed; left: 50%; top: 12px; translate: -50% 0; z-index: 60; padding: 8px 16px; background: var(--stamp, #8f1d12); color: #f2e6cf; border: 0; border-radius: var(--ui-r); font: 600 13px/16px var(--f-stamp); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 16px rgba(0, 0, 0, .5); animation: backNod 1.6s ease-in-out infinite; }
+.modalback.hidden { display: none; }
+@keyframes backNod { 0%, 100% { translate: -50% 0; } 50% { translate: -50% 3px; } }
+
 </style>
 </head>
 <body>
@@ -1225,6 +1234,7 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 <div id="crt" aria-hidden="true"></div><div id="grain" aria-hidden="true"></div>
 <div id="fx"></div>
 <div id="modal" class="modal hidden"><div class="dialog" id="modalBody"></div></div>
+<button id="modalBack" class="modalback hidden" data-i18n="modalBack"></button>
 
 <script>
 // ===== ENGINE: UNO Flip × No Mercy × Classic (no DOM) =====
@@ -2898,7 +2908,7 @@ STR.en = {
   flipWild: 'The shift turns up a wild', flipWildSub: n => `The other side of this card is ${n}. Call its colour.`,
   giftQ: 'Who gets the tip?', giftSub: k => `${k} random cards from your hand go to them.`,
   duel: 'Duel', togetherQ: 'Play them together?', togetherSub: 'They go down left to right. Drag to reorder, click a card to take it out or put it back. The last one sets the colour.',
-  firstMustFit: 'The first card has to fit the pile by itself.', playN: k => `Play ${k} ${cardsAcc(k)}`, clearOrder: 'Clear', selectAll: 'All', cancel: 'Cancel', close: 'Close',
+  firstMustFit: 'The first card has to fit the pile by itself.', playN: k => `Play ${k} ${cardsAcc(k)}`, clearOrder: 'Clear', selectAll: 'All', cancel: 'Cancel', close: 'Close', modalBack: 'Back to the choice',
   leaveQ: 'Leave the match?', leaveSub: "You're out and the rest play on. If your connection just dropped, you have a minute to get back to your seat.", stay: 'Stay',
   handEmptied: 'Hand empty.', finalCounts: 'Cards left:', winner: 'winner', cardsN: k => `${k} ${cardsW(k)}`,
   playAgain: 'Again', backLobby: 'Back to the lobby', waitNext: 'Waiting for the host to deal.',
@@ -3097,7 +3107,7 @@ STR.ru = {
   flipWild: 'Смена открыла джокера', flipWildSub: n => `На обороте этой карты ${n}. Назовите цвет.`,
   giftQ: 'Кому чаевые?', giftSub: k => `${k} ${cardsAcc(k)} из вашей руки наугад уйдут ему.`,
   duel: 'Дуэль', togetherQ: 'Сыграть вместе?', togetherSub: 'Ложатся слева направо. Перетащите, чтобы переставить, нажмите на карту, чтобы убрать или вернуть. Цвет задаёт последняя.',
-  firstMustFit: 'Первая карта должна подходить к сбросу сама.', playN: k => `Сыграть ${k} ${cardsAcc(k)}`, clearOrder: 'Снять', selectAll: 'Все', cancel: 'Отмена', close: 'Закрыть',
+  firstMustFit: 'Первая карта должна подходить к сбросу сама.', playN: k => `Сыграть ${k} ${cardsAcc(k)}`, clearOrder: 'Снять', selectAll: 'Все', cancel: 'Отмена', close: 'Закрыть', modalBack: 'Вернуться к выбору',
   leaveQ: 'Уйти из матча?', leaveSub: 'Вы выбываете, остальные играют дальше. Если просто отвалилась связь, у вас минута, чтобы вернуться на место.', stay: 'Остаться',
   handEmptied: 'Рука пуста.', finalCounts: 'Осталось карт:', winner: 'победитель', cardsN: k => `${k} ${cardsW(k)}`,
   playAgain: 'Ещё раз', backLobby: 'В лобби', waitNext: 'Ждём, пока хозяин сдаст.',
@@ -4638,7 +4648,7 @@ function tick() {
   if (G.winner !== null) { if (!MATCH) setTimeout(showEnd, 1400); return; }
   if (G.roulette === ME && roulettePrompted !== G.seq && !busy) {
     roulettePrompted = G.seq; busy = true; rouletteOpen = true;
-    pickColor(t('rouletteTitle'), t('rouletteSub'), G.side).then(c => { busy = false; rouletteOpen = false; act('roul', { color: c }); });
+    pickColor(t('rouletteTitle'), t('rouletteSub'), G.side, true).then(c => { busy = false; rouletteOpen = false; act('roul', { color: c }); });
   }
   if (rouletteOpen && G.roulette !== ME) { rouletteOpen = false; busy = false; closeModal(); }
 }
@@ -4655,11 +4665,12 @@ async function useCard(card, el, fromRect, extrasIn) {
   busy = true;
   let color = null, flipColor = null, target = null, extra = [];
   if (Array.isArray(extrasIn) && extrasIn.length) extra = extrasIn;
-  if (face.c === 'w' && face.v !== 'roul' && !(G.horseOn('plague', 'blank', ME) && !card.uniq)) color = await pickColor(t('pickColor'), cardName(face), G.side);
-  if ((face.v === 'flip' || face.v === 'dflip') && (back.c === 'w' || back.c === 'x')) flipColor = await pickColor(t('flipWild'), t('flipWildSub', cardName(back)), G.side === 'L' ? 'D' : 'L');
+  const cancel = () => { busy = false; render(); };
+  if (face.c === 'w' && face.v !== 'roul' && !(G.horseOn('plague', 'blank', ME) && !card.uniq)) { color = await pickColor(t('pickColor'), cardName(face), G.side); if (!color) return cancel(); }
+  if ((face.v === 'flip' || face.v === 'dflip') && (back.c === 'w' || back.c === 'x')) { flipColor = await pickColor(t('flipWild'), t('flipWildSub', cardName(back)), G.side === 'L' ? 'D' : 'L'); if (!flipColor) return cancel(); }
   const keep = me.hand.length - 1 - extra.length;
-  if (face.v === 'sacr' && G.active().length > 2) target = await pickTarget(t('sacrQ'), t('sacrSub'));
-  if (face.v === 'gift' && G.active().length > 2) target = await pickTarget(t('giftQ'), t('giftSub', Math.min(2 * (extra.length + 1), Math.max(0, keep))));
+  if (face.v === 'sacr' && G.active().length > 2) { target = await pickTarget(t('sacrQ'), t('sacrSub')); if (target === null) return cancel(); }
+  if (face.v === 'gift' && G.active().length > 2) { target = await pickTarget(t('giftQ'), t('giftSub', Math.min(2 * (extra.length + 1), Math.max(0, keep)))); if (target === null) return cancel(); }
   busy = false;
   if (!G || !G.players[ME].hand.some(c => cardCode(c) === cardCode(card))) { tick(); return; }
   lastPlayRect = fromRect || rectOf(el);
@@ -4900,6 +4911,7 @@ $('btnMenu').onclick = () => {
   $('mClose').onclick = closeModal;
 };
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) { e.preventDefault(); dismissModal(); return; }
   if (!G || $('game').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
   if (e.key === 'd' || e.key === ' ') { e.preventDefault(); drawNow(); }
   else if (e.key === 'p') $('btnPass').onclick();
@@ -5554,17 +5566,39 @@ function processEvents() {
 window.addEventListener('resize', () => render());
 
 // ================= DIALOGS =================
-function openModal(html) { $('modalBody').innerHTML = html; $('modal').classList.remove('hidden'); }
-function closeModal() { $('modal').classList.add('hidden'); }
+// Every dialog can be closed (× in the corner, Esc, or a click outside it).
+// A choice you started yourself (a wild's colour, a target) is cancelled by closing.
+// A choice the game is waiting for (colour roulette, the angel, passing cards, the shop) is only tucked away:
+// a "Back to the choice" tab stays on screen and brings it back.
+let modalState = { mode: 'close', onCancel: null, min: false, key: '' }, modalNext = null;
+function openModal(html, o) {
+  o = o || modalNext || {}; modalNext = null;
+  const key = o.key || '', stayMin = modalState.min && key && key === modalState.key;
+  $('modalBody').innerHTML = `<button class="modalx" id="modalX" title="${esc(t('close'))}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 5l14 14M19 5L5 19"/></svg></button>` + html;
+  modalState = { mode: o.mode || 'close', onCancel: o.onCancel || null, min: !!stayMin, key };
+  $('modalX').onclick = dismissModal;
+  $('modal').classList.toggle('hidden', !!stayMin); $('modalBack').classList.toggle('hidden', !stayMin);
+}
+function closeModal() { $('modal').classList.add('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; }
+function dismissModal() {
+  if ($('modal').classList.contains('hidden')) return;
+  SFX.play('click');
+  if (modalState.mode === 'min') { $('modal').classList.add('hidden'); $('modalBack').classList.remove('hidden'); modalState.min = true; return; }
+  const cb = modalState.onCancel; modalState.onCancel = null; closeModal(); if (cb) cb();
+}
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) dismissModal(); });
+$('modalBack').onclick = () => { $('modal').classList.remove('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; };
 const ON_COLOR = { y: 'var(--ink)', t: 'var(--ink)', o: 'var(--ink)' };
-function pickColor(title, sub, side) {
+function pickColor(title, sub, side, forced) {
   return new Promise(res => {
+    modalNext = forced ? { mode: 'min', key: 'roul' } : { onCancel: () => res(null) };
     openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p><div class="colors">${SIDE_COLORS[side].map(c => `<button data-c="${c}" style="background:${CVAR[c]};color:${ON_COLOR[c] || '#fff'}">${suitSVG(c)}${colorName(c)}</button>`).join('')}</div>`);
     $('modalBody').querySelectorAll('[data-c]').forEach(b => b.onclick = () => { SFX.play('click'); closeModal(); res(b.dataset.c); });
   });
 }
-function pickTarget(title, sub, skipLabel) {
+function pickTarget(title, sub, skipLabel, forced) {
   return new Promise(res => {
+    modalNext = forced ? { mode: 'min', key: 'target' } : { onCancel: () => res(null) };
     const list = G.players.map((p, i) => ({ p, i })).filter(o => o.i !== ME && !o.p.out);
     openModal(`<h2>${esc(title)}</h2><p>${esc(sub)}</p>
       <div class="list">${list.map(o => `<button data-t="${o.i}"><span style="display:flex;gap:8px;align-items:center"><span class="ini">${initials(o.p.name)}</span>${esc(o.p.name)}</span><span class="mono">${t('cardsN', o.p.hand.length)}</span></button>`).join('')}</div>
@@ -5595,6 +5629,7 @@ function pickExtras(card, same, pre) {
       const ord = order();
       const valid = !numbers || ord.length < 2 || !!comboOf(ord.map(c => G.f(c)));
       const slot = (c, k) => { const at = ord.indexOf(c); return `<div class="slot" data-k="${k}">${at >= 0 ? `<span class="ord">${at + 1}</span>` : ''}${faceHTML(G.f(c), G.side, at >= 0 ? 'on' : 'off')}</div>`; };
+      modalNext = { onCancel: () => res(null) };
       openModal(`<h2>${t(numbers ? 'comboQ' : 'togetherQ')}</h2><p>${t(numbers ? 'comboSub' : 'togetherSub')}</p>
         <div class="pick${list.length > 16 ? ' lots' : list.length > 9 ? ' many' : ''}" id="pickRow">${list.map(slot).join('')}</div>
         ${comboLine(ord)}
@@ -5647,6 +5682,7 @@ function showEnd() {
   const w = G.players[G.winner], meP = G.players[ME];
   const ranked = G.players.map((p, i) => ({ p, i })).sort((a, b) => (a.i === G.winner ? -1 : b.i === G.winner ? 1 : 0) || (a.p.elim - b.p.elim) || a.p.hand.length - b.p.hand.length);
   const won = G.winner === ME;
+  modalNext = { mode: 'min', key: 'end' };
   const controls = !isHost
     ? `<p style="margin:16px 0 0">${t('waitNext')}</p><button class="textlink" id="menu">${t('leaveRoom')}</button>`
     : `<button class="btn primary wide" id="again">${t('playAgain')}</button><button class="textlink" id="menu">${t('backLobby')}</button>`;
@@ -5675,11 +5711,12 @@ function dealOffer() {
   const o = G && G.offer;
   if (!o || o.pi !== ME) { if (offerKey) { offerKey = ''; if ($('modalBody').querySelector('.contract')) closeModal(); } return; }
   const key = G.gid + ':' + G.seq + ':' + o.kind;
-  if (offerKey === key && !$('modal').classList.contains('hidden')) return;
+  if (offerKey === key && (!$('modal').classList.contains('hidden') || modalState.min)) return;
   offerKey = key;
   const dark = o.kind === 'dark', me = G.players[ME], both = o.kind === 'both';
   const clause = id => `<button class="clause" data-deal="${id}">${DEAL_ICON[id] || ''}<b>${t('deal_' + id)}</b><span>${t('dealD_' + id)}</span>${dark && t('dealP_' + id) ? `<i>${t('price')}: ${t('dealP_' + id)}</i>` : ''}</button>`;
   const lit = (me.deals || []).filter(isLightDeal), fallWarn = dark && lit.length ? `<p class="fallwarn">${t('fallWarn', lit.map(d => t('deal_' + d)).join(', '))}</p>` : '';
+  modalNext = { mode: 'min', key: 'offer' };
   if (both) {
     const cl = (id, dk) => `<button class="clause" data-deal="${id}">${DEAL_ICON[id] || ''}<b>${t('deal_' + id)}</b><span>${t('dealD_' + id)}</span>${dk && t('dealP_' + id) ? `<i>${t('price')}: ${t('dealP_' + id)}</i>` : ''}</button>`;
     openModal(`<div class="contract both"><div class="cHead">${ITEM_ICON.twoface}<h2>${t('item_twoface')}</h2></div><p>${t('twofaceSub')}</p>
@@ -5699,7 +5736,7 @@ function dealOffer() {
     // the chosen clause gets signed (dark) or blessed (light) before the paper goes away
     b.classList.add('signed'); b.insertAdjacentHTML('beforeend', `<em class="sig">${dark ? t('signed') : t('blessed')}</em>`);
     SFX.play(dark ? 'bad' : 'win'); await new Promise(r => setTimeout(r, 650));
-    if (id === 'mark') { closeModal(); target = await pickTarget(t('markQ'), t('markSub')); }
+    if (id === 'mark') { closeModal(); target = await pickTarget(t('markQ'), t('markSub'), null, true); }
     closeModal(); offerKey = ''; act('deal', { id, target });
   });
   if ($('dealNo')) $('dealNo').onclick = async () => {
@@ -5819,6 +5856,7 @@ function matchOverlay() {
   // re-render only when something the dialog shows has changed
   const key = JSON.stringify([M.phase, M.round, M.passed, M.chips, M.debt, M.done, M.setup, M.hope, M.dark, M.inv, G.players[ME].hand.length, [...draftSel]]);
   if (key === overlayKey) return; overlayKey = key;
+  modalNext = { mode: 'min', key: 'phase:' + M.phase + ':' + M.round };
   if (M.phase === 'draft') return drawDraft(M);
   if (M.phase === 'shop') return drawShop(M);
   if (M.phase === 'over') return drawOver(M);
@@ -5899,6 +5937,7 @@ function drawOver(M) {
 $('btnColGive').onclick = async () => { if (!MATCH || MATCH.colUsed) return; const tg = await pickTarget(t('colGiveQ'), t('colGiveSub'), t('cancel')); if (tg === null) return; conn.send({ t: 'col', k: 'give', target: tg }); };
 $('btnColLever').onclick = () => { if (!MATCH || MATCH.colUsed) return; SFX.play('chaos'); conn.send({ t: 'col', k: 'lever' }); };
 function showRules() {
+  modalNext = { onCancel: () => { if (MATCH) { overlayKey = ''; matchOverlay(); } else if (G && G.winner !== null) showEnd(); } };
   openModal(`<h2>${t('howTo')}</h2><div class="rulestext">${RULES_HTML[LANG]}</div><button class="btn primary wide" id="closeR">${t('close')}</button>`);
   $('closeR').onclick = () => { closeModal(); if (MATCH) { overlayKey = ''; matchOverlay(); } else if (G && G.winner !== null) showEnd(); };
 }
