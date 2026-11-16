@@ -215,12 +215,7 @@ function nextBotJob(room) {
     const v = G.offer.pi; return { wait: rnd(1400, 2400), run: () => { const r = Bot.deal(G, v); if (r) G.resolveDeal(v, r.id, r.target); } };
   }
   const pi = G.turn;
-  if (!isBot(pi)) {
-    // now and then a bot slams an exact copy out of turn
-    const j = Bot.jumpCandidate(G);
-    if (j && isBot(j.pi) && Math.random() < 0.5) return { wait: rnd(900, 1800), run: () => botPlay(G, j.pi, j.card) };
-    return null;
-  }
+  if (!isBot(pi)) return null;
   return { wait: rnd(650, 1150), run: () => {
     const it = Bot.item(G, pi); if (it && G.useItem(pi, it)) return;
     const m = Bot.choose(G, pi);
@@ -254,7 +249,7 @@ function startGame(room) {
     newDeal(room);
     return null;
   }
-  room.G = new Game(names, names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0 }));
+  room.G = new Game(names, names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards) }));
   return null;
 }
 
@@ -282,7 +277,7 @@ function newDeal(room) {
   M.round++;
   const deals = M.ds.map((d, i) => Object.assign({}, d, { inv: (M.inv || [])[i] || [], debt: M.debt[i], limit: hasDeal(d, 'bail') && d.limitAdj ? d.limitAdj : M.limit }));
   if (process.env.HORSE_FORCE && !M.horseUsed) { const [k, v] = process.env.HORSE_FORCE.split(':'); M.horse = { k, v, left: 10, fresh: true, curses: M.names.map((_, i) => (process.env.CURSE || 'dark,fever,mirror,static').split(',')[i % 4]) }; M.horseUsed = true; }
-  const G = new Game(M.names, M.names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), mercy: 0, deals, horse: M.horse, horseUsed: M.horseUsed, horseCount: M.horseCount || 0 }));
+  const G = new Game(M.names, M.names.map((_, i) => i), Object.assign({}, room.rules, { cards: Object.assign({}, room.cards), deals, horse: M.horse, horseUsed: M.horseUsed, horseCount: M.horseCount || 0 }));
   for (let i = 0; i < n; i++) {
     const p = G.players[i];
     if (M.col[i]) { p.hand = []; p.out = true; p.elim = true; p.collector = true; continue; }

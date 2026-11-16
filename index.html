@@ -1138,6 +1138,40 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
 .modalback.hidden { display: none; }
 @keyframes backNod { 0%, 100% { translate: -50% 0; } 50% { translate: -50% 3px; } }
 
+/* ---------- the rarity shine on its own layer ----------
+   The foil, prism and opal used to move by animating a CSS variable inside a background, which repaints the
+   card every frame. Now the shine is an oversized gradient on a child that slides (foil, prism) or turns (opal)
+   with transform only, so the GPU moves it and the card is painted once. Same gradients, same travel. */
+.card.tier-w::after, .card.tier-h::after, .card.tier-u::after { display: none; }
+.card .sheen { position: absolute; inset: calc(var(--cw) * .045); z-index: 4; pointer-events: none; overflow: hidden; border: 1px solid; border-radius: calc(var(--cw) * .03); }
+.card .sheen b { position: absolute; left: 0; top: 0; will-change: transform; }
+.card.tier-w .sheen { mix-blend-mode: screen; border-color: rgba(240, 200, 120, .55); opacity: .9;
+  background: repeating-linear-gradient(96deg, rgba(255, 220, 150, 0) 0 2px, rgba(255, 220, 150, .12) 2px 3px); }
+.card.tier-w .sheen b { width: 240%; height: 240%;
+  background: linear-gradient(118deg, transparent 26%, rgba(255, 200, 110, calc(.34 + var(--sheen, .07))) 44%, rgba(255, 244, 210, calc(.28 + var(--sheen, .07))) 50%, rgba(255, 200, 110, calc(.2 + var(--sheen, .07))) 56%, transparent 70%);
+  transform: translate(calc(var(--gx, 30%) * -.5833), calc(var(--gy, 30%) * -.5833)); animation: foilW 5.5s ease-in-out infinite; }
+@keyframes foilW { 0%, 100% { translate: 12.83% 12.83%; } 50% { translate: -12.83% -12.83%; } }
+.card.tier-h .sheen { mix-blend-mode: color-dodge; border-color: rgba(220, 240, 255, .55); opacity: .9; }
+.card.tier-h .sheen b { width: 260%; height: 260%;
+  background: repeating-linear-gradient(125deg, rgba(255, 60, 90, .3) 0 5%, rgba(255, 210, 60, .26) 5% 10%, rgba(60, 255, 170, .26) 10% 15%, rgba(70, 140, 255, .3) 15% 20%, rgba(200, 80, 255, .26) 20% 25%);
+  transform: translate(calc(var(--gx, 30%) * -.6154), calc(var(--gy, 30%) * -.6154)); animation: foilH 7s ease-in-out infinite; }
+@keyframes foilH { 0%, 100% { translate: 13.54% -13.54%; } 50% { translate: -13.54% 13.54%; } }
+.card.tier-u .sheen { mix-blend-mode: color-dodge; border-color: rgba(255, 210, 150, .7);
+  background: radial-gradient(circle at 22% 30%, rgba(255, 255, 255, .55) 0 .6%, transparent 1.2%), radial-gradient(circle at 70% 64%, rgba(255, 255, 255, .45) 0 .5%, transparent 1.1%), radial-gradient(circle at 58% 18%, rgba(255, 255, 255, .4) 0 .4%, transparent .9%); }
+.card.tier-u .sheen b { width: 200%; aspect-ratio: 1; left: 50%; top: 50%; translate: -50% -50%;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(255, 40, 80, .42), rgba(255, 170, 40, .34), rgba(80, 255, 160, .34), rgba(60, 130, 255, .42), rgba(190, 60, 255, .4), rgba(255, 40, 80, .42));
+  animation: opalTurnB 7s linear infinite; }
+@keyframes opalTurnB { to { rotate: 360deg; } }
+body.lite .card .sheen { display: none; }
+body.lite .card .sheen b, .tipmini .card .sheen b { animation: none; }
+/* the beat glow of the active rival: a static glow on its own layer whose opacity pulses (the GPU does it),
+   instead of animating the box-shadow, which repainted the whole paper tag on every beat */
+body.kick .opp.turn { animation: none; }
+.opp.turn::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0; will-change: opacity;
+  box-shadow: 0 0 0 3px #ff3a2a, 0 0 36px rgba(230, 40, 25, .85); }
+body.kick .opp.turn::after { animation: kickGlowB .32s ease-out; }
+@keyframes kickGlowB { 0% { opacity: .75; } 100% { opacity: 0; } }
+
 </style>
 </head>
 <body>
@@ -1207,7 +1241,7 @@ body.lite #hand .card:not(.ok):not(.jump):not(.sel) { filter: brightness(.62); }
   </div>
   <div id="bottom">
     <div class="me">
-      <div class="who"><span class="ini" id="meIni"></span><span id="meName"></span><span class="cnt" id="meCnt"></span><span class="tags label" id="meTags"></span><span id="meDeals"></span><div class="bar" id="meBarWrap"><div id="meDanger"></div></div></div>
+      <div class="who"><span class="ini" id="meIni"></span><span id="meName"></span><span class="cnt" id="meCnt"></span><span class="tags label" id="meTags"></span><span id="meDeals"></span></div>
       <div class="abbar hidden" id="abBar"></div>
       <div class="invbar hidden" id="invBar"></div>
       <div class="colbar hidden" id="colBar"><span class="label" id="colTxt"></span><button class="btn" id="btnColGive"></button><button class="btn" id="btnColLever"></button></div>
@@ -1245,10 +1279,10 @@ const VALUE_NAME = {
   discall: 'Discard All', skipall: 'Skip Everyone', wild: 'Wild', wd2: 'Wild Draw 2', wd4: 'Wild Draw 4',
   wrd4: 'Wild Reverse Draw 4', wd6: 'Wild Draw 6', wd10: 'Wild Draw 10', wrd8: 'Wild Reverse Draw 8',
   wdc: 'Wild Draw Color', roul: 'Wild Color Roulette',
-  mirror: 'Mirror', shield: 'Vest', dflip: 'Eclipse', duel: 'Wild Duel', wd15: 'Wild Draw 15', bhole: 'Wild Pot',
-  mul2: 'Wild Double Down', mul3: 'Wild Triple Down', lucky: 'Horseshoe', glass: 'Shot Glass', devil: '666', spin: 'Wild Jackpot', loan: 'Loan',
-  gift: 'Tip', echo: 'Wild Encore', freeze: 'Handcuffs', interest: 'Interest', sacrifice: 'Wild Sacrifice', wheel: 'Wild Wheel', bomb: 'Shotgun',
-  d6: 'Wild Redeal', pill: 'Scratch Card', tower: 'The Tower', glitch: 'Wild Glitch', brim: 'Wild Brimstone', foot: 'Collector', maze: 'Spinner', deal: 'Wild Contract', monstro: 'Wild All-In', lead: 'Lead', leech: 'Leech', fuse: 'Lit Fuse'
+  mirror: 'Mirror', shield: 'Vest', dflip: 'Eclipse', wd15: 'Wild Draw 15', 
+  mul2: 'Wild Double Down', mul3: 'Wild Triple Down', lucky: 'Horseshoe', glass: 'Shot Glass', spin: 'Wild Jackpot', loan: 'Loan',
+  gift: 'Tip', echo: 'Wild Encore', freeze: 'Handcuffs', bomb: 'Shotgun',
+  d6: 'Wild Redeal', pill: 'Scratch Card', maze: 'Spinner', deal: 'Wild Contract', lead: 'Lead', leech: 'Leech', fuse: 'Lit Fuse'
 };
 // ---------- Balatro combos: number cards played together in one drop ----------
 // d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
@@ -1391,9 +1425,7 @@ function faceName(f) { return f.c === 'w' ? VALUE_NAME[f.v] : COLOR_NAME[f.c] + 
 class Game {
   constructor(names, humans, rules) {
     rules = Object.assign({}, rules);
-    this.rules = Object.assign({ stacking: true, drawUntil: true, seven: true, zero: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, revenge: true, finisher: true, jumpIn: true, mercy: 25, handSize: 7, flip: true, chaos: true }, rules);
-    // cut from the game: 7 swap, 0 rotate, jump-in, revenge, finisher
-    Object.assign(this.rules, { jumpIn: false, revenge: false, finisher: false });
+    this.rules = Object.assign({ stacking: true, drawUntil: true, multi: true, combos: true, gamble: true, lastCall: true, potato: true, handSize: 7, flip: true, chaos: true }, rules);
     this.rules.cards = Object.assign(Object.fromEntries(EXTRA_CARDS.map(k => [k, true])), rules.cards);
     // card values that never get dealt at this table
     this.rules.off = EXTRA_CARDS.filter(k => !this.rules.cards[k]).concat(this.rules.flip ? [] : ['flip', 'dflip']);
@@ -1467,11 +1499,6 @@ class Game {
     if (this.lock > 0) return f.c === 'w' || f.c === this.color;
     return f.c === 'w' || f.c === this.color || f.v === t.v;
   }
-  canJumpIn(pi, card) {
-    if (!this.rules.jumpIn || this.winner !== null || this.roulette !== null || this.debt || pi === this.turn || this.players[pi].out || card.hidden || this.owes(pi)) return false;
-    const f = this.f(card), t = this.f(this.top);
-    return f.c === t.c && f.v === t.v;
-  }
   playable(pi) { return this.players[pi].hand.filter(c => this.canPlay(c)); }
   validColor(c, pi) { return this.colors().includes(c) ? c : Bot.bestColor(this, this.players[pi].hand, this.side); }
   give(pi, k, until) {
@@ -1481,20 +1508,12 @@ class Game {
       else if (got.length >= k) break;
       const c = this.next; this.next = this.newCard();
       p.hand.push(c); got.push(c);
-      if (this.rules.mercy && p.hand.length >= this.rules.mercy) break;
       if (got.length > 300) break;
     }
     if (got.length) this.ev('draw', { pi, k: got.length });
     return got;
   }
-  mercyCheck() {
-    if (this.rules.mercy) for (const p of this.players) {
-      if (!p.out && p.hand.length >= this.rules.mercy) {
-        p.out = true; p.elim = true;
-        this.addLog(`${p.name} hit ${p.hand.length} cards and is knocked out by the Mercy Rule.`, 'bad', 'ko', { n: p.name, k: p.hand.length });
-        this.ev('ko', { pi: this.players.indexOf(p) });
-      }
-    }
+  standingCheck() {
     const act = this.active();
     if (act.length === 1 && this.winner === null) {
       this.winner = this.players.indexOf(act[0]);
@@ -1918,8 +1937,7 @@ class Game {
     const idx = p.hand.findIndex(c => c.id === cardId);
     if (idx < 0 || this.winner !== null) return false;
     const card = p.hand[idx];
-    const jump = pi !== this.turn;
-    if (jump ? !this.canJumpIn(pi, card) : !this.canPlay(card)) return false;
+    if (pi !== this.turn || !this.canPlay(card)) return false;
     const face = this.f(card);
     const blank = (face.c === 'w' || EXTRA_CARDS.includes(face.v)) && !card.uniq && this.horseOn('plague', 'blank', pi); // Plague: wilds go down as blank paper
     if (this.horseOn('famine', 'two', pi) && Array.isArray(opts.extra)) opts = Object.assign({}, opts, { extra: [] });
@@ -1967,9 +1985,9 @@ class Game {
     }
     const showColor = face.c === 'w' && face.v !== 'roul' && !blank;
     const what = k > 1 ? chain.map(c => faceName(this.f(c))).join(', ') : faceName(face);
-    this.addLog(`${jump ? p.name + ' jumps in with' : p.name + ' plays'} ${what}${showColor ? ' → ' + COLOR_NAME[this.color] : ''}${extra}.`, jump ? 'jump' : '', 'play',
-      { n: p.name, j: jump ? 1 : 0, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
-    this.ev('play', { pi, code: cardCode(last), side: this.side, jump, k });
+    this.addLog(`${p.name} plays ${what}${showColor ? ' → ' + COLOR_NAME[this.color] : ''}${extra}.`, '', 'play',
+      { n: p.name, cards: chain.map(c => this.f(c)), c: showColor ? this.color : null, d: face.v === 'discall' ? (p.handDumped || 0) : 0 });
+    this.ev('play', { pi, code: cardCode(last), side: this.side, k });
     if (k > 1) this.ev('multi', { pi, k });
     let combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
     if (combo && combo.key === 'pair' && this.hasPerk(pi, 'sharp')) combo = Object.assign({}, combo, { key: 'three', d: COMBOS.three.d, mult: Math.max(1, COMBOS.three.d) }); // Sharp: a pair plays as three of a kind
@@ -2080,14 +2098,6 @@ class Game {
         this.ev('glass', { pi, broke: mine > 0 });
         break;
       }
-      case 'devil': {
-        // a pact: everyone else picks up 3 per card, you pay 1 per card
-        for (const i of this.players.map((q, i) => i)) if (i !== pi && !this.players[i].out) this.hit(pi, i, 2 * k);
-        p.oweN = (p.oweN || 0) + k;
-        this.addLog(`${p.name} plays 666: everyone else picks up ${2 * k}, ${p.name} pays ${k}.`, 'bad', 'devil', { n: p.name, a: 2 * k, b: k });
-        this.ev('devil', { pi });
-        break;
-      }
       case 'gift': {
         // give 2 random cards per Gift to a chosen player (never your last card)
         const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
@@ -2118,32 +2128,6 @@ class Game {
         for (let s = 1; s < steps; s++) this.ev('skip', { pi: this.nextIdx(pi, s) });
         this.addLog(`${p.name} freezes the next ${steps - 1} players.`, 'flip', 'freeze', { n: p.name, k: steps - 1 });
         break;
-      case 'interest': {
-        // everyone sitting on 8+ cards pays 2, you included
-        const hit = this.players.filter(q => !q.out && q.hand.length >= 8);
-        for (const q of hit) this.hit(pi, this.players.indexOf(q), 2 * k);
-        this.addLog(hit.length ? `Interest: ${hit.map(q => q.name).join(', ')} pick up ${2 * k}.` : 'Interest: nobody has 8 cards yet.', 'bad', 'interest', { l: hit.map(q => q.name), a: 2 * k });
-        this.ev('interest', { pis: hit.map(q => this.players.indexOf(q)) });
-        break;
-      }
-      case 'sacrifice': {
-        // burn 3 random cards per card; everyone else picks up 1
-        let burnt = 0;
-        for (let r = 0; r < 3 * k && p.hand.length > 1; r++) { p.hand.splice(Math.floor(Math.random() * p.hand.length), 1); burnt++; }
-        this.players.forEach((q, i) => { if (i !== pi && !q.out) this.hit(pi, i, k); });
-        this.addLog(`${p.name} sacrifices ${burnt} cards. Everyone else picks up ${k}.`, 'bad', 'sacrifice', { n: p.name, b: burnt, a: k });
-        this.ev('sacrifice', { pi, b: burnt });
-        break;
-      }
-      case 'wheel': {
-        // spins on a random other player: they pick up 4
-        const others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
-        const tgt = others[Math.floor(Math.random() * others.length)];
-        if (tgt != null) this.hit(pi, tgt, 4 * k);
-        this.addLog(`${p.name} spins the wheel: it lands on ${this.players[tgt].name}, +${4 * k}.`, 'bad', 'wheel', { n: p.name, t: this.players[tgt].name, a: 4 * k });
-        this.ev('wheel', { pi, t: tgt });
-        break;
-      }
       case 'bomb': {
         // the next player takes the blast (+3), both of their neighbours catch shrapnel (+1), you included
         const v = this.nextIdx(pi, 1), after = this.nextIdx(v, 1);
@@ -2181,43 +2165,6 @@ class Game {
         }
         break;
       }
-      case 'tower': {
-        // The Tower: three random players, anyone at all, pick up 2 each
-        const alive = this.players.map((q, i) => i).filter(i => !this.players[i].out), hits = [];
-        for (let r = 0; r < 3 * k; r++) { const i = alive[Math.floor(Math.random() * alive.length)]; hits.push(i); this.hit(pi, i, 1); }
-        this.addLog(`The Tower falls: ${hits.map(i => this.players[i].name).join(', ')} pick up 1.`, 'bad', 'tower', { l: hits.map(i => this.players[i].name) });
-        this.ev('tower', { hits });
-        break;
-      }
-      case 'glitch': {
-        // a glitched card: acts as a random effect
-        const opts2 = ['skip', 'rev', 'skipall', 'd4', 'wd6', 'freeze'];
-        const gv = opts2[Math.floor(Math.random() * opts2.length)];
-        if (DRAW_VAL[gv]) { this.pending += DRAW_VAL[gv] * k * (this.inflate > 0 ? 2 : 1) * this.multNext * this.dmul(pi); this.multNext = 1; this.stackMin = DRAW_VAL[gv]; this.stackFrom = pi; }
-        else if (gv === 'skip' || gv === 'freeze') { steps = Math.min(n, 1 + k * (gv === 'freeze' ? 2 : 1)); for (let s = 1; s < steps; s++) this.ev('skip', { pi: this.nextIdx(pi, s) }); }
-        else if (gv === 'skipall') { steps = 0; this.ev('skipall', { pi }); }
-        else if (gv === 'rev') { if (k % 2) { this.dir *= -1; steps = n === 2 ? 2 : 1; this.ev('reverse', { dir: this.dir }); } }
-        this.addLog(`${p.name}'s card glitches into ${faceName({ c: 'w', v: gv })}.`, 'flip', 'glitch', { n: p.name, v: gv });
-        this.ev('glitch', { pi, v: gv });
-        break;
-      }
-      case 'brim': {
-        // Brimstone: a beam through the next two players, 2 cards each
-        const hits = [];
-        for (let s = 1; s <= Math.min(2, n - 1); s++) { const i = this.nextIdx(pi, s); hits.push(i); this.hit(pi, i, 2 * k); }
-        this.addLog(`${p.name} fires Brimstone: ${hits.map(i => this.players[i].name).join(', ')} pick up ${2 * k}.`, 'bad', 'brim', { n: p.name, l: hits.map(i => this.players[i].name), a: 2 * k });
-        this.ev('brim', { pi, hits });
-        break;
-      }
-      case 'foot': {
-        // Mom's Foot stomps whoever is closest to winning (not you)
-        const others = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
-        const t = others.reduce((a, b) => this.players[b].hand.length < this.players[a].hand.length ? b : a, others[0]);
-        if (t != null) this.hit(pi, t, 4 * k);
-        this.addLog(`Mom's Foot stomps ${this.players[t].name}: +${4 * k}.`, 'bad', 'foot', { t: this.players[t].name, a: 4 * k });
-        this.ev('foot', { pi, t });
-        break;
-      }
       case 'maze':
         this.maze = 6 * k;
         this.addLog(`${p.name} curses the table: Curse of the Maze for ${this.maze} plays.`, 'flip', 'maze', { n: p.name, k: this.maze });
@@ -2251,45 +2198,12 @@ class Game {
         if (this.chipsWon && hasDeal(p, 'blood')) this.chipsWon[pi] += 10;
         break;
       }
-      case 'monstro': {
-        // Monstro lands on the next player: they pick up as many cards as you hold (max 8)
-        const vi = this.nextIdx(pi, 1), amt = Math.min(6, Math.max(1, p.hand.length)) * k;
-        this.hit(pi, vi, amt);
-        this.addLog(`Monstro lands on ${this.players[vi].name}: +${amt}.`, 'bad', 'monstro', { t: this.players[vi].name, a: amt });
-        this.ev('monstro', { pi, t: vi, k: amt });
-        break;
-      }
       case 'loan': {
         // 20 chips now; after 3 more of your plays, 30 debt
         if (this.chipsWon) this.chipsWon[pi] += 20 * k;
         p.loan = 3; p.loanAmt = 30 * k;
         this.addLog(`${p.name} takes a loan: ${20 * k}¢ now, ${30 * k} debt after 3 plays.`, 'swap', 'loan2', { n: p.name, c: 20 * k, d: 30 * k });
         this.ev('loan', { pi });
-        break;
-      }
-      case 'duel': {
-        const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
-        const flipNum = () => { const got = []; let n = null; while (n === null && got.length < 40) { const c = this.newCard(); got.push(c); const fv = this.f(c).v; if (!isNaN(+fv)) n = +fv; } return { got, n: n || 0 }; };
-        let pool = [], a, b, rounds = 0;
-        do { a = flipNum(); b = flipNum(); pool = pool.concat(a.got, b.got); rounds++; } while (a.n === b.n && rounds < 5);
-        const loser = a.n < b.n ? pi : tgt;
-        this.players[loser].owed = (this.players[loser].owed || []).concat(pool);
-        this.addLog(`${p.name} duels ${this.players[tgt].name}: ${a.n} vs ${b.n}. ${this.players[loser].name} must pick up all ${pool.length} turned-over cards.`, 'bad', 'duel', { n: p.name, t: this.players[tgt].name, na: a.n, nb: b.n, l: this.players[loser].name, k: pool.length });
-        this.ev('duel', { a: pi, b: tgt, na: a.n, nb: b.n, loser, k: pool.length });
-        break;
-      }
-      case 'bhole': {
-        const act = this.players.map((q, i) => i).filter(i => !this.players[i].out);
-        const all = act.flatMap(i => this.players[i].hand);
-        if (all.length >= act.length * 2) {
-          for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
-          const order = []; let i = this.nextIdx(pi, 1);
-          for (let k = 0; k < act.length; k++) { order.push(i); i = this.nextIdx(i, 1); }
-          for (const j of act) this.players[j].hand = [];
-          all.forEach((c, k) => this.players[order[k % order.length]].hand.push(c));
-          this.addLog(`Black hole. Every hand is pooled and dealt back out: ${act.map(j => this.players[j].name + ' ' + this.players[j].hand.length).join(', ')}.`, 'swap', 'bhole', { l: act.map(j => [this.players[j].name, this.players[j].hand.length]) });
-          this.ev('bhole', {});
-        }
         break;
       }
       case 'roul':
@@ -2312,11 +2226,6 @@ class Game {
         if (face.v === 'dflip') this.addLog(`Double flip: it turns back after ${this.players[this.nextIdx(pi, 1)].name}'s turn.`, 'flip', 'dflip', { n: this.players[this.nextIdx(pi, 1)].name });
         break;
       }
-    }
-    if (p.revenge && DRAW_VAL[face.v] && this.pending > 0) {
-      const add = DRAW_VAL[face.v] * k; this.pending += add; p.revenge = false;
-      this.addLog(`REVENGE: ${p.name}'s card counts double. The stack is +${this.pending}.`, 'stack', 'revenge', { n: p.name, k: this.pending });
-      this.ev('revenge', { pi, k: this.pending });
     }
     if (face.v === 'roul' && !blank) this.turn = this.roulette;
     else if (steps >= 0) this.turn = steps === 0 ? pi : this.nextIdx(pi, steps);
@@ -2346,7 +2255,7 @@ class Game {
       this.addLog(`Stack is now +${this.pending}. ${this.players[this.turn].name} must stack or take it.`, 'stack', 'stack', { k: this.pending, n: this.players[this.turn].name });
       this.ev('stack', { k: this.pending, pi: this.turn });
     }
-    this.mercyCheck();
+    this.standingCheck();
     return true;
   }
   // Double Flip: once the player after the flipper has acted, the table turns back.
@@ -2380,7 +2289,7 @@ class Game {
       let got;
       if (p.owed && p.owed.length) { const c = p.owed.shift(); p.hand.push(c); got = [c]; this.ev('draw', { pi, k: 1 }); }
       else { got = this.give(pi, 1); p.oweN--; }
-      this.seq++; this.mercyCheck();
+      this.seq++; this.standingCheck();
       return got;
     }
     if (pi !== this.turn || this.roulette !== null) return null;
@@ -2396,18 +2305,15 @@ class Game {
           : `${p.name} drew ${d.got} card${d.got > 1 ? 's' : ''} before hitting ${COLOR_NAME[d.until]}.`, 'bad',
           d.kind === 'stack' ? 'pickedUp' : 'drewUntil', { n: p.name, k: d.got, h: p.hand.length, c: d.until || null });
         if (d.got >= 10) this.ev('took', { pi, k: d.got });
-        if (d.kind === 'stack' && d.got >= 10 && this.rules.revenge !== false) { p.revenge = true; this.addLog(`${p.name} swears revenge: their next draw card counts double.`, 'stack', 'revengeOn', { n: p.name }); this.ev('revengeOn', { pi }); }
         this.debt = null; this.drewBy = -1; this.drawRun = 0;
         this.turn = this.nextIdx(pi, 1);
         this.applyShield(); this.checkFlipBack();
       }
-      this.mercyCheck();
+      this.standingCheck();
       return got;
     }
     if (this.pending > 0) {
       // taking the stack: the cards are picked up one by one
-      if (this.rules.finisher !== false && p.hand.length <= 2) { this.pending += 4; this.addLog(`FINISHER: ${p.name} was about to win. The stack grows to +${this.pending}.`, 'bad', 'finisher', { n: p.name, k: this.pending }); this.ev('finisher', { pi, k: this.pending }); }
-      if (p.marked) { p.marked = false; this.pending *= 2; this.addLog(`The devil collects: ${p.name}'s stack is doubled to +${this.pending}.`, 'bad', 'dealDue', { n: p.name, k: this.pending }); this.ev('dealDue', { pi, k: this.pending }); }
       const sf = this.stackFrom;
       if (this.takeStack && this.takeStack(pi, sf)) return true; // the guardian sent it back
       if (this.hasPerk(pi, 'pad') && this.padUsed && !this.padUsed[pi]) { this.padUsed[pi] = true; this.pending = Math.ceil(this.pending / 2); this.addLog(`${p.name}'s padding takes half the hit: +${this.pending}.`, 'win', 'pad', { n: p.name, k: this.pending }); this.ev('pad', { pi, k: this.pending }); }
@@ -2434,7 +2340,7 @@ class Game {
         this.drawRun = 0;
       }
     }
-    this.mercyCheck();
+    this.standingCheck();
     return got;
   }
   pass(pi) {
@@ -2645,7 +2551,6 @@ const Bot = {
         if (f.v === 'mul2' || f.v === 'mul3') s -= 5;             // better saved for a stack
         if (f.v === 'lucky') s += 3;
         if (f.v === 'glass') s += nl <= 3 ? 14 : 6;
-        if (f.v === 'devil') s += minOther.q.hand.length <= 3 ? 20 : 8;
         if (f.v === 'spin') s += 2;
         if (f.v === 'loan') s += p.loan ? -10 : (p.hand.length >= 6 ? 6 : -2);
         if (f.v === 'swind') s += p.hand.length >= 6 ? 14 : -6;
@@ -2653,20 +2558,11 @@ const Bot = {
         if (f.v === 'gift') s += p.hand.length >= 4 ? 10 : 2;
         if (f.v === 'echo') { const tv = g.top ? g.f(g.top).v : null; s += DRAW_VAL[tv] ? 9 : (['skip', 'skipall'].includes(tv) ? 5 : -4); }
         if (f.v === 'freeze') s += nl <= 3 ? 12 : 5;
-        if (f.v === 'interest') s += p.hand.length >= 8 ? -8 : (others.some(o => o.q.hand.length >= 8) ? 9 : -2);
-        if (f.v === 'sacrifice') s += p.hand.length >= 5 ? 10 : 1;
-        if (f.v === 'wheel') s += 6;
         if (f.v === 'bomb') s += nl <= 3 ? 14 : 6;
         if (f.v === 'd6') s += p.hand.length >= 8 ? 4 : -6;
         if (f.v === 'pill') s += 2;
-        if (f.v === 'tower') s += 1;
-        if (f.v === 'glitch') s += 4;
-        if (f.v === 'brim') s += 10;
-        if (f.v === 'foot') s += minOther.q.hand.length <= 3 ? 18 : 6;
         if (f.v === 'maze') s += 0;
-        if (f.v === 'deal') s += p.marked ? -20 : (p.hand.length >= 6 ? 12 : -4);
-        if (f.v === 'monstro') s += Math.min(8, p.hand.length) * 1.5;
-        if (f.v === 'bhole') { const avg = others.reduce((a, o) => a + o.q.hand.length, p.hand.length) / (others.length + 1); s += (p.hand.length - 1 - avg) * 3; }
+        if (f.v === 'deal') s += p.hand.length >= 6 ? 12 : -4;
         if (f.v === 'dflip') s += nl <= 3 ? 8 : 1;
         if (f.v === 'flip') {
           const rest = p.hand.filter(c => c !== card);
@@ -2692,19 +2588,9 @@ const Bot = {
       cardId: best.id, extra: extra.map(c => c.id),
       color: bf.c === 'w' ? this.bestColor(g, rest, g.side) : null,
       flipColor: (bf.v === 'flip' || bf.v === 'dflip') ? this.bestColor(g, rest, other(g.side)) : null,
-      target: bf.v === 'duel' || bf.v === 'gift' || bf.v === 'sacr' ? minOther.i : null
+      target: bf.v === 'gift' || bf.v === 'sacr' ? minOther.i : null
     };
   },
-  jumpCandidate(g) {
-    if (!g.rules.jumpIn || g.winner !== null || g.roulette !== null) return null;
-    for (let i = 0; i < g.players.length; i++) {
-      const p = g.players[i];
-      if (p.human || p.out || i === g.turn) continue;
-      const c = p.hand.find(c => g.canJumpIn(i, c));
-      if (c && Math.random() < 0.35) return { pi: i, card: c };
-    }
-    return null;
-  }
 };
 
 // ===== WIRE FORMAT =====
@@ -2715,7 +2601,7 @@ function serialize(g, viewer = -1, logN = 8) {
     gid: g.gid, ru: g.rules, sd: g.side,
     p: g.players.map((p, i) => [p.name, p.av || '', p.peer || '',
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
-      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0) | (p.marked ? 128 : 0) | (p.revenge ? 256 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
+      (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
       p.hand.map((c, k) => (c.lock || c.chain ? [k, c.chain || 0, c.lock ? 1 : 0] : null)).filter(Boolean),
       [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0) | (p.signedNow ? 32 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
       p.hand.map(c => (c.uniq ? 1 : 0)).join(''),
@@ -2740,7 +2626,7 @@ function deserialize(st) {
     if (hs[0] === '!') hand = [...hs.slice(1)].map(ch => { const c = { id: CARD_ID++, hidden: true }; c[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(ch)] || { c: 'w', v: 'wild' }); return c; });
     else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
-      out: !!(a[4] & 1), elim: !!(a[4] & 2), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), marked: !!(a[4] & 128), revenge: !!(a[4] & 256), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
+      out: !!(a[4] & 1), elim: !!(a[4] & 2), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
       ...(() => { const d = Array.isArray(a[8]) ? a[8] : []; return { angel: d[0] || 0, demon: d[1] || 0, deals: String(d[2] || '').split('+').filter(Boolean), fallen: !!(d[3] & 4), broke: !!(d[3] & 8), skipNext: !!(d[3] & 16), signedNow: !!(d[3] & 32), debt: d[4] || 0, limit: d[5] || 0, markT: d[6] >= 0 ? d[6] : null, used: Object.fromEntries(String(d[7] || '').split(',').filter(Boolean).map(k => [k, true])) }; })(),
       ...(() => { const d = Array.isArray(a[10]) ? a[10] : []; return { inv: String(d[0] || '').split(',').filter(Boolean), fx: Object.fromEntries(String(d[1] || '').split(',').filter(Boolean).map(x => { const [k, v] = x.split(':'); return [k, v === undefined ? true : +v]; })), buff: d[2] || 0 }; })() };
   });
@@ -2791,9 +2677,9 @@ const NAMES = {
     values: {
       skip: 'Skip', rev: 'Reverse', d1: 'Draw 1', d2: 'Draw 2', d4: 'Draw 4', d5: 'Draw 5', flip: 'Shift', dflip: 'Eclipse', discall: 'Discard All', skipall: 'Skip Everyone',
       mirror: 'Mirror', shield: 'Vest', wild: 'Wild', wd2: 'Wild +2', wd4: 'Wild +4', wrd4: 'Wild Reverse +4', wd6: 'Wild +6', wd10: 'Wild +10', wd15: 'Wild +15', wrd8: 'Wild Reverse +8',
-      wdc: 'Draw Till Color', roul: 'Color Roulette', duel: 'Duel', bhole: 'The Pot', mul2: 'Double Down', mul3: 'Triple Down', lucky: 'Horseshoe', glass: 'Shot Glass', devil: '666',
-      spin: 'Jackpot', loan: 'Loan', gift: 'Tip', echo: 'Encore', freeze: 'Handcuffs', interest: 'Interest', sacrifice: 'Burnt Offering', wheel: 'Wheel', bomb: 'Shotgun', d6: 'Redeal',
-      pill: 'Scratch Card', tower: 'The Tower', glitch: 'Glitch', brim: 'Brimstone', foot: 'Collector', maze: 'Spinner', deal: 'Contract', monstro: 'All-In',
+      wdc: 'Draw Till Color', roul: 'Color Roulette', mul2: 'Double Down', mul3: 'Triple Down', lucky: 'Horseshoe', glass: 'Shot Glass',
+      spin: 'Jackpot', loan: 'Loan', gift: 'Tip', echo: 'Encore', freeze: 'Handcuffs', bomb: 'Shotgun', d6: 'Redeal',
+      pill: 'Scratch Card', maze: 'Spinner', deal: 'Contract',
       swind: 'Second Wind', sacr: 'Sacrifice', lead: 'Lead', leech: 'Leech', fuse: 'Lit Fuse'
     }
   },
@@ -2802,9 +2688,9 @@ const NAMES = {
     values: {
       skip: 'Пропуск', rev: 'Разворот', d1: 'Возьми 1', d2: 'Возьми 2', d4: 'Возьми 4', d5: 'Возьми 5', flip: 'Смена', dflip: 'Затмение', discall: 'Сброс цвета', skipall: 'Пропуск всех',
       mirror: 'Зеркало', shield: 'Бронежилет', wild: 'Джокер', wd2: 'Джокер +2', wd4: 'Джокер +4', wrd4: 'Джокер разворот +4', wd6: 'Джокер +6', wd10: 'Джокер +10', wd15: 'Джокер +15', wrd8: 'Джокер разворот +8',
-      wdc: 'Тяни до цвета', roul: 'Цветная рулетка', duel: 'Дуэль', bhole: 'Общак', mul2: 'Дабл', mul3: 'Трипл', lucky: 'Подкова', glass: 'Рюмка', devil: '666',
-      spin: 'Джекпот', loan: 'Займ', gift: 'Чаевые', echo: 'Бис', freeze: 'Наручники', interest: 'Проценты', sacrifice: 'Сожжение', wheel: 'Колесо', bomb: 'Обрез', d6: 'Пересдача',
-      pill: 'Лотерейка', tower: 'Башня', glitch: 'Сбой', brim: 'Сера', foot: 'Коллектор', maze: 'Вертушка', deal: 'Контракт', monstro: 'Ва-банк',
+      wdc: 'Тяни до цвета', roul: 'Цветная рулетка', mul2: 'Дабл', mul3: 'Трипл', lucky: 'Подкова', glass: 'Рюмка',
+      spin: 'Джекпот', loan: 'Займ', gift: 'Чаевые', echo: 'Бис', freeze: 'Наручники', bomb: 'Обрез', d6: 'Пересдача',
+      pill: 'Лотерейка', maze: 'Вертушка', deal: 'Контракт',
       swind: 'Второе дыхание', sacr: 'Жертва', lead: 'Свинец', leech: 'Пиявка', fuse: 'Фитиль'
     }
   }
@@ -2814,13 +2700,13 @@ const cardName = f => !f ? '' : ((f.c === 'w' || f.c === 'x') ? NAMES[LANG].valu
 // short labels printed on the cards themselves
 const CARD_TXT = {
   en: { flip: 'shift', dflip: 'eclipse', discall: 'discard', skipall: 'everyone', mirror: 'mirror', shield: 'vest', wild: 'wild', reverse: 'reverse', wdc: 'till color', roul: 'roulette',
-    duel: 'duel', bhole: 'the pot', mult: 'double', mult3: 'triple', lucky: 'horseshoe', glass: 'shot', devil: '666', spin: 'jackpot', loan: 'loan', gift: 'tip', echo: 'encore', freeze: 'cuffs',
-    interest: 'interest', sacrifice: 'offering', wheel: 'wheel', bomb: 'shotgun', d6: 'redeal', pill: 'scratch', tower: 'tower', glitch: 'glitch', brim: 'brimstone', foot: 'collector',
-    maze: 'spinner', deal: 'contract', monstro: 'all-in', swind: 'second wind', sacr: 'sacrifice', lead: 'lead', leech: 'leech', fuse: 'fuse' },
+    mult: 'double', mult3: 'triple', lucky: 'horseshoe', glass: 'shot', spin: 'jackpot', loan: 'loan', gift: 'tip', echo: 'encore', freeze: 'cuffs',
+    bomb: 'shotgun', d6: 'redeal', pill: 'scratch',
+    maze: 'spinner', deal: 'contract', swind: 'second wind', sacr: 'sacrifice', lead: 'lead', leech: 'leech', fuse: 'fuse' },
   ru: { flip: 'смена', dflip: 'затмение', discall: 'сброс', skipall: 'всех', mirror: 'зеркало', shield: 'жилет', wild: 'джокер', reverse: 'разворот', wdc: 'до цвета', roul: 'рулетка',
-    duel: 'дуэль', bhole: 'общак', mult: 'дабл', mult3: 'трипл', lucky: 'подкова', glass: 'рюмка', devil: '666', spin: 'джекпот', loan: 'займ', gift: 'чаевые', echo: 'бис', freeze: 'наручники',
-    interest: 'проценты', sacrifice: 'сожжение', wheel: 'колесо', bomb: 'обрез', d6: 'пересдача', pill: 'лотерейка', tower: 'башня', glitch: 'сбой', brim: 'сера', foot: 'коллектор',
-    maze: 'вертушка', deal: 'контракт', monstro: 'ва-банк', swind: 'второе дыхание', sacr: 'жертва', lead: 'свинец', leech: 'пиявка', fuse: 'фитиль' }
+    mult: 'дабл', mult3: 'трипл', lucky: 'подкова', glass: 'рюмка', spin: 'джекпот', loan: 'займ', gift: 'чаевые', echo: 'бис', freeze: 'наручники',
+    bomb: 'обрез', d6: 'пересдача', pill: 'лотерейка',
+    maze: 'вертушка', deal: 'контракт', swind: 'второе дыхание', sacr: 'жертва', lead: 'свинец', leech: 'пиявка', fuse: 'фитиль' }
 };
 // ---------- interface text ----------
 const STR = {};
@@ -2876,18 +2762,18 @@ STR.en = {
   potatoOn: 'Dynamite under the table', potatoHot: 'Dynamite: any second now', mazeLeft: k => `Spinner: ${k}`,
 
   // pop-ups over the table
-  tJump: 'Jumped in', tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Everyone skipped', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands passed round',
-  tRoulette: 'Roulette', tMulti: k => `${k} at once`, tMirror: n => `Back to ${n}`, tShieldUp: 'Vest on', tShield: k => `Vest stops +${k}`, tBhole: 'THE POT',
+  tStack: k => `Stack +${k}`, tSkipped: 'Skipped', tSkipAll: 'Everyone skipped', tReverse: 'Reverse', tSwap: 'Hands swapped', tRotate: 'Hands passed round',
+  tRoulette: 'Roulette', tMulti: k => `${k} at once`, tMirror: n => `Back to ${n}`, tShieldUp: 'Vest on', tShield: k => `Vest stops +${k}`,
   tMult: x => `×${x}`, tArm: x => `×${x} loaded`, tLucky: 'Lucky', tLuckyDebt: k => `Debt −${k}`, tMiss: 'Nothing', tGlass: 'Shattered', tGlassHit: 'Shot',
-  tDevil: '666', tLoan: 'Loan', tDue: 'Pay up', tFire: 'ON FIRE', gambleBtn: 'Roulette',
+  tLoan: 'Loan', tDue: 'Pay up', tFire: 'ON FIRE', gambleBtn: 'Roulette',
   tShot: (n, k) => `Click. ${n} +${k}`, tBang: k => `BANG. +${k}`,
   gambleQ: 'Who do you aim at?', gambleSub: k => `Click, 50%: they take the whole +${k}. Bang: you take it doubled.`,
-  tFinisher: k => `Finisher +${k}`, tRevenge: k => `REVENGE +${k}`, tagRevenge: 'Revenge', tPotato: n => `Dynamite: ${n}`,
+  tPotato: n => `Dynamite: ${n}`,
   pill_wipe: 'Ticket: debt −10', pill_fine: 'Ticket: debt +10', pill_draw: 'Ticket: pick up 2', pill_toss: 'Ticket: drop 2', pill_chips: 'Ticket: 10¢',
   pill_health: 'Ticket: drop 2', pill_badtrip: 'Ticket: pick up 3', pill_steel: 'Ticket: vest', pill_drowsy: 'Ticket: next player cuffed', pill_telepills: 'Ticket: hands swapped', pill_wizard: 'Ticket: reverse',
-  tD6: 'REDEAL', tTower: 'THE TOWER', tBrim: 'BRIMSTONE', tFoot: n => `Collector: ${n}`, tMaze: 'SPINNER', tDeal: 'CONTRACT', tDealDue: k => `Contract due: +${k}`,
-  tMonstro: n => `All-in: ${n}`, tagMarked: 'Contract', tGift: n => `Tip for ${n}`, tEcho: 'ENCORE', tEchoNone: 'Nothing to repeat', tInterest: 'Interest',
-  tSacrifice: 'Offering', tWheel: n => `Wheel: ${n}`, tBomb: 'BOOM', tDark: 'NIGHT', tLight: 'DAY', tOut: n => `${n} is out`, tagLoan: n => `loan ${n}`,
+  tD6: 'REDEAL', tMaze: 'SPINNER', tDeal: 'CONTRACT',
+  tGift: n => `Tip for ${n}`, tEcho: 'ENCORE', tEchoNone: 'Nothing to repeat',
+  tBomb: 'BOOM', tDark: 'NIGHT', tLight: 'DAY', tagLoan: n => `loan ${n}`,
   multNext: x => `next draw ×${x}`, tColGive: n => `${n} +2`,
   tBad_lead: (n, k) => `Lead: ${n} +${k}`, tBad_leech: (n, k, full) => full ? `The leech lets go of ${n}` : `Leech: ${n} +1`, tBad_fuse: (n, k) => `BOOM: ${n} +${k}`,
 
@@ -2907,7 +2793,7 @@ STR.en = {
   pickColor: 'Call a colour', rouletteTitle: 'Colour roulette', rouletteSub: 'Call a colour. You draw till it turns up and keep everything you drew.',
   flipWild: 'The shift turns up a wild', flipWildSub: n => `The other side of this card is ${n}. Call its colour.`,
   giftQ: 'Who gets the tip?', giftSub: k => `${k} random cards from your hand go to them.`,
-  duel: 'Duel', togetherQ: 'Play them together?', togetherSub: 'They go down left to right. Drag to reorder, click a card to take it out or put it back. The last one sets the colour.',
+  togetherQ: 'Play them together?', togetherSub: 'They go down left to right. Drag to reorder, click a card to take it out or put it back. The last one sets the colour.',
   firstMustFit: 'The first card has to fit the pile by itself.', playN: k => `Play ${k} ${cardsAcc(k)}`, clearOrder: 'Clear', selectAll: 'All', cancel: 'Cancel', close: 'Close', modalBack: 'Back to the choice',
   leaveQ: 'Leave the match?', leaveSub: "You're out and the rest play on. If your connection just dropped, you have a minute to get back to your seat.", stay: 'Stay',
   handEmptied: 'Hand empty.', finalCounts: 'Cards left:', winner: 'winner', cardsN: k => `${k} ${cardsW(k)}`,
@@ -3075,18 +2961,18 @@ STR.ru = {
   potatoOn: 'Под столом динамит', potatoHot: 'Динамит: вот-вот', mazeLeft: k => `Вертушка: ${k}`,
 
   // всплывашки над столом
-  tJump: 'Влез!', tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропускают все', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
-  tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tMirror: n => `Обратно: ${n}`, tShieldUp: 'Жилет надет', tShield: k => `Жилет держит +${k}`, tBhole: 'ОБЩАК',
+  tStack: k => `Стопка +${k}`, tSkipped: 'Пропуск', tSkipAll: 'Пропускают все', tReverse: 'Разворот', tSwap: 'Обмен руками', tRotate: 'Руки по кругу',
+  tRoulette: 'Рулетка', tMulti: k => `${k} разом`, tMirror: n => `Обратно: ${n}`, tShieldUp: 'Жилет надет', tShield: k => `Жилет держит +${k}`,
   tMult: x => `×${x}`, tArm: x => `×${x} заряжен`, tLucky: 'Повезло', tLuckyDebt: k => `Долг −${k}`, tMiss: 'Пусто', tGlass: 'Вдребезги', tGlassHit: 'Рюмка',
-  tDevil: '666', tLoan: 'Займ', tDue: 'Плати', tFire: 'В УДАРЕ', gambleBtn: 'Рулетка',
+  tLoan: 'Займ', tDue: 'Плати', tFire: 'В УДАРЕ', gambleBtn: 'Рулетка',
   tShot: (n, k) => `Щёлк. ${n} +${k}`, tBang: k => `БАХ. +${k}`,
   gambleQ: 'В кого целитесь?', gambleSub: k => `Щелчок, 50%: он забирает всю стопку +${k}. Выстрел: берёте её сами вдвое.`,
-  tFinisher: k => `Добивание +${k}`, tRevenge: k => `МЕСТЬ +${k}`, tagRevenge: 'Месть', tPotato: n => `Динамит: ${n}`,
+  tPotato: n => `Динамит: ${n}`,
   pill_wipe: 'Лотерейка: долг −10', pill_fine: 'Лотерейка: долг +10', pill_draw: 'Лотерейка: взять 2', pill_toss: 'Лотерейка: скинуть 2', pill_chips: 'Лотерейка: 10¢',
   pill_health: 'Лотерейка: скинуть 2', pill_badtrip: 'Лотерейка: взять 3', pill_steel: 'Лотерейка: жилет', pill_drowsy: 'Лотерейка: наручники следующему', pill_telepills: 'Лотерейка: обмен руками', pill_wizard: 'Лотерейка: разворот',
-  tD6: 'ПЕРЕСДАЧА', tTower: 'БАШНЯ', tBrim: 'СЕРА', tFoot: n => `Коллектор: ${n}`, tMaze: 'ВЕРТУШКА', tDeal: 'КОНТРАКТ', tDealDue: k => `Срок по контракту: +${k}`,
-  tMonstro: n => `Ва-банк: ${n}`, tagMarked: 'Контракт', tGift: n => `Чаевые: ${n}`, tEcho: 'БИС', tEchoNone: 'Повторять нечего', tInterest: 'Проценты',
-  tSacrifice: 'Сожжение', tWheel: n => `Колесо: ${n}`, tBomb: 'БАХ', tDark: 'НОЧЬ', tLight: 'ДЕНЬ', tOut: n => `${n} выбыл(а)`, tagLoan: n => `займ ${n}`,
+  tD6: 'ПЕРЕСДАЧА', tMaze: 'ВЕРТУШКА', tDeal: 'КОНТРАКТ',
+  tGift: n => `Чаевые: ${n}`, tEcho: 'БИС', tEchoNone: 'Повторять нечего',
+  tBomb: 'БАХ', tDark: 'НОЧЬ', tLight: 'ДЕНЬ', tagLoan: n => `займ ${n}`,
   multNext: x => `след. «Возьми» ×${x}`, tColGive: n => `${n} +2`,
   tBad_lead: (n, k) => `Свинец: ${n} +${k}`, tBad_leech: (n, k, full) => full ? `Пиявка отстала от ${n}` : `Пиявка: ${n} +1`, tBad_fuse: (n, k) => `БАХ: ${n} +${k}`,
 
@@ -3106,7 +2992,7 @@ STR.ru = {
   pickColor: 'Назовите цвет', rouletteTitle: 'Цветная рулетка', rouletteSub: 'Назовите цвет. Тянете, пока он не выпадет, и всё вытянутое остаётся у вас.',
   flipWild: 'Смена открыла джокера', flipWildSub: n => `На обороте этой карты ${n}. Назовите цвет.`,
   giftQ: 'Кому чаевые?', giftSub: k => `${k} ${cardsAcc(k)} из вашей руки наугад уйдут ему.`,
-  duel: 'Дуэль', togetherQ: 'Сыграть вместе?', togetherSub: 'Ложатся слева направо. Перетащите, чтобы переставить, нажмите на карту, чтобы убрать или вернуть. Цвет задаёт последняя.',
+  togetherQ: 'Сыграть вместе?', togetherSub: 'Ложатся слева направо. Перетащите, чтобы переставить, нажмите на карту, чтобы убрать или вернуть. Цвет задаёт последняя.',
   firstMustFit: 'Первая карта должна подходить к сбросу сама.', playN: k => `Сыграть ${k} ${cardsAcc(k)}`, clearOrder: 'Снять', selectAll: 'Все', cancel: 'Отмена', close: 'Закрыть', modalBack: 'Вернуться к выбору',
   leaveQ: 'Уйти из матча?', leaveSub: 'Вы выбываете, остальные играют дальше. Если просто отвалилась связь, у вас минута, чтобы вернуться на место.', stay: 'Остаться',
   handEmptied: 'Рука пуста.', finalCounts: 'Осталось карт:', winner: 'победитель', cardsN: k => `${k} ${cardsW(k)}`,
@@ -3317,31 +3203,20 @@ const CARD_DESC = {
     wd15: 'Call the colour. The next player picks up 15, unless they stack. Nothing stacks higher.',
     wdc: 'Call the colour. The next player draws till it turns up.',
     roul: 'The next player calls a colour and draws till it turns up.',
-    bhole: 'Every hand goes into the pot and is dealt out again evenly.',
     mul2: 'Doubles the stack on the table (up to +60). With no stack, doubles the next draw card. Can answer a stack.',
     mul3: 'Triples the stack on the table (up to +60). With no stack, triples the next draw card. Can answer a stack.',
     lucky: 'Heads: debt −15. Tails: two random cards leave your hand.',
     glass: 'The next player picks up 2. One time in four it breaks in your hand and you pick them up.',
-    devil: 'Everyone else picks up 2. You pick up 1.',
     spin: 'Pulls the slot lever. Something happens right now.',
     loan: '20¢ now. Three of your plays later, 30 debt.',
     gift: 'Two random cards from your hand go to a player you pick.',
     echo: 'Repeats the card under it: a draw card (it can carry on a stack), Skip, Skip Everyone, Reverse or Handcuffs. On anything else it does nothing.',
     freeze: 'The next two players miss a turn.',
-    interest: 'Everyone holding 8 or more picks up 2. You too.',
-    sacrifice: 'Three random cards from your hand burn. Everyone else picks up 1.',
-    wheel: 'Lands on a random rival. They pick up 4.',
     bomb: 'The next player picks up 3. Their neighbours on both sides pick up 1. One of them can be you.',
     d6: 'Your whole hand goes. You get as many new random cards.',
     pill: 'Scratch it: debt −10, debt +10, pick up 2, drop 2, or 10¢.',
-    tower: 'Three random hits of 1 card. Anyone can be hit, you included, even twice.',
-    glitch: 'Becomes a random card: Skip, Reverse, Skip Everyone, +4, +6 or Handcuffs.',
-    brim: 'Hits the next two players in turn: 2 cards each.',
-    foot: 'Goes after the rival with the fewest cards: they pick up 4.',
     maze: 'For the next 6 plays the direction may flip after any card.',
     deal: 'Half your hand burns. The demon notices: +15% to its charge.',
-    monstro: 'The next player picks up as many cards as you hold (6 at most).',
-    duel: 'You and a player you pick turn cards over. The lower number takes them all.',
     swind: 'A one-off from the angel. Half the rest of your hand (rounded up) turns wild.',
     sacr: 'A one-off from the fall. A player you pick takes 10 cards, chained for 2 of their turns. Nothing stops it.',
     lead: 'Bad card. Goes on anything on your turn, except a stack. The colour stays and you pick up 2. Left in hand: 30 debt. Pass it on at the start of a deal.',
@@ -3372,31 +3247,20 @@ const CARD_DESC = {
     wd15: 'Назовите цвет. Следующий берёт 15, если не продолжит стопку. Старше в стопке ничего нет.',
     wdc: 'Назовите цвет. Следующий тянет, пока он не выпадет.',
     roul: 'Следующий сам называет цвет и тянет, пока он не выпадет.',
-    bhole: 'Все руки идут в общак и раздаются заново поровну.',
     mul2: 'Удваивает стопку на столе (до +60). Если стопки нет, удваивает следующую «Возьми». Можно класть на стопку.',
     mul3: 'Утраивает стопку на столе (до +60). Если стопки нет, утраивает следующую «Возьми». Можно класть на стопку.',
     lucky: 'Орёл: долг −15. Решка: две случайные карты уходят из руки.',
     glass: 'Следующий берёт 2. Раз из четырёх рюмка бьётся у вас в руке, и берёте вы.',
-    devil: 'Все остальные берут 2. Вы берёте 1.',
     spin: 'Дёргает рычаг слотов. Что-то случится прямо сейчас.',
     loan: '20¢ сейчас. Через три ваших хода 30 долга.',
     gift: 'Две случайные карты из руки уходят игроку, которого вы выберете.',
     echo: 'Повторяет карту под собой: «Возьми» (можно продолжить стопку), пропуск, пропуск всех, разворот или наручники. На остальных ничего не делает.',
     freeze: 'Двое следующих пропускают ход.',
-    interest: 'Все, у кого 8 карт или больше, берут 2. Вы тоже.',
-    sacrifice: 'Три случайные карты из руки сгорают. Все остальные берут по 1.',
-    wheel: 'Выпадает случайный соперник. Он берёт 4.',
     bomb: 'Следующий берёт 3. Его соседи с обеих сторон берут по 1. Сосед может оказаться вами.',
     d6: 'Вся рука уходит. Взамен столько же новых случайных карт.',
     pill: 'Сотрите слой: долг −10, долг +10, взять 2, скинуть 2 или 10¢.',
-    tower: 'Три случайных удара по 1 карте. Попасть может в кого угодно, и в вас, и дважды.',
-    glitch: 'Становится случайной картой: пропуск, разворот, пропуск всех, +4, +6 или наручники.',
-    brim: 'Бьёт двух следующих по очереди: по 2 карты.',
-    foot: 'Приходит к сопернику, у которого меньше всех карт: он берёт 4.',
     maze: 'Следующие 6 ходов направление может смениться после любой карты.',
     deal: 'Половина руки сгорает. Демон берёт вас на заметку: +15% к его заряду.',
-    monstro: 'Следующий берёт столько карт, сколько у вас в руке (не больше 6).',
-    duel: 'Вы и выбранный игрок открываете карты. У кого число меньше, тот забирает все.',
     swind: 'Разовая, от ангела. Половина остальной руки (с округлением вверх) становится джокерами.',
     sacr: 'Разовая, за падение. Выбранный игрок берёт 10 карт в цепях на 2 его хода. Защиты нет.',
     lead: 'Плохая карта. Кладётся на что угодно в ваш ход, кроме стопки. Цвет не меняется, а вы берёте 2. Осталась в руке: долг 30. Отдайте её в начале раздачи.',
@@ -3411,7 +3275,7 @@ function fmtLog(l) {
   const itemName = id => (STR[LANG]['item_' + id] || id);
   const L = LANG === 'ru' ? {
     first: () => `Первая карта: ${cardName(a.f)}. Начинает ${N(a.n)}.`,
-    play: () => `${N(a.n)} ${a.j ? 'влезает с картой' : 'кладёт'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? `, и ещё ${a.d} ${cardsAcc(a.d)} уходят из руки` : ''}.`,
+    play: () => `${N(a.n)} кладёт ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? `, и ещё ${a.d} ${cardsAcc(a.d)} уходят из руки` : ''}.`,
     win: () => `${N(a.n)} скидывает последнюю карту и выигрывает.`,
     again: () => `${N(a.n)} ходит ещё раз.`,
     pass: () => `${N(a.n)} пасует.`,
@@ -3459,7 +3323,6 @@ function fmtLog(l) {
     fuse: () => `Фитиль догорел в руке у ${N(a.n)}: +${a.k}.`,
     chaos: () => `Слоты: ${(STR.ru.ev[a.e] || [a.e])[0]}${(a.w || []).length ? ' (' + a.w.join(', ') + ')' : ''}. ${(STR.ru.ev[a.e] || ['', ''])[1]}.`,
     lastCall: () => `Последний звонок. Дом закрывает стол. Меньше всех карт у ${N(a.n)} (${a.k}), победа.`,
-    ko: () => `${N(a.n)} набрал(а) ${a.k} ${cardsAcc(a.k)} и выбывает.`,
     lastLeft: () => `${N(a.n)} остаётся один и выигрывает.`,
     left: () => `${N(a.n)} ${a.aw ? 'слишком долго не возвращался и выбывает' : 'уходит из матча'}. Остальные играют дальше.`,
     awayColor: () => `${N(a.n)} отошёл. Цвет выбран наугад.`, awayStack: () => `${N(a.n)} отошёл. Стопку забрали за него.`, awaySkip: () => `${N(a.n)} отошёл. Ход пропущен.`,
@@ -3484,24 +3347,9 @@ function fmtLog(l) {
     eclipse: () => `${N(a.n)} дёргает рубильник. Теперь ${a.dk ? 'ночь' : 'день'}.`,
     twoface: () => `${N(a.n)} ведёт двойную игру: оба гостя выкладывают бумаги.`,
     ward: () => `Оберег ${N(a.n)} держит всадника на расстоянии.`,
-    // cards that are no longer dealt, kept so old logs still read
-    devil: () => `${N(a.n)} играет 666: остальные берут ${a.a}, ${N(a.n)} ${a.b}.`,
-    duel: () => `Дуэль: ${N(a.n)} против ${N(a.t)}, ${a.na} против ${a.nb}. ${N(a.l)} забирает ${a.k} ${cardsAcc(a.k)}.`,
-    tower: () => `Башня падает: ${(a.l || []).map(N).join(', ')} берут по 1.`,
-    glitch: () => `Карта ${N(a.n)} сбоит и становится ${NAMES.ru.values[a.v] || a.v}.`,
-    brim: () => `${N(a.n)} бьёт серой: ${(a.l || []).map(N).join(', ')} берут по ${a.a}.`,
-    foot: () => `Коллектор приходит к ${N(a.t)}: +${a.a}.`,
-    monstro: () => `Ва-банк: ${N(a.t)} берёт ${a.a}.`,
-    dealDue: () => `Срок по контракту: стопка ${N(a.n)} растёт до +${a.k}.`,
-    interest: () => (a.l || []).length ? `Проценты: ${(a.l || []).map(N).join(', ')} берут по ${a.a}.` : 'Проценты: ни у кого нет 8 карт.',
-    sacrifice: () => `${N(a.n)} сжигает ${a.b} ${cardsAcc(a.b)}. Остальные берут по ${a.a}.`,
-    wheel: () => `Колесо ${N(a.n)} останавливается на ${N(a.t)}: +${a.a}.`,
-    bhole: () => `Общак. Все руки собраны и розданы заново: ${(a.l || []).map(x => x[0] + ' ' + x[1]).join(', ')}.`,
-    finisher: () => `Добивание: ${N(a.n)} почти вышел(а). Стопка растёт до +${a.k}.`,
-    revengeOn: () => `${N(a.n)} запомнит это: следующая «Возьми» вдвойне.`, revenge: () => `Месть: карта ${N(a.n)} считается вдвойне. Стопка +${a.k}.`
   } : {
     first: () => `First card: ${cardName(a.f)}. ${N(a.n)} starts.`,
-    play: () => `${N(a.n)} ${a.j ? 'jumps in with' : 'plays'} ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? `, and ${a.d} more ${cardsAcc(a.d)} leave the hand` : ''}.`,
+    play: () => `${N(a.n)} plays ${(a.cards || []).map(cardName).join(', ')}${a.c ? ' → ' + C(a.c) : ''}${a.d ? `, and ${a.d} more ${cardsAcc(a.d)} leave the hand` : ''}.`,
     win: () => `${N(a.n)} drops the last card and wins.`,
     again: () => `${N(a.n)} goes again.`,
     pass: () => `${N(a.n)} passes.`,
@@ -3549,7 +3397,6 @@ function fmtLog(l) {
     fuse: () => `The fuse burns down in ${N(a.n)}'s hand: +${a.k}.`,
     chaos: () => `Slots: ${(STR.en.ev[a.e] || [a.e])[0]}${(a.w || []).length ? ' (' + a.w.join(', ') + ')' : ''}. ${(STR.en.ev[a.e] || ['', ''])[1]}.`,
     lastCall: () => `Last call. The House closes the table. ${N(a.n)} holds the fewest (${a.k}) and wins.`,
-    ko: () => `${N(a.n)} hit ${a.k} cards and is out.`,
     lastLeft: () => `${N(a.n)} is the last one standing and wins.`,
     left: () => `${N(a.n)} ${a.aw ? 'was gone too long and is out' : 'leaves the match'}. The rest play on.`,
     awayColor: () => `${N(a.n)} is away. The colour is picked at random.`, awayStack: () => `${N(a.n)} is away. The stack is taken for them.`, awaySkip: () => `${N(a.n)} is away. Turn skipped.`,
@@ -3574,20 +3421,6 @@ function fmtLog(l) {
     eclipse: () => `${N(a.n)} throws the breaker. It's ${a.dk ? 'night' : 'day'} now.`,
     twoface: () => `${N(a.n)} plays both sides: both visitors lay out their papers.`,
     ward: () => `${N(a.n)}'s ward keeps the horseman off.`,
-    devil: () => `${N(a.n)} plays 666: everyone else picks up ${a.a}, ${N(a.n)} ${a.b}.`,
-    duel: () => `Duel: ${N(a.n)} against ${N(a.t)}, ${a.na} against ${a.nb}. ${N(a.l)} takes ${a.k} ${cardsAcc(a.k)}.`,
-    tower: () => `The Tower falls: ${(a.l || []).map(N).join(', ')} pick up 1.`,
-    glitch: () => `${N(a.n)}'s card glitches into ${NAMES.en.values[a.v] || a.v}.`,
-    brim: () => `${N(a.n)} lets the brimstone go: ${(a.l || []).map(N).join(', ')} pick up ${a.a}.`,
-    foot: () => `The Collector calls on ${N(a.t)}: +${a.a}.`,
-    monstro: () => `All-in: ${N(a.t)} picks up ${a.a}.`,
-    dealDue: () => `The contract is due: ${N(a.n)}'s stack grows to +${a.k}.`,
-    interest: () => (a.l || []).length ? `Interest: ${(a.l || []).map(N).join(', ')} pick up ${a.a}.` : 'Interest: nobody holds 8 yet.',
-    sacrifice: () => `${N(a.n)} burns ${a.b} ${cardsAcc(a.b)}. Everyone else picks up ${a.a}.`,
-    wheel: () => `${N(a.n)}'s wheel stops on ${N(a.t)}: +${a.a}.`,
-    bhole: () => `The Pot. Every hand pooled and dealt again: ${(a.l || []).map(x => x[0] + ' ' + x[1]).join(', ')}.`,
-    finisher: () => `Finisher: ${N(a.n)} was nearly out. The stack grows to +${a.k}.`,
-    revengeOn: () => `${N(a.n)} won't forget this: the next draw card counts double.`, revenge: () => `Revenge: ${N(a.n)}'s card counts double. The stack is +${a.k}.`
   };
   try { if (l.k && L[l.k]) return L[l.k](); } catch (e) {}
   return l.msg;
@@ -4656,7 +4489,7 @@ function tick() {
 // ================= INPUT =================
 function myTurnNow() { return !!(G && G.turn === ME && G.roulette === null && G.winner === null && G.players[ME] && !G.players[ME].out); }
 // could this card go down right now (ignores whether a choice dialog is open)
-function fits(card) { if (!G || G.winner !== null || (MATCH && MATCH.phase !== 'play') || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() ? G.canPlay(card) : G.canJumpIn(ME, card); }
+function fits(card) { if (!G || G.winner !== null || (MATCH && MATCH.phase !== 'play') || !G.players[ME] || G.players[ME].out) return false; return myTurnNow() && G.canPlay(card); }
 function usable(card) { return !busy && fits(card); }
 async function useCard(card, el, fromRect, extrasIn) {
   if (!usable(card)) { if (el) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); } SFX.play('bad'); return; }
@@ -4795,12 +4628,63 @@ function previewOrder(els, rects, src, to) {
 }
 function clearPreview(els) { els.forEach(e => { e.style.translate = ''; }); }
 
+// Patch a container of cards to match new markup, reusing elements whose face is unchanged (matched by data-id).
+const PARSE = document.createElement('template');
+function cardSig(el) { // everything that decides how the face is drawn, except state classes and layout style
+  return el.dataset.f + '|' + el.dataset.id + '|' + [...el.classList].filter(c => !STATE_CLS.has(c) && !/^(sel\d|ch\d)$/.test(c)).sort().join(' ') + '|' + el.innerHTML.length;
+}
+const STATE_CLS = new Set(['ok', 'dim', 'jump', 'locked', 'picked', 'sel', 'new', 'flipin', 'nope', 'lifted', 'uniq', 'topc', 'under']);
+function patchCards(wrap, html, byId, wire = true) {
+  PARSE.innerHTML = html;
+  const next = [...PARSE.content.children];
+  const old = new Map(); for (const el of wrap.children) if (el.dataset && el.dataset.id) old.set(el.dataset.id, el);
+  const keep = [];
+  for (const n of next) {
+    const id = n.dataset && n.dataset.id;
+    const o = id ? old.get(id) : null;
+    if (o && !o.classList.contains('lifted') && cardSig(o) === cardSig(n)) {
+      old.delete(id);
+      const cls = n.className.replace(/\bnew\b/, '').trim();
+      const want = o.classList.contains('flipin') ? cls + ' flipin' : cls;
+      if (o.className !== want) o.className = want;
+      const st = n.getAttribute('style').replace(/;?animation-delay:[^;]*/, '');
+      if (o.getAttribute('style') !== st) o.setAttribute('style', st);
+      keep.push(o);
+    } else keep.push(n);
+  }
+  for (const el of old.values()) el.remove();
+  for (const el of [...wrap.children]) if (!el.dataset || !el.dataset.id) el.remove(); // row breaks are rebuilt
+  let prev = null;
+  for (const el of keep) {
+    const at = prev ? prev.nextSibling : wrap.firstChild;
+    if (el !== at) wrap.insertBefore(el, at);
+    prev = el;
+  }
+  if (wire) for (const el of keep) if (el.dataset && el.dataset.id) attachCard(el, byId[el.dataset.id]);
+}
+// Patch a list of keyed blocks (seats, badges): a block is replaced only when its own markup changed.
+function patchBlocks(wrap, items) {
+  const old = new Map(); for (const el of wrap.children) if (el.__key != null) old.set(el.__key, el);
+  const keep = items.map(({ key, html }) => {
+    const o = old.get(key);
+    if (o && o.__html === html) { old.delete(key); return o; }
+    PARSE.innerHTML = html; const n = PARSE.content.firstElementChild; n.__key = key; n.__html = html; return n;
+  });
+  for (const el of [...wrap.children]) if (!keep.includes(el)) el.remove();
+  let prev = null;
+  for (const el of keep) { const at = prev ? prev.nextSibling : wrap.firstChild; if (el !== at) wrap.insertBefore(el, at); prev = el; }
+  wrap.__html = null;
+}
+// the card behind an element is looked up when it is touched: elements are reused across states, card objects are not
 function attachCard(el, card) {
-  el.addEventListener('contextmenu', e => { e.preventDefault(); if (!confessSel) toggleSel(card); });
+  el._card = card;
+  if (el._wired) return; el._wired = true;
+  el.addEventListener('contextmenu', e => { e.preventDefault(); if (!confessSel) toggleSel(el._card); });
   el.addEventListener('pointermove', e => { if (!dragging) JUICE.tilt(el, e); });
   el.addEventListener('pointerleave', () => JUICE.untilt(el));
   el.onpointerdown = e => {
     if (e.button > 0) return;
+    const card = el._card; if (!card) return;
     const sx = e.clientX, sy = e.clientY, r0 = el.getBoundingClientRect();
     let ghost = null, els = null, rects = null, src = -1, target = -1, order = null;
     const handBox = $('hand').getBoundingClientRect();
@@ -4930,34 +4814,23 @@ const ICON = (() => {
     dflip: s('<circle cx="12" cy="12" r="8.2"/><path d="M12 3.8a8.2 8.2 0 0 0 0 16.4z" fill="currentColor"/>'),
     mirror: s('<path d="M10.5 5 3.5 12l7 7zM13.5 5l7 7-7 7z"/>'),
     shield: s('<path d="M8 3 4.5 6.5V21h15V6.5L16 3l-4 4.5z"/><path d="M12 7.5V21M8.5 13h1M14.5 13h1"/>'),
-    bhole: s('<path d="M8.5 4h7l-2 3.5c4 1.8 5.5 5.2 5.5 8.3 0 2.6-2.6 4.2-7 4.2s-7-1.6-7-4.2c0-3.1 1.5-6.5 5.5-8.3z"/><path d="M9.5 13.5h5"/>'),
-    duel: s('<path d="M4 4l16 16M20 4 4 20"/>'),
     lucky: s('<path d="M6 20.5V11a6 6 0 0 1 12 0v9.5"/><path d="M3.5 20.5h5M15.5 20.5h5"/>' + dot(6, 13.5, 1) + dot(18, 13.5, 1) + dot(8, 8, 1) + dot(16, 8, 1)),
     glass: s('<path d="M5.5 3.5h13l-2.3 17H7.8z"/><path d="M6.8 10h10.4"/>'),
-    devil: s('<path d="M5 4l3 5M19 4l-3 5"/><circle cx="12" cy="14" r="6"/>'),
     spin: s('<path d="M4 4h16v16H4zM9.3 4v16M14.7 4v16"/>'),
     loan: s('<path d="M16.5 7.5C15.5 5 8.5 5 8 8.3S16.5 11.5 16.5 15.5 9 19.5 7.5 16.5M12 2.5v19"/>'),
     gift: s('<ellipse cx="12" cy="6.5" rx="7" ry="2.6"/><path d="M5 6.5v11c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7v-11M5 12c0 1.5 3.1 2.7 7 2.7s7-1.2 7-2.7"/>'),
     echo: s('<path d="M4 5.5l6.5 6.5L4 18.5M12.5 5.5 19 12l-6.5 6.5"/>'),
     freeze: s('<circle cx="7" cy="15" r="4.5"/><circle cx="17" cy="15" r="4.5"/><path d="M9 9.5l3-3 3 3"/>'),
-    interest: s('<path d="M5 19 19 5"/><circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="17" r="2.6"/>'),
-    sacrifice: s('<path d="M12 3v18M7 8h10"/>'),
-    wheel: s('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18"/>'),
     bomb: s('<path d="M4.5 21V10l2.5-5 2.5 5v11zM14.5 21V10l2.5-5 2.5 5v11z"/><path d="M4.5 16.5h5M14.5 16.5h5"/>'),
     lead: s('<path d="M3 19.5 6.5 9h11L21 19.5z"/><path d="M9 9 10 5h4l1 4"/>'),
     leech: s('<path d="M5 18c-1.8-3 .2-6.5 3.5-6.5s3.4 3.5 6.5 3.5 4.5-3 3-6"/>' + dot(18.4, 7.4, 2.3) + dot(5.6, 18.6, 1.6)),
     fuse: s('<circle cx="10" cy="14.5" r="6.2"/><path d="M14.5 10 17 7.5M17 7.5c1-1.6 2.4-1.6 3.5-.5"/>' + dot(21, 4.2, 1.5)),
     d6: s('<path d="M4 4h16v16H4z"/>' + dot(8.3, 8.3) + dot(15.7, 15.7) + dot(15.7, 8.3) + dot(8.3, 15.7) + dot(12, 12)),
     pill: s('<path d="M3 6.5h18v11H3z"/><path d="M7 10.5h3M12.5 10.5h4.5M7 14h10" stroke-width="1.8"/>'),
-    tower: s('<path d="M6 21V8h12v13M5 8V4h3v2h2.5V4h3v2H16V4h3v4"/>'),
-    glitch: s('<path d="M3 6h9v4H8v4h8v4H5M14 6h7"/>'),
-    brim: s('<path d="M3 12h18M7 7l-4 5 4 5M17 7l4 5-4 5"/>'),
-    foot: s('<path d="M6 15.5C3.8 9.5 6.8 3.8 12 3.8s8.2 5.7 6 11.7V19h-3v2H9v-2H6z"/>' + dot(9.3, 11.5, 2) + dot(14.7, 11.5, 2) + '<path d="M11 15.5h2" stroke-width="2"/>'),
     maze: s('<path d="M12 12.2a1.8 1.8 0 1 1 1.8 1.8 4 4 0 1 1-4-4 6.2 6.2 0 1 1 6.2 6.2 8.2 8.2 0 0 1-8.2-8.2"/>'),
     deal: s('<path d="M5.5 3h9.5l3.5 3.5V21h-13z"/><path d="M8.5 9h7M8.5 12.5h7"/>' + dot(14.5, 17, 2.2)),
     swind: s('<path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h6"/>'),
     sacr: s('<path d="M12 2.5v13M8.5 6.5h7M9.5 15.5h5L12 21.5z"/>'),
-    monstro: s('<path d="M12 3c3.2 4 7 6.3 7 10.2a4.1 4.1 0 0 1-6.6 3.1L14 21h-4l1.6-4.7A4.1 4.1 0 0 1 5 13.2C5 9.3 8.8 7 12 3z"/>', true)
   };
 })();
 // deals: small stencil glyphs, one per deal
@@ -5070,13 +4943,13 @@ const SYM = {
   skip: [ICON.skip], rev: [ICON.rev], d1: ['+1'], d2: ['+2'], d4: ['+4'], d5: ['+5'], flip: [ICON.flip, 'flip'], dflip: [ICON.dflip, 'dflip', 'sm'],
   discall: ['ALL', 'discall', 'sm'], skipall: [ICON.skipall, 'skipall'], mirror: [ICON.mirror, 'mirror'], shield: [ICON.shield, 'shield'],
   wild: ['', 'wild'], wd2: ['+2'], wd4: ['+4'], wrd4: ['+4', 'reverse'], wd6: ['+6'], wd10: ['+10'], wd15: ['+15'],
-  wrd8: ['+8', 'reverse'], wdc: ['+?', 'wdc'], roul: ['?', 'roul'], duel: [ICON.duel, 'duel', 'sm'], bhole: [ICON.bhole, 'bhole'],
-  mul2: ['×2', 'mult'], mul3: ['×3', 'mult3'], lucky: [ICON.lucky, 'lucky'], glass: [ICON.glass, 'glass'], devil: ['666', 'devil', 'sm'], spin: ['777', 'spin', 'sm'], loan: [ICON.loan, 'loan'],
-  gift: [ICON.gift, 'gift'], echo: [ICON.echo, 'echo'], freeze: [ICON.freeze, 'freeze'], interest: [ICON.interest, 'interest'], sacrifice: [ICON.sacrifice, 'sacrifice'], wheel: [ICON.wheel, 'wheel'], bomb: [ICON.bomb, 'bomb'],
+  wrd8: ['+8', 'reverse'], wdc: ['+?', 'wdc'], roul: ['?', 'roul'],
+  mul2: ['×2', 'mult'], mul3: ['×3', 'mult3'], lucky: [ICON.lucky, 'lucky'], glass: [ICON.glass, 'glass'], spin: ['777', 'spin', 'sm'], loan: [ICON.loan, 'loan'],
+  gift: [ICON.gift, 'gift'], echo: [ICON.echo, 'echo'], freeze: [ICON.freeze, 'freeze'], bomb: [ICON.bomb, 'bomb'],
   lead: [ICON.lead, 'lead'], leech: [ICON.leech, 'leech'], fuse: [ICON.fuse, 'fuse'],
-  d6: [ICON.d6, 'd6'], pill: [ICON.pill, 'pill', 'sm'], tower: [ICON.tower, 'tower'], glitch: [ICON.glitch, 'glitch'], brim: [ICON.brim, 'brim'], foot: [ICON.foot, 'foot'], maze: [ICON.maze, 'maze'], deal: [ICON.deal, 'deal'], swind: [ICON.swind, 'swind'], sacr: [ICON.sacr, 'sacr'], monstro: [ICON.monstro, 'monstro']
+  d6: [ICON.d6, 'd6'], pill: [ICON.pill, 'pill', 'sm'], maze: [ICON.maze, 'maze'], deal: [ICON.deal, 'deal'], swind: [ICON.swind, 'swind'], sacr: [ICON.sacr, 'sacr'],
 };
-const CORNER = { lead: ICON.lead, leech: ICON.leech, fuse: ICON.fuse, swind: ICON.swind, sacr: ICON.sacr, skip: ICON.skip, rev: ICON.rev, d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: ICON.flip, dflip: ICON.dflip, discall: 'A', skipall: ICON.skipall, mirror: ICON.mirror, shield: ICON.shield, wild: 'W', wd2: '+2', wd4: '+4', wrd4: '+4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '+8', wdc: '+?', roul: '?', duel: ICON.duel, bhole: ICON.bhole, mul2: '×2', mul3: '×3', lucky: ICON.lucky, glass: ICON.glass, devil: '6', spin: '7', loan: '$', gift: ICON.gift, echo: ICON.echo, freeze: ICON.freeze, interest: '%', sacrifice: ICON.sacrifice, wheel: ICON.wheel, bomb: ICON.bomb, d6: ICON.d6, pill: ICON.pill, tower: ICON.tower, glitch: ICON.glitch, brim: ICON.brim, foot: ICON.foot, maze: ICON.maze, deal: ICON.deal, monstro: ICON.monstro };
+const CORNER = { lead: ICON.lead, leech: ICON.leech, fuse: ICON.fuse, swind: ICON.swind, sacr: ICON.sacr, skip: ICON.skip, rev: ICON.rev, d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: ICON.flip, dflip: ICON.dflip, discall: 'A', skipall: ICON.skipall, mirror: ICON.mirror, shield: ICON.shield, wild: 'W', wd2: '+2', wd4: '+4', wrd4: '+4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '+8', wdc: '+?', roul: '?', mul2: '×2', mul3: '×3', lucky: ICON.lucky, glass: ICON.glass, spin: '7', loan: '$', gift: ICON.gift, echo: ICON.echo, freeze: ICON.freeze, bomb: ICON.bomb, d6: ICON.d6, pill: ICON.pill, maze: ICON.maze, deal: ICON.deal };
 // every colour also has a shape, so a card never depends on colour alone
 const SUIT_PATH = { r: 'M5 1L9.5 9H.5z', y: 'M5 .8a4.2 4.2 0 1 0 0 8.4A4.2 4.2 0 1 0 5 .8z', g: 'M1.3 1.3h7.4v7.4H1.3z', b: 'M5 .3L9.7 5 5 9.7.3 5z',
   p: 'M3.6 .8h2.8v2.8h2.8v2.8H6.4v2.8H3.6V6.4H.8V3.6h2.8z', t: 'M5 .6a4.4 4.4 0 1 0 0 8.8A4.4 4.4 0 1 0 5 .6zm0 2.5a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 1 1 0-3.8z', o: 'M1 .8h8L5 5zM1 9.2h8L5 5z', v: 'M6.3.6A4.4 4.4 0 1 0 9.4 7.3 3.5 3.5 0 1 1 6.3.6z' };
@@ -5194,7 +5067,7 @@ function faceHTML(f, side, cls = '', id = '', wk = null) {
   const tier = uniq ? ' tier-u' : EXTRA_CARDS.includes(f.v) ? ' tier-h' : f.c === 'w' ? ' tier-w' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];
   const chains = /\blocked\b/.test(cls) ? `<i class="chainglow"></i><i class="chainov cv${(parseInt(id, 10) || 0) % CHAIN_SVGS.length}"></i><i class="lock">${LOCK_SVG}${chainN ? `<b>${chainN}</b>` : ''}</i>` : '';
-  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq}${tier} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${W.burn ? `<i class="burn ${W.burn}"></i>` : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
+  return `<div class="card s-${side} c-${esc(f.c)}${stain}${uniq}${tier} ${cls}" style="${W.style}" ${tip} ${id !== '' ? `data-id="${id}"` : ''}>${tier ? '<i class="sheen"><b></b></i>' : ''}${W.burn ? `<i class="burn ${W.burn}"></i>` : ''}${chains}<span class="cor tl">${cor}</span><div class="oval"><span class="mid ${sz || ''}">${m}${sub ? `<em>${sub}</em>` : ''}</span></div><span class="cor br">${cor}</span>${suitSVG(f.c, 'tr')}${suitSVG(f.c, 'bl')}</div>`;
 }
 const otherSide = () => G.side === 'L' ? 'D' : 'L';
 function sortedHand(h) {
@@ -5220,9 +5093,27 @@ function discardHTML() {
   const base = (G.pileN || codes.length) - codes.length;
   return codes.map((code, k) => {
     const card = codeCard(code), sp = pileSpot(base + k), top = k === codes.length - 1, w = String(code).length > 2 ? String(code).slice(3) : null;
-    return faceHTML(card[G.side], G.side, top ? 'topc' : 'under', '', w != null ? w : top && G.top.wid != null ? G.top.wid : null).replace('style="', `style="--rot:${sp.rot}deg;--dx:${sp.dx}px;--dy:${sp.dy}px;transform:translate(${sp.dx}px,${sp.dy}px) rotate(${sp.rot}deg);z-index:${k};`);
+    return faceHTML(card[G.side], G.side, top ? 'topc' : 'under', 'p' + (base + k), w != null ? w : top && G.top.wid != null ? G.top.wid : null).replace('style="', `style="--rot:${sp.rot}deg;--dx:${sp.dx}px;--dy:${sp.dy}px;transform:translate(${sp.dx}px,${sp.dy}px) rotate(${sp.rot}deg);z-index:${k};`);
   }).join('');
 }
+// Sizes render() needs (pile width, hand width, where the felt goes) are read after the browser has laid the page out,
+// by a ResizeObserver, instead of in the middle of render(), where every read forced a full synchronous layout.
+const LAY = { ready: false, discardW: 0, handW: 0 };
+function measureLayout() {
+  const d = $('discard'), h = $('hand'); if (!d || !h) return;
+  LAY.discardW = parseFloat(getComputedStyle(d).width) || 0; LAY.handW = h.clientWidth;
+  const tr = $('table').getBoundingClientRect(), hr = $('bottom').getBoundingClientRect(), orr = $('opps').getBoundingClientRect();
+  const top = orr.top + orr.height * 0.55, bottom = hr.bottom - 6;
+  JUICE.setTable({ x: tr.left + tr.width / 2, y: (top + bottom) / 2, w: tr.width / 2 - 8, h: (bottom - top) / 2 });
+  LAY.ready = LAY.discardW > 0 && LAY.handW > 0;
+}
+let layRerender = 0;
+const layObs = new ResizeObserver(() => {
+  const was = [LAY.discardW, LAY.handW]; measureLayout();
+  // the hand is sized from these numbers: if they moved, lay the hand out again (once per frame at most)
+  if ((was[0] !== LAY.discardW || was[1] !== LAY.handW) && G && !layRerender) layRerender = requestAnimationFrame(() => { layRerender = 0; lastHandHTML = ''; render(); });
+});
+['discard', 'hand', 'table', 'bottom', 'opps'].forEach(id => { const el = $(id); if (el) layObs.observe(el); });
 function render() {
   if (!G) return;
   const me = G.players[ME];
@@ -5238,7 +5129,7 @@ function render() {
   for (let k = 1; k < n0; k++) playOrder.push((ME + k) % n0); // seats as they come after you, clockwise
   const upNext = G.winner === null ? (G.roulette !== null ? G.nextIdx(G.roulette, 1) : G.nextIdx(G.turn, 1)) : -1;
   const arrow = `<span class="sep">${G.dir === 1 ? '›' : '‹'}</span>`;
-  setHTML($('opps'), arrow + playOrder.map(i => {
+  const seatHTML = i => {
     const p = G.players[i];
     const n = p.hand.length, fanN = Math.min(n, 12);
     const fan = p.hand.slice(-fanN).map((c, k) => { const bf = c[ob] || { c: 'w' }; return `<i class="${ob} ${bf.c === 'w' ? 'w' : ''}" style="left:${k * 9}px;${bf.c !== 'w' ? `background:${CVAR[bf.c]}` : ''}"></i>`; }).join('');
@@ -5247,8 +5138,6 @@ function render() {
     if (G.winner === i) tags.push(`<b>${t('tagWinner')}</b>`);
     if (p.shield) tags.push(`<b>${t('tagShield')}</b>`);
     if (p.loan > 0) tags.push(`<b class="next">${t('tagLoan', p.loan)}</b>`);
-    if (p.marked) tags.push(`<b class="next">${t('tagMarked')}</b>`);
-    if (p.revenge) tags.push(`<b class="next">${t('tagRevenge')}</b>`);
     if (p.left) tags.push(`<b>${t('tagLeft')}</b>`); else if (away[i]) tags.push(`<b>${t('tagAway')}</b>`);
     if (p.oweN > 0) tags.push(`<b>${t('tagOwes', p.oweN)}</b>`);
     if (i === upNext && !turn && !p.out) tags.push(`<b class="next">${t('tagNext')}</b>`);
@@ -5257,17 +5146,18 @@ function render() {
       else tags.unshift(`<b>${t('tagDebt', p.debt, p.limit || MATCH.limit)}</b>`, `${t('tagChips', MATCH.chips[i])}`);
     }
     if (!tags.length) tags.push(t('tagPlayer'));
-    const pct = G.rules.mercy ? Math.min(100, n / G.rules.mercy * 100) : 0;
     const limit = away[i] ? AWAY_MS : IDLE_MS;
-    const timer = turn ? `<div class="timer" style="animation-duration:${limit / 1000}s;animation-delay:-${elapsed}s"></div>` : '';
+    const timer = turn ? `<div class="timer" data-ts="${turnStartedAt}" style="animation-duration:${limit / 1000}s"></div>` : ''; // the delay is set once, below, so the seat markup stays the same all turn
     const dealRow = MATCH && !MATCH.col[i] ? dealBadges(p) : '';
     return `<div class="opp ${turn ? 'turn' : ''} ${p.out && G.winner !== i ? 'out' : ''} ${MATCH && MATCH.col[i] ? 'collector' : ''}" id="opp${i}">
       ${turn ? `<span class="turnflag">${t('tagTurn')}</span>` : ''}<div class="top"><span class="ini">${initials(p.name)}</span><span class="nm">${esc(p.name)}</span></div>
       <div class="fan">${fan}</div>
       <div class="meta"><span class="cnt">${n}</span><span class="tags">${tags.join(' · ')}</span></div>${dealRow}
-      ${G.rules.mercy ? `<div class="bar ${pct >= 80 ? 'hot' : ''}"><div style="width:${pct}%"></div></div>` : ''}${timer}
+      ${timer}
 </div>`;
-  }).join(arrow) + arrow);
+  };
+  { const items = [{ key: 'a0', html: arrow }]; playOrder.forEach((i, k) => { items.push({ key: 'o' + i, html: seatHTML(i) }, { key: 'a' + (k + 1), html: arrow }); }); patchBlocks($('opps'), items);
+    for (const tm of $('opps').querySelectorAll('.timer:not([data-set])')) { tm.dataset.set = 1; tm.style.animationDelay = -((Date.now() - +tm.dataset.ts) / 1000) + 's'; } }
   // piles: the draw pile shows the back of the next card (its other side)
   const nb = G.next && G.next[ob] ? G.next[ob] : { c: 'w', v: 'wild' };
   const back = me && hasDeal(me, 'sharp') && G.next && G.next[G.side] ? faceHTML(G.next[G.side], G.side, 'peek') : faceHTML(nb, ob);
@@ -5277,7 +5167,7 @@ function render() {
   const owe = G.owes(ME), myDebt = G.debt && G.debt.pi === ME && myTurn;
   const canDraw = !me.out && G.winner === null && (owe || myDebt || (myTurn && !G.debt && (G.pending > 0 || G.drewBy !== ME)));
   $('drawpile').classList.toggle('can', canDraw && (owe || myDebt || G.pending > 0 || G.playable(ME).length === 0));
-  setHTML($('discard'), discardHTML());
+  patchCards($('discard'), discardHTML(), null, false);
   // hud
   const lcLeft = G.lastCallLeft ? G.lastCallLeft() : null;
   setHTML($('hud'), `<span class="phase ${G.side === 'L' ? 'day' : 'night'}"><b>${G.side === 'L' ? '<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 1.2v2M8 12.8v2M1.2 8h2M12.8 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></g></svg>' : '<svg viewBox="0 0 16 16" width="14" height="14"><path d="M10.8 2.2A6 6 0 1 0 13.8 11 5 5 0 0 1 10.8 2.2z" fill="currentColor"/></svg>'}</b>${G.side === 'L' ? t('lightSide') : t('darkSide')}</span>
@@ -5291,11 +5181,8 @@ function render() {
     ${G.multNext > 1 ? `<span class="chaosline warn multchip">${t('multNext', G.multNext)}</span>` : ''}
     ${G.pending > 0 ? `<span class="label" style="margin-top:8px">${t('stack')}</span><span class="stack${G.pending >= 8 ? ' burning' : ''}" style="--heat:${Math.min(1, G.pending / 20).toFixed(2)}">+${G.pending}</span>` : ''}`);
   JUICE.setSide(G.side === 'D'); AMB.setSide(G.side);
-  { // the felt table sits under the piles and reaches down under the hand
-    const tr = $('table').getBoundingClientRect(), hr = $('bottom').getBoundingClientRect(), orr = $('opps').getBoundingClientRect();
-    const top = orr.top + orr.height * 0.55, bottom = hr.bottom - 6;
-    JUICE.setTable({ x: tr.left + tr.width / 2, y: (top + bottom) / 2, w: tr.width / 2 - 8, h: (bottom - top) / 2 });
-  } JUICE.setHeat(Math.max(G.pending / 22, lcLeft !== null && lcLeft <= 10 ? (10 - lcLeft) / 15 : 0)); JUICE.fireLevel(G.pending, G.multNext || 1);
+  if (!LAY.ready) measureLayout(); // the felt under the piles follows the layout; measured by the observer below, not here
+  JUICE.setHeat(Math.max(G.pending / 22, lcLeft !== null && lcLeft <= 10 ? (10 - lcLeft) / 15 : 0)); JUICE.fireLevel(G.pending, G.multNext || 1);
   // banner
   const ban = $('banner');
   let txt, you = false;
@@ -5314,10 +5201,7 @@ function render() {
   $('meName').textContent = me.name;
   $('meCnt').textContent = me.hand.length;
   setHTML($('meDeals'), MATCH && !MATCH.col[ME] ? dealBadges(me, true) : '');
-  $('meTags').textContent = [MATCH ? (MATCH.col[ME] ? t('tagCollector') : t('tagDebt', me.debt, me.limit || MATCH.limit) + ' · ' + t('tagChips', MATCH.chips[ME])) : '', me.left ? t('tagLeft') : '', me.shield ? t('tagShield') : '', me.loan > 0 ? t('tagLoan', me.loan) : '', me.revenge ? t('tagRevenge') : '', me.marked ? t('tagMarked') : '', upNext === ME && !myTurn ? t('tagNext') : ''].filter(Boolean).join(' · ');
-  $('meBarWrap').style.display = G.rules.mercy ? '' : 'none';
-  const mpct = G.rules.mercy ? Math.min(100, me.hand.length / G.rules.mercy * 100) : 0;
-  $('meDanger').style.width = mpct + '%'; $('meBarWrap').classList.toggle('hot', mpct >= 80);
+  $('meTags').textContent = [MATCH ? (MATCH.col[ME] ? t('tagCollector') : t('tagDebt', me.debt, me.limit || MATCH.limit) + ' · ' + t('tagChips', MATCH.chips[ME])) : '', me.left ? t('tagLeft') : '', me.shield ? t('tagShield') : '', me.loan > 0 ? t('tagLoan', me.loan) : '', upNext === ME && !myTurn ? t('tagNext') : ''].filter(Boolean).join(' · ');
   // no Draw button: the deck itself is clicked; its tooltip says what a click does
   const digging = myTurn && G.rules.drawUntil && G.pending === 0 && G.drewBy !== ME && G.playable(ME).length === 0 && (G.drawRunPi === ME && G.drawRun > 0);
   canDrawNow = !!canDraw;
@@ -5361,14 +5245,14 @@ function render() {
   if (!dragging) {
     const hand = sortedHand(me.hand);
     const wrap = $('hand');
-    const rootCw = parseFloat(getComputedStyle($('discard')).width) / 1.3 || 76;
+    const rootCw = LAY.discardW / 1.3 || 76;
     const n = Math.max(hand.length, 1), mobile = innerWidth <= 820;
     const minStrip = 0.3, MAX_TILT = 8; // degrees at the outer edge of the fan
     const base = Math.round(Math.min(rootCw * (mobile ? 1.12 : 1.15), (innerHeight * (mobile ? 0.16 : 0.18)) / 1.47));
     const pad = 16, tiltRoom = c => c * 1.47 * Math.sin(MAX_TILT * Math.PI / 180) + 4;
     // fixed card size: the hand never resizes as cards come and go; extra cards overlap tighter,
     // a second/third row only when even a thin sliver (~20%) of each card no longer fits
-    const room = c => wrap.clientWidth - 2 * pad - 2 * tiltRoom(c);
+    const room = c => LAY.handW - 2 * pad - 2 * tiltRoom(c);
     const minFrac = 0.2;
     const fitsRow = (per, c) => c + (per - 1) * c * minFrac <= room(c);
     let rows = 1, per = n;
@@ -5376,7 +5260,7 @@ function render() {
     let cw = base;
     if (!fitsRow(per, cw)) { for (let k = 0; k < 3; k++) cw = Math.min(base, room(cw) / (1 + (per - 1) * minFrac)); }
     cw = Math.max(Math.round(cw), mobile ? 34 : 44);
-    const availRow = wrap.clientWidth - 2 * pad - 2 * tiltRoom(cw);
+    const availRow = LAY.handW - 2 * pad - 2 * tiltRoom(cw);
     const strip = per > 1 ? Math.min(cw + 8, Math.max((availRow - cw) / (per - 1), cw * 0.18)) : 0;
     const ch = cw * 1.47, rowLift = ch * 0.42;
     wrap.style.setProperty('--hcw', cw.toFixed(1) + 'px');
@@ -5390,7 +5274,6 @@ function render() {
       const row = Math.floor(k / per), col = k % per, inRow = Math.min(per, n - row * per);
       let cls = '';
       if (myTurn) cls = G.canPlay(c) ? 'ok' : 'dim';
-      else if (!me.out && G.canJumpIn(ME, c)) cls = 'jump';
       if (c.lock) cls += ' locked' + (c.chain ? ' ch' + (c.chain + 1) : '');
       if (c.uniq) cls += ' uniq';
       if (confessSel && confessSel.has(c.id)) cls += ' picked';
@@ -5402,12 +5285,12 @@ function render() {
       const html = faceHTML(G.f(c), G.side, cls, c.id).replace('style="', `style="${st};`);
       return (row > 0 && col === 0 ? '<i class="brk"></i>' : '') + html;
     }).join('');
-    // nothing about the hand changed: keep the DOM (and the hover/tilt) as it is
+    // nothing about the hand changed: keep the DOM (and the hover/tilt) as it is.
+    // Otherwise patch it: a card already on screen keeps its element (no repaint of its texture, no restarted sway),
+    // only its classes and position change; new cards are added, gone ones removed.
     if (handHTML !== lastHandHTML || !wrap.firstElementChild) {
       lastHandHTML = handHTML;
-      wrap.innerHTML = handHTML;
-      const byId = Object.fromEntries(me.hand.map(c => [c.id, c]));
-      wrap.querySelectorAll('.card').forEach(el => attachCard(el, byId[el.dataset.id]));
+      patchCards(wrap, handHTML, Object.fromEntries(me.hand.map(c => [c.id, c])));
     }
     lastHandIds = new Set(me.hand.map(c => c.id));
     drawSelBar();
@@ -5433,7 +5316,7 @@ function youify(m) {
 }
 
 // ================= EVENTS → FEEDBACK =================
-const TOAST_PRI = { bad: 8, lastcall: 10, gamble: 10, finisher: 9, revenge: 9, potato: 9, deal: 9, maze: 9, brim: 8, monstro: 8, foot: 8, tower: 8, d6: 7, glitch: 7, pill: 7, bomb: 8, wheel: 7, gift: 6, echo: 6, interest: 6, sacrifice: 6, fire: 8, mult: 7, devil: 7, glass: 6, lucky: 5, loan: 5, multi: 5, win: 9, flip: 8, ko: 7, bhole: 7, took: 6, mirror: 6, shield: 6, duel: 5, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, jump: 3, reverse: 2 };
+const TOAST_PRI = { bad: 8, lastcall: 10, gamble: 10, potato: 9, deal: 9, maze: 9, d6: 7, pill: 7, bomb: 8, gift: 6, echo: 6, fire: 8, mult: 7, glass: 6, lucky: 5, loan: 5, multi: 5, win: 9, flip: 8, took: 6, mirror: 6, shield: 6, stack: 5, skipall: 4, rotate: 4, swap: 4, roulette: 4, reverse: 2 };
 function seatRect(pi) { return pi === ME ? rectOf($('hand')) : rectOf($('opp' + pi)); }
 function nm(pi) { return pi === ME ? (LANG === 'ru' ? 'Вы' : 'You') : (G.players[pi] ? G.players[pi].name : ''); }
 function processEvents() {
@@ -5452,7 +5335,6 @@ function processEvents() {
           setTimeout(() => JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 14 + (e.k || 1) * 10, [col || '#fff', '#fff', '#141414'], 0.8 + (e.k || 1) * 0.2), 190);
           if ((e.k || 1) > 1) setTimeout(() => JUICE.shake(e.k), 200);
           if ((e.k || 1) >= 3) { JUICE.ignite(1); bump(TOAST_PRI.fire, t('tFire')); } }
-        if (e.jump) bump(TOAST_PRI.jump, t('tJump'));
         if (e !== lastPlay) break;
         const k = Math.max(1, Math.min(e.k || 1, 5));
         const els = [...document.querySelectorAll('#discard .card')].slice(-k);
@@ -5484,13 +5366,9 @@ function processEvents() {
       case 'mult': SFX.play('mult', e.x); JUICE.shake(3); if (e.k) { JUICE.ignite(1); bump(TOAST_PRI.mult, `${t('tMult', e.x)} → +${e.k}`); } else bump(TOAST_PRI.mult, t('tArm', e.x)); break;
       case 'lucky': SFX.play(e.h || e.w ? 'lucky' : 'bad'); if (e.h || e.w) { const r = seatRect(e.pi) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 60, ['#22c55e', '#a3e635', '#ffd23f', '#fff'], 1.4); } bump(TOAST_PRI.lucky, e.w ? t('tLuckyDebt', e.w) : e.h ? t('tLucky') : t('tMiss')); break;
       case 'glass': SFX.play('glass'); JUICE.burst(cw.left + cw.width / 2, cw.top + cw.height / 2, 70, ['#e0f2fe', '#7dd3fc', '#ffffff', '#94a3b8'], 1.6); JUICE.shake(2); bump(TOAST_PRI.glass, e.broke ? t('tGlass') : t('tGlassHit')); break;
-      case 'devil': SFX.play('devil'); JUICE.shake(5); JUICE.ignite(1); bump(TOAST_PRI.devil, t('tDevil')); break;
       case 'loan': SFX.play('coin'); floatText(e.pi, t('tLoan')); break;
       case 'gift': SFX.play('swap'); floatText(e.b, '+' + e.g); bump(TOAST_PRI.gift, t('tGift', nm(e.b))); break;
       case 'echo': SFX.play(e.ok ? 'mult' : 'bad', 2); bump(TOAST_PRI.echo, e.ok ? t('tEcho') : t('tEchoNone')); break;
-      case 'interest': SFX.play('coin'); (e.pis || []).forEach(i => floatText(i, '+2')); bump(TOAST_PRI.interest, t('tInterest')); break;
-      case 'sacrifice': SFX.play('devil'); JUICE.ignite(0.6); { const r = seatRect(e.pi) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 50, ['#ff2d55', '#7a0018', '#ffd23f', '#000'], 1.3); } bump(TOAST_PRI.sacrifice, t('tSacrifice')); break;
-      case 'wheel': SFX.play('reel'); setTimeout(() => SFX.play('bad'), 250); floatText(e.t, '+4'); bump(TOAST_PRI.wheel, t('tWheel', nm(e.t))); break;
       case 'bomb': SFX.play('devil'); JUICE.shake(6); { const r = seatRect(e.v) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 90, ['#fff', '#ffd23f', '#ff7814', '#e63c0a', '#222'], 2); } bump(TOAST_PRI.bomb, t('tBomb')); break;
       case 'loanDue': SFX.play('bad'); JUICE.shake(2); floatText(e.pi, t('tDue')); bump(TOAST_PRI.loan, `${nm(e.pi)}: ${t('tDue')}`); break;
       case 'skip': SFX.play('skip'); floatText(e.pi, t('tSkipped')); break;
@@ -5503,9 +5381,6 @@ function processEvents() {
       case 'combo': showCombo(e); break;
       case 'gamble': SFX.play('spin'); setTimeout(() => { SFX.play(e.ok ? 'click2' : 'bang'); if (!e.ok) { JUICE.shake(8); JUICE.ignite(1); } if (e.ok && e.t !== undefined) floatText(e.t, '+' + e.k); else if (!e.ok) floatText(e.pi, '+' + e.k); }, 380); setTimeout(() => bump(TOAST_PRI.gamble, e.ok ? t('tShot', G.players[e.t] ? G.players[e.t].name : '', e.k) : t('tBang', e.k)), 380); break;
       case 'lastcall': SFX.play('lastcall'); JUICE.shake(4); bump(TOAST_PRI.lastcall, t('tLastCall')); break;
-      case 'finisher': SFX.play('bad'); JUICE.shake(4); bump(TOAST_PRI.finisher, t('tFinisher', e.k)); break;
-      case 'revengeOn': SFX.play('stack', 3); floatText(e.pi, t('tagRevenge')); break;
-      case 'revenge': SFX.play('mult', 3); JUICE.ignite(1); bump(TOAST_PRI.revenge, t('tRevenge', e.k)); break;
       case 'bad': {
         const r = seatRect(e.pi) || cw;
         if (e.v === 'fuse') { SFX.play('devil'); JUICE.shake(7); JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 80, ['#fff', '#ffd23f', '#ff7814', '#3a3632'], 2); }
@@ -5516,20 +5391,12 @@ function processEvents() {
       case 'potatoLit': SFX.play('tick'); break;
       case 'd6': SFX.play('shuffle'); floatText(e.pi, '', ICON.d6); bump(TOAST_PRI.d6, t('tD6')); break;
       case 'pill': SFX.play(e.p === 'fine' || e.p === 'draw' ? 'bad' : 'lucky'); bump(TOAST_PRI.pill, t('pill_' + e.p)); break;
-      case 'tower': SFX.play('devil'); JUICE.shake(5); (e.hits || []).forEach(i => floatText(i, '+1')); bump(TOAST_PRI.tower, t('tTower')); break;
-      case 'glitch': SFX.play('reel'); bump(TOAST_PRI.glitch, cardName({ c: 'w', v: e.v })); break;
-      case 'brim': SFX.play('devil'); JUICE.shake(6); JUICE.ignite(0.8); (e.hits || []).forEach((i, n) => setTimeout(() => { const r = seatRect(i) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 50, ['#ff2a2a', '#7a0000', '#ffb3b3', '#fff'], 1.6); floatText(i, '+2'); }, n * 120)); bump(TOAST_PRI.brim, t('tBrim')); break;
-      case 'foot': SFX.play('devil'); JUICE.shake(7); { const r = seatRect(e.t) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 70, ['#e8c4a0', '#7a5230', '#fff'], 1.8); } bump(TOAST_PRI.foot, t('tFoot', nm(e.t))); break;
       case 'maze': SFX.play('chaos'); bump(TOAST_PRI.maze, t('tMaze')); break;
       case 'deal': SFX.play('devil'); JUICE.ignite(1); bump(TOAST_PRI.deal, t('tDeal')); break;
-      case 'dealDue': SFX.play('bad'); JUICE.shake(5); bump(TOAST_PRI.deal, t('tDealDue', e.k)); break;
-      case 'monstro': SFX.play('devil'); JUICE.shake(8); { const r = seatRect(e.t) || cw; JUICE.burst(r.left + r.width / 2, r.top + r.height / 2, 90, ['#b23a48', '#5a1020', '#ffccd5', '#fff'], 2.2); } floatText(e.t, '+' + e.k); bump(TOAST_PRI.monstro, t('tMonstro', nm(e.t))); break;
-      case 'ko': SFX.play('ko'); bump(TOAST_PRI.ko, t('tOut', nm(e.pi))); break;
       case 'win': SFX.play('win'); JUICE.burst(innerWidth / 2, innerHeight * 0.4, 160, ['#ff2d55', '#ffd23f', '#22d3ee', '#a3e635', '#fff'], 2); bump(TOAST_PRI.win, e.pi === ME ? t('youWin') : t('wins', nm(e.pi))); break;
       case 'mirror': SFX.play('swap'); bump(TOAST_PRI.mirror, t('tMirror', nm(e.b))); break;
       case 'shieldup': SFX.play('click'); floatText(e.pi, t('tShieldUp')); break;
       case 'shield': SFX.play('swap'); bump(TOAST_PRI.shield, t('tShield', e.k)); break;
-      case 'bhole': SFX.play('shuffle'); bump(TOAST_PRI.bhole, t('tBhole')); break;
       case 'chaos': JUICE.slot(e.e); break;
       case 'colgive': SFX.play('bad'); floatText(e.t, '+2'); bump(5, t('tColGive', nm(e.t))); break;
       case 'pad': case 'halo': SFX.play('click'); floatText(e.pi, '½'); break;
