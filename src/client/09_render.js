@@ -117,10 +117,11 @@ function render() {
   // no Draw button: the deck itself is clicked; its tooltip says what a click does
   const digging = myTurn && G.rules.drawUntil && G.pending === 0 && G.drewBy !== ME && G.playable(ME).length === 0 && (G.drawRunPi === ME && G.drawRun > 0);
   canDrawNow = !!canDraw;
-  $('drawpile').title = !canDraw ? '' : owe ? t('penalty', me.oweN)
+  canPassNow = myTurn && !me.out && G.winner === null && G.drewBy === ME && G.pending === 0 && !G.debt && !owe;
+  $('drawpile').classList.toggle('pass', canPassNow);
+  $('drawpile').title = canPassNow ? t('passDeck') : !canDraw ? '' : owe ? t('penalty', me.oweN)
     : myDebt ? (G.debt.n ? t('pickUpLeft', G.debt.n) : t('drawUntil', colorName(G.debt.until), G.debt.got))
     : G.pending > 0 && myTurn ? t('take', G.pending) : (digging ? t('drawAgain', G.drawRun) : t('draw'));
-  $('btnPass').disabled = !(myTurn && G.drewBy === ME && G.pending === 0);
   const gb = $('btnGamble'), canG = G.canGamble && G.canGamble(ME);
   gb.classList.toggle('hidden', !canG); gb.textContent = t('gambleBtn');
   // a collector works for the house: once per deal, slip someone two cards or pull the lever

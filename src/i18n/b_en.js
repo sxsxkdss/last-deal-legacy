@@ -28,7 +28,7 @@ STR.en = {
   badReq: 'The server refused that.',
 
   // table
-  log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off', draw: 'Draw', pass: 'Pass', leave: 'Leave', menu: 'Menu',
+  log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off', draw: 'Draw', passDeck: 'Keep it and pass', leave: 'Leave', menu: 'Menu',
   sort: m => `Sort: ${({ color: 'colour', value: 'number', none: 'off', manual: 'by hand' })[m]}`,
   take: k => `Take +${k}`, pickUpLeft: k => `Pick up (${k} left)`, drawUntil: (c, k) => `Draw till ${c} (${k})`, penalty: k => `Pick up ${k}`, drawAgain: k => `Draw again (${k})`,
   lightSide: 'Day · the floor', darkSide: 'Night · the back room', colorPending: 'Colour not called yet', cw: 'Clockwise', ccw: 'Anticlockwise', stack: 'Stack',
@@ -37,7 +37,7 @@ STR.en = {
   otherDebtN: (n, k) => `${n} is picking up (${k} to go)`, otherDebtC: (n, c) => `${n} is drawing till ${c}`,
   rouletteMe: 'Call a colour', rouletteOther: n => `${n} is calling a colour`,
   stackOrTake: (m, k) => `Put +${m} or more on it, reflect it, or click the deck to take +${k}`,
-  playOrPass: 'Play the card you drew, or pass',
+  playOrPass: 'Play the card you drew, or click the deck to keep it',
   yourTurn: 'Your turn. Click a card or drag it to the pile.',
   keepDrawing: c => `Nothing fits. Click the deck till you get ${c} or a wild.`,
   drawOne: 'Nothing fits. Click the deck.',

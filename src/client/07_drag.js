@@ -75,9 +75,9 @@ function attachCard(el, card) {
     el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   };
 }
-let canDrawNow = false;
-function drawNow() { if (!busy && G && canDrawNow) act('draw'); }
-$('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
+let canDrawNow = false, canPassNow = false;
+// the deck draws; after a draw with a card you'd rather keep, the same click passes
+function drawNow() { if (busy || !G) return; if (canDrawNow) act('draw'); else if (canPassNow) act('pass'); }
 $('btnGamble').onclick = async () => {
   if (busy || !G || !G.canGamble || !G.canGamble(ME)) return;
   const rivals = G.players.map((p, i) => i).filter(i => i !== ME && !G.players[i].out);
@@ -121,6 +121,5 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) { e.preventDefault(); dismissModal(); return; }
   if (!G || $('game').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
   if (e.key === 'd' || e.key === ' ') { e.preventDefault(); drawNow(); }
-  else if (e.key === 'p') $('btnPass').onclick();
 });
 

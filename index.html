@@ -1103,7 +1103,6 @@ body.kick .opp.turn::after { animation: kickGlowB .32s ease-out; }
       <div class="invbar hidden" id="invBar"></div>
       <div class="colbar hidden" id="colBar"><span class="label" id="colTxt"></span><button class="btn" id="btnColGive"></button><button class="btn" id="btnColLever"></button></div>
         <div class="actions">
-        <button class="btn" id="btnPass" data-i18n="pass"></button>
         <button class="btn gamble hidden" id="btnGamble"></button>
         <button class="btn quiet mob" id="btnSelect"></button>
         <button class="btn quiet desk" id="btnSort">Sort</button>
@@ -2197,6 +2196,8 @@ class Game {
         this.drawRun = 0;
       }
     }
+    // nothing fits after the draw: the turn passes by itself
+    if (this.drewBy === pi && !this.playable(pi).length) this.pass(pi);
     this.standingCheck();
     return got;
   }
@@ -2596,7 +2597,7 @@ STR.en = {
   badReq: 'The server refused that.',
 
   // table
-  log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off', draw: 'Draw', pass: 'Pass', leave: 'Leave', menu: 'Menu',
+  log: 'Log', soundOn: 'Sound on', soundOff: 'Sound off', draw: 'Draw', passDeck: 'Keep it and pass', leave: 'Leave', menu: 'Menu',
   sort: m => `Sort: ${({ color: 'colour', value: 'number', none: 'off', manual: 'by hand' })[m]}`,
   take: k => `Take +${k}`, pickUpLeft: k => `Pick up (${k} left)`, drawUntil: (c, k) => `Draw till ${c} (${k})`, penalty: k => `Pick up ${k}`, drawAgain: k => `Draw again (${k})`,
   lightSide: 'Day · the floor', darkSide: 'Night · the back room', colorPending: 'Colour not called yet', cw: 'Clockwise', ccw: 'Anticlockwise', stack: 'Stack',
@@ -2605,7 +2606,7 @@ STR.en = {
   otherDebtN: (n, k) => `${n} is picking up (${k} to go)`, otherDebtC: (n, c) => `${n} is drawing till ${c}`,
   rouletteMe: 'Call a colour', rouletteOther: n => `${n} is calling a colour`,
   stackOrTake: (m, k) => `Put +${m} or more on it, reflect it, or click the deck to take +${k}`,
-  playOrPass: 'Play the card you drew, or pass',
+  playOrPass: 'Play the card you drew, or click the deck to keep it',
   yourTurn: 'Your turn. Click a card or drag it to the pile.',
   keepDrawing: c => `Nothing fits. Click the deck till you get ${c} or a wild.`,
   drawOne: 'Nothing fits. Click the deck.',
@@ -2796,7 +2797,7 @@ STR.ru = {
   badReq: 'Сервер это не принял.',
 
   // стол
-  log: 'Журнал', soundOn: 'Звук вкл', soundOff: 'Звук выкл', draw: 'Взять', pass: 'Пас', leave: 'Выйти', menu: 'Меню',
+  log: 'Журнал', soundOn: 'Звук вкл', soundOff: 'Звук выкл', draw: 'Взять', passDeck: 'Оставить и пасовать', leave: 'Выйти', menu: 'Меню',
   sort: m => `Сортировка: ${({ color: 'цвет', value: 'число', none: 'нет', manual: 'вручную' })[m]}`,
   take: k => `Взять +${k}`, pickUpLeft: k => `Брать (ещё ${k})`, drawUntil: (c, k) => `Тянуть до «${c}» (${k})`, penalty: k => `Взять ${k}`, drawAgain: k => `Тянуть ещё (${k})`,
   lightSide: 'День · зал', darkSide: 'Ночь · подсобка', colorPending: 'Цвет ещё не назван', cw: 'По часовой', ccw: 'Против часовой', stack: 'Стопка',
@@ -2805,7 +2806,7 @@ STR.ru = {
   otherDebtN: (n, k) => `${n} берёт карты (ещё ${k})`, otherDebtC: (n, c) => `${n} тянет до «${c}»`,
   rouletteMe: 'Назовите цвет', rouletteOther: n => `${n} называет цвет`,
   stackOrTake: (m, k) => `Положите +${m} или больше, отразите или нажмите на колоду и возьмите +${k}`,
-  playOrPass: 'Сыграйте взятую карту или пасуйте',
+  playOrPass: 'Сыграйте взятую карту или нажмите на колоду, чтобы оставить её',
   yourTurn: 'Ваш ход. Нажмите на карту или перетащите её в сброс.',
   keepDrawing: c => `Ходить нечем. Тяните из колоды до «${c}» или джокера.`,
   drawOne: 'Ходить нечем. Берите из колоды.',
@@ -3292,7 +3293,7 @@ const RULES_HTML = {};
 RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every card has two faces: day and night. Days are played on the casino floor, nights in the back room.</p>
   <h3>Basics</h3><ul>
     <li>Put down a card of the same colour or the same symbol, or a wild. Empty your hand to win.</li>
-    <li>Click a card or drag it to the pile. Drag cards sideways to reorder your hand. Hover a card (long-press on a phone) to read it. To draw, click the deck (or press <b>D</b> or <b>Space</b>). <b>P</b> passes.</li>
+    <li>Click a card or drag it to the pile. Drag cards sideways to reorder your hand. Hover a card (long-press on a phone) to read it. To draw, click the deck (or press <b>D</b> or <b>Space</b>). If the card you drew fits but you'd rather keep it, click the deck again to pass. A card that doesn't fit passes by itself.</li>
     <li>The host picks the rules and the House cards in the lobby.</li></ul>
   <h3>Day and night</h3><ul>
     <li><b>Shift</b> turns every card over. Day becomes night and the table rules change.</li>
@@ -3357,7 +3358,7 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
 RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконечную колоду. У каждой карты два лица: дневное и ночное. Днём играют в зале казино, ночью в подсобке.</p>
   <h3>Основы</h3><ul>
     <li>Кладите карту того же цвета или того же символа, или джокера. Скинули все карты — выиграли.</li>
-    <li>Нажмите на карту или перетащите её в сброс. Тащите карты вбок, чтобы переставить их в руке. Наведите на карту (на телефоне подержите палец), чтобы прочитать её. Чтобы взять карту, нажмите на колоду (или <b>D</b>, <b>пробел</b>). <b>P</b> — пас.</li>
+    <li>Нажмите на карту или перетащите её в сброс. Тащите карты вбок, чтобы переставить их в руке. Наведите на карту (на телефоне подержите палец), чтобы прочитать её. Чтобы взять карту, нажмите на колоду (или <b>D</b>, <b>пробел</b>). Если взятая карта подходит, но вы хотите её придержать, нажмите на колоду ещё раз: это пас. Неподходящая карта пасует сама.</li>
     <li>Правила и карты Дома выбирает хозяин в лобби.</li></ul>
   <h3>День и ночь</h3><ul>
     <li><b>Смена</b> переворачивает все карты. День становится ночью, и правила стола меняются.</li>
@@ -4621,9 +4622,9 @@ function attachCard(el, card) {
     el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   };
 }
-let canDrawNow = false;
-function drawNow() { if (!busy && G && canDrawNow) act('draw'); }
-$('btnPass').onclick = () => { if (!busy && myTurnNow() && G.drewBy === ME) act('pass'); };
+let canDrawNow = false, canPassNow = false;
+// the deck draws; after a draw with a card you'd rather keep, the same click passes
+function drawNow() { if (busy || !G) return; if (canDrawNow) act('draw'); else if (canPassNow) act('pass'); }
 $('btnGamble').onclick = async () => {
   if (busy || !G || !G.canGamble || !G.canGamble(ME)) return;
   const rivals = G.players.map((p, i) => i).filter(i => i !== ME && !G.players[i].out);
@@ -4667,7 +4668,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) { e.preventDefault(); dismissModal(); return; }
   if (!G || $('game').classList.contains('hidden') || e.target.tagName === 'INPUT') return;
   if (e.key === 'd' || e.key === ' ') { e.preventDefault(); drawNow(); }
-  else if (e.key === 'p') $('btnPass').onclick();
 });
 
 
@@ -5076,10 +5076,11 @@ function render() {
   // no Draw button: the deck itself is clicked; its tooltip says what a click does
   const digging = myTurn && G.rules.drawUntil && G.pending === 0 && G.drewBy !== ME && G.playable(ME).length === 0 && (G.drawRunPi === ME && G.drawRun > 0);
   canDrawNow = !!canDraw;
-  $('drawpile').title = !canDraw ? '' : owe ? t('penalty', me.oweN)
+  canPassNow = myTurn && !me.out && G.winner === null && G.drewBy === ME && G.pending === 0 && !G.debt && !owe;
+  $('drawpile').classList.toggle('pass', canPassNow);
+  $('drawpile').title = canPassNow ? t('passDeck') : !canDraw ? '' : owe ? t('penalty', me.oweN)
     : myDebt ? (G.debt.n ? t('pickUpLeft', G.debt.n) : t('drawUntil', colorName(G.debt.until), G.debt.got))
     : G.pending > 0 && myTurn ? t('take', G.pending) : (digging ? t('drawAgain', G.drawRun) : t('draw'));
-  $('btnPass').disabled = !(myTurn && G.drewBy === ME && G.pending === 0);
   const gb = $('btnGamble'), canG = G.canGamble && G.canGamble(ME);
   gb.classList.toggle('hidden', !canG); gb.textContent = t('gambleBtn');
   // a collector works for the house: once per deal, slip someone two cards or pull the lever

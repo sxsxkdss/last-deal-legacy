@@ -3,7 +3,7 @@ const RULES_HTML = {};
 RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every card has two faces: day and night. Days are played on the casino floor, nights in the back room.</p>
   <h3>Basics</h3><ul>
     <li>Put down a card of the same colour or the same symbol, or a wild. Empty your hand to win.</li>
-    <li>Click a card or drag it to the pile. Drag cards sideways to reorder your hand. Hover a card (long-press on a phone) to read it. To draw, click the deck (or press <b>D</b> or <b>Space</b>). <b>P</b> passes.</li>
+    <li>Click a card or drag it to the pile. Drag cards sideways to reorder your hand. Hover a card (long-press on a phone) to read it. To draw, click the deck (or press <b>D</b> or <b>Space</b>). If the card you drew fits but you'd rather keep it, click the deck again to pass. A card that doesn't fit passes by itself.</li>
     <li>The host picks the rules and the House cards in the lobby.</li></ul>
   <h3>Day and night</h3><ul>
     <li><b>Shift</b> turns every card over. Day becomes night and the table rules change.</li>
@@ -68,7 +68,7 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
 RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконечную колоду. У каждой карты два лица: дневное и ночное. Днём играют в зале казино, ночью в подсобке.</p>
   <h3>Основы</h3><ul>
     <li>Кладите карту того же цвета или того же символа, или джокера. Скинули все карты — выиграли.</li>
-    <li>Нажмите на карту или перетащите её в сброс. Тащите карты вбок, чтобы переставить их в руке. Наведите на карту (на телефоне подержите палец), чтобы прочитать её. Чтобы взять карту, нажмите на колоду (или <b>D</b>, <b>пробел</b>). <b>P</b> — пас.</li>
+    <li>Нажмите на карту или перетащите её в сброс. Тащите карты вбок, чтобы переставить их в руке. Наведите на карту (на телефоне подержите палец), чтобы прочитать её. Чтобы взять карту, нажмите на колоду (или <b>D</b>, <b>пробел</b>). Если взятая карта подходит, но вы хотите её придержать, нажмите на колоду ещё раз: это пас. Неподходящая карта пасует сама.</li>
     <li>Правила и карты Дома выбирает хозяин в лобби.</li></ul>
   <h3>День и ночь</h3><ul>
     <li><b>Смена</b> переворачивает все карты. День становится ночью, и правила стола меняются.</li>

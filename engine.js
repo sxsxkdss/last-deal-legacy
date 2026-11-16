@@ -1067,6 +1067,8 @@ class Game {
         this.drawRun = 0;
       }
     }
+    // nothing fits after the draw: the turn passes by itself
+    if (this.drewBy === pi && !this.playable(pi).length) this.pass(pi);
     this.standingCheck();
     return got;
   }
