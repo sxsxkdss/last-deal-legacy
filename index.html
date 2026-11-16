@@ -847,7 +847,13 @@ body.lite .card.tier-w::after, body.lite .card.tier-h::after { animation: none; 
 body.lite #psycho { display: none !important; }
 .abbar, .invbar { justify-content: center; }
 /* ---------- picking several cards in the hand ---------- */
-#hand .card.sel { z-index: 50 !important; }
+#hand:not(.big) .card.sel { z-index: 50 !important; }
+/* a big hand keeps every card where it is under the pointer: no jump to the front, no scale or tilt on hover,
+   so the sliver you aim at is still the card you click (and its neighbours stay reachable) */
+#hand.big .card.ok:hover, #hand.big .card:not(.ok):hover { transform: translateY(calc(var(--dy, 0px) - 6px)) rotate(var(--rot, 0deg)); }
+/* with the sway off nothing else puts these cards on their own layers, and a hover would repaint the whole fan */
+#hand.big .card { will-change: transform; }
+#hand.big .card.sel, #hand.big .card.sel:hover { transform: translateY(calc(var(--dy, 0px) - 18px)) rotate(var(--rot, 0deg)); }
 .selbar { position: absolute; left: 50%; translate: -50% 0; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 4px 8px; white-space: nowrap; background: #14100d var(--noise); background-blend-mode: overlay; border: 1px solid #3a2f24; border-radius: var(--ui-r); color: #d8cdb2; font: 600 12px/16px var(--f-type); }
 .selbar.hidden { display: none; }
 .selbar b { font: 700 14px/16px var(--f-stamp); text-transform: uppercase; letter-spacing: .06em; color: #f2e6cf; }
@@ -4472,9 +4478,14 @@ function drawSelBar() {
   if ($('selHint')) $('selHint').onclick = () => { const b = bestCombo(me.hand); if (b) { selIds = b.cards.map(c => c.id); SFX.play('click'); render(); } };
   // sit just above the hand, out of the layout flow
   // sits on the felt just above your strip, so it never covers the buttons or the cards
-  const mr = $('bottom').querySelector('.me').getBoundingClientRect(), br = $('bottom').getBoundingClientRect();
-  bar.style.top = (mr.top - br.top - 44) + 'px';
+  // measured on the next frame, when the browser lays the page out anyway, not in the middle of render()
+  if (html && !selBarRaf) selBarRaf = requestAnimationFrame(() => {
+    selBarRaf = 0;
+    const mr = $('bottom').querySelector('.me').getBoundingClientRect(), br = $('bottom').getBoundingClientRect();
+    bar.style.top = (mr.top - br.top - 44) + 'px';
+  });
 }
+let selBarRaf = 0;
 function playSelection() {
   const info = selInfo(); if (!info || !info.ok || !myTurnNow()) { SFX.play('bad'); return false; }
   const el = $('hand').querySelector(`.card[data-id="${info.lead.id}"]`);
@@ -4503,15 +4514,25 @@ function cardSig(el) { // everything that decides how the face is drawn, except 
   return el.dataset.f + '|' + el.dataset.id + '|' + [...el.classList].filter(c => !STATE_CLS.has(c) && !/^(sel\d|ch\d)$/.test(c)).sort().join(' ') + '|' + el.innerHTML.length;
 }
 const STATE_CLS = new Set(['ok', 'dim', 'jump', 'locked', 'picked', 'sel', 'new', 'flipin', 'nope', 'lifted', 'uniq', 'topc', 'under']);
-function patchCards(wrap, html, byId, wire = true) {
-  PARSE.innerHTML = html;
-  const next = [...PARSE.content.children];
+// With parts (one markup string per element, in order) a card whose own markup is unchanged is kept without
+// parsing anything; only the cards that changed are parsed. A big hand where one card got picked costs one parse, not fifty.
+function patchCards(wrap, html, byId, wire = true, parts = null) {
   const old = new Map(); for (const el of wrap.children) if (el.dataset && el.dataset.id) old.set(el.dataset.id, el);
+  let next;
+  if (parts) {
+    next = parts.map(h => {
+      const m = /data-id="([^"]*)"/.exec(h), o = m && old.get(m[1]);
+      if (o && o.__html === h && !o.classList.contains('lifted')) return o;
+      PARSE.innerHTML = h; const n = PARSE.content.firstElementChild; n.__html = h; return n;
+    });
+  } else { PARSE.innerHTML = html; next = [...PARSE.content.children]; }
   const keep = [];
   for (const n of next) {
     const id = n.dataset && n.dataset.id;
     const o = id ? old.get(id) : null;
+    if (o === n) { old.delete(id); keep.push(o); continue; }
     if (o && !o.classList.contains('lifted') && cardSig(o) === cardSig(n)) {
+      o.__html = n.__html;
       old.delete(id);
       const cls = n.className.replace(/\bnew\b/, '').trim();
       const want = o.classList.contains('flipin') ? cls + ' flipin' : cls;
@@ -4522,7 +4543,7 @@ function patchCards(wrap, html, byId, wire = true) {
     } else keep.push(n);
   }
   for (const el of old.values()) el.remove();
-  for (const el of [...wrap.children]) if (!el.dataset || !el.dataset.id) el.remove(); // row breaks are rebuilt
+  for (const el of [...wrap.children]) if ((!el.dataset || !el.dataset.id) && !keep.includes(el)) el.remove(); // row breaks are rebuilt
   let prev = null;
   for (const el of keep) {
     const at = prev ? prev.nextSibling : wrap.firstChild;
@@ -4550,7 +4571,7 @@ function attachCard(el, card) {
   el._card = card;
   if (el._wired) return; el._wired = true;
   el.addEventListener('contextmenu', e => { e.preventDefault(); if (!confessSel) toggleSel(el._card); });
-  el.addEventListener('pointermove', e => { if (!dragging) JUICE.tilt(el, e); });
+  el.addEventListener('pointermove', e => { if (!dragging && !el.parentNode.classList.contains('big')) JUICE.tilt(el, e); });
   el.addEventListener('pointerleave', () => JUICE.untilt(el));
   el.onpointerdown = e => {
     if (e.button > 0) return;
@@ -5142,7 +5163,8 @@ function render() {
     wrap.style.flexWrap = rows > 1 ? 'wrap' : 'nowrap';
     wrap.style.justifyContent = 'center';
     let newIdx = 0;
-    const handHTML = hand.map((c, k) => {
+    const handParts = [];
+    hand.forEach((c, k) => {
       const row = Math.floor(k / per), col = k % per, inRow = Math.min(per, n - row * per);
       let cls = '';
       if (myTurn) cls = G.canPlay(c) ? 'ok' : 'dim';
@@ -5155,14 +5177,16 @@ function render() {
       if (row > 0) st += `;margin-top:${(-rowLift).toFixed(1)}px`;
       if (!lastHandIds.has(c.id)) { cls += ' new'; st += `;animation-delay:${Math.min(newIdx++, 7) * 20}ms`; }
       const html = faceHTML(G.f(c), G.side, cls, c.id).replace('style="', `style="${st};`);
-      return (row > 0 && col === 0 ? '<i class="brk"></i>' : '') + html;
-    }).join('');
+      if (row > 0 && col === 0) handParts.push('<i class="brk"></i>');
+      handParts.push(html);
+    });
+    const handHTML = handParts.join('');
     // nothing about the hand changed: keep the DOM (and the hover/tilt) as it is.
     // Otherwise patch it: a card already on screen keeps its element (no repaint of its texture, no restarted sway),
     // only its classes and position change; new cards are added, gone ones removed.
     if (handHTML !== lastHandHTML || !wrap.firstElementChild) {
       lastHandHTML = handHTML;
-      patchCards(wrap, handHTML, Object.fromEntries(me.hand.map(c => [c.id, c])));
+      patchCards(wrap, handHTML, Object.fromEntries(me.hand.map(c => [c.id, c])), true, handParts);
     }
     lastHandIds = new Set(me.hand.map(c => c.id));
     drawSelBar();

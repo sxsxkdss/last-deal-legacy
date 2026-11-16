@@ -130,9 +130,14 @@ function drawSelBar() {
   if ($('selHint')) $('selHint').onclick = () => { const b = bestCombo(me.hand); if (b) { selIds = b.cards.map(c => c.id); SFX.play('click'); render(); } };
   // sit just above the hand, out of the layout flow
   // sits on the felt just above your strip, so it never covers the buttons or the cards
-  const mr = $('bottom').querySelector('.me').getBoundingClientRect(), br = $('bottom').getBoundingClientRect();
-  bar.style.top = (mr.top - br.top - 44) + 'px';
+  // measured on the next frame, when the browser lays the page out anyway, not in the middle of render()
+  if (html && !selBarRaf) selBarRaf = requestAnimationFrame(() => {
+    selBarRaf = 0;
+    const mr = $('bottom').querySelector('.me').getBoundingClientRect(), br = $('bottom').getBoundingClientRect();
+    bar.style.top = (mr.top - br.top - 44) + 'px';
+  });
 }
+let selBarRaf = 0;
 function playSelection() {
   const info = selInfo(); if (!info || !info.ok || !myTurnNow()) { SFX.play('bad'); return false; }
   const el = $('hand').querySelector(`.card[data-id="${info.lead.id}"]`);

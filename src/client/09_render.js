@@ -183,7 +183,8 @@ function render() {
     wrap.style.flexWrap = rows > 1 ? 'wrap' : 'nowrap';
     wrap.style.justifyContent = 'center';
     let newIdx = 0;
-    const handHTML = hand.map((c, k) => {
+    const handParts = [];
+    hand.forEach((c, k) => {
       const row = Math.floor(k / per), col = k % per, inRow = Math.min(per, n - row * per);
       let cls = '';
       if (myTurn) cls = G.canPlay(c) ? 'ok' : 'dim';
@@ -196,14 +197,16 @@ function render() {
       if (row > 0) st += `;margin-top:${(-rowLift).toFixed(1)}px`;
       if (!lastHandIds.has(c.id)) { cls += ' new'; st += `;animation-delay:${Math.min(newIdx++, 7) * 20}ms`; }
       const html = faceHTML(G.f(c), G.side, cls, c.id).replace('style="', `style="${st};`);
-      return (row > 0 && col === 0 ? '<i class="brk"></i>' : '') + html;
-    }).join('');
+      if (row > 0 && col === 0) handParts.push('<i class="brk"></i>');
+      handParts.push(html);
+    });
+    const handHTML = handParts.join('');
     // nothing about the hand changed: keep the DOM (and the hover/tilt) as it is.
     // Otherwise patch it: a card already on screen keeps its element (no repaint of its texture, no restarted sway),
     // only its classes and position change; new cards are added, gone ones removed.
     if (handHTML !== lastHandHTML || !wrap.firstElementChild) {
       lastHandHTML = handHTML;
-      patchCards(wrap, handHTML, Object.fromEntries(me.hand.map(c => [c.id, c])));
+      patchCards(wrap, handHTML, Object.fromEntries(me.hand.map(c => [c.id, c])), true, handParts);
     }
     lastHandIds = new Set(me.hand.map(c => c.id));
     drawSelBar();

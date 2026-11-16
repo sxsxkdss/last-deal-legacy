@@ -3,7 +3,7 @@ function attachCard(el, card) {
   el._card = card;
   if (el._wired) return; el._wired = true;
   el.addEventListener('contextmenu', e => { e.preventDefault(); if (!confessSel) toggleSel(el._card); });
-  el.addEventListener('pointermove', e => { if (!dragging) JUICE.tilt(el, e); });
+  el.addEventListener('pointermove', e => { if (!dragging && !el.parentNode.classList.contains('big')) JUICE.tilt(el, e); });
   el.addEventListener('pointerleave', () => JUICE.untilt(el));
   el.onpointerdown = e => {
     if (e.button > 0) return;
