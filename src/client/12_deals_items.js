@@ -42,6 +42,7 @@ function dealOffer() {
     b.classList.add('signed'); b.insertAdjacentHTML('beforeend', `<em class="sig">${dark ? t('signed') : t('blessed')}</em>`);
     SFX.play(dark ? 'bad' : 'win'); await new Promise(r => setTimeout(r, 650));
     if (id === 'mark') { closeModal(); target = await pickTarget(t('markQ'), t('markSub'), null, true); }
+    if (id === 'exactor') { closeModal(); target = await pickTarget(t('exactorQ'), t('exactorSub'), null, true); }
     closeModal(); offerKey = ''; act('deal', { id, target });
   });
   if ($('dealNo')) $('dealNo').onclick = async () => {
@@ -65,6 +66,9 @@ const ITEM_ICON = (() => {
     eclipse: s('<circle cx="16" cy="16" r="12"/><path d="M16 1v3M16 28v3M1 16h3M28 16h3M5.4 5.4l2.1 2.1M24.5 24.5l2.1 2.1M5.4 26.6l2.1-2.1M24.5 7.5l2.1-2.1" stroke="currentColor" stroke-width="2" fill="none"/>' + cut('M20 6a10 10 0 0 1 0 20 12 12 0 0 0 0-20z')),
     twoface: s('<path d="M16 3C9 3 5 8.5 5 15s4 14 11 14z"/><path d="M16 3c7 0 11 5.5 11 12s-4 14-11 14z" opacity=".55"/>' + cut('M9 13h4M19 13h4M11 21c2 1.5 3 1.5 5 0M16 21c2 2 4 2 6 0M16 3v26')),
     ward: s('<path d="M16 2c3 4 9 5 12 5 0 12-5 19-12 23C9 26 4 19 4 7c3 0 9-1 12-5z"/>' + cut('M16 9v14M10 15h12M12 12l8 8M20 12l-8 8')),
+    penance: s('<path d="M9 13V9a7 7 0 0 1 14 0v4h-3V9a4 4 0 0 0-8 0v4z"/><rect x="6" y="13" width="20" height="16" rx="1.5"/>' + cut('M16 18v5M13 27h6')),
+    bail: s('<circle cx="10" cy="16" r="7"/><path d="M15 14.5h14v3h-3v4h-3v-4h-2v3h-3v-3h-3z"/>' + cut('M10 16m-2.4 0a2.4 2.4 0 1 0 4.8 0 2.4 2.4 0 1 0-4.8 0')),
+    cross: s('<path d="M14.5 2h3v18h6v3h-6v7h-3v-7h-6v-3h6z"/>' + cut('M12 26h8')),
     bag: s('<path d="M10 9h12l5 20H5z"/><path d="M12 9c0-6 8-6 8 0" stroke="currentColor" stroke-width="2.2" fill="none"/>' + cut('M9 16h14'))
   };
 })();

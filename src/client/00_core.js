@@ -22,7 +22,7 @@ function loadSettings() {
     if (s) {
       const r = Object.assign({}, s.rules || {});
       if ('sevenZero' in r) { if (!('seven' in r)) r.seven = r.sevenZero; if (!('zero' in r)) r.zero = r.sevenZero; delete r.sevenZero; }
-      return Object.assign(d, { vol: typeof s.vol === 'number' ? s.vol : 0.8, ambient: s.ambient === 'off' ? 'off' : 'on', ambVol: typeof s.ambVol === 'number' ? s.ambVol : 0.35, ytUrl: typeof s.ytUrl === 'string' ? s.ytUrl : '', shake: s.shake !== false, musicFx: s.musicFx !== false, mode: s.mode === 'one' ? 'one' : 'debt', limit: [250, 500, 1000].includes(s.limit) ? s.limit : 500, bgMotion: s.bgMotion !== false, tips: s.tips !== false }, { name: s.name || d.name, sound: s.sound !== false, fx: s.fx === 'lite' ? 'lite' : (s.fx === 'full' ? 'full' : d.fx), lang: LANGS[s.lang] ? s.lang : d.lang, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
+      return Object.assign(d, { vol: typeof s.vol === 'number' ? s.vol : 0.8, ambient: s.ambient === 'off' ? 'off' : 'on', ambVol: typeof s.ambVol === 'number' ? s.ambVol : 0.35, ytUrl: typeof s.ytUrl === 'string' ? s.ytUrl : '', shake: s.shake !== false, musicFx: s.musicFx !== false, mode: s.mode === 'one' ? 'one' : 'debt', limit: [250, 500, 1000].includes(s.limit) ? s.limit : 250, bgMotion: s.bgMotion !== false, tips: s.tips !== false }, { name: s.name || d.name, sound: s.sound !== false, fx: s.fx === 'lite' ? 'lite' : (s.fx === 'full' ? 'full' : d.fx), lang: LANGS[s.lang] ? s.lang : d.lang, rules: Object.assign(d.rules, r), cards: Object.assign(d.cards, s.cards || {}) });
     }
   } catch (e) {}
   return d;

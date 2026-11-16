@@ -25,7 +25,7 @@ const COMBOS = {
 };
 const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'fullhouse', 'threepair', 'cstraight', 'four', 'flush', 'twothree', 'rainbow', 'straightflush', 'five'];
 // a plain Wild (no draw on it) can stand in for any number in a hand, one per hand
-const isJoker = f => f && f.c === 'w' && f.v === 'wild';
+const isJoker = f => f && f.c === 'w' && (f.v === 'wild' || f.v === 'djoker');
 function comboPlain(faces) {
   if (!faces || faces.length < 2 || faces.some(f => !/^\d$/.test(f.v) || f.c === 'w')) return null;
   const n = faces.length, nums = faces.map(f => +f.v), chips = nums.reduce((a, b) => a + b, 0);
@@ -114,6 +114,7 @@ const LAST_CALL = 150;
 // ---- debt match: what a card left in your hand costs you at the end of a deal ----
 function debtValue(f) {
   if (BAD_VALUE[f.v]) return BAD_VALUE[f.v];
+  if (f.v === 'djoker') return DJ_VALUE;
   if (/^\d$/.test(f.v) && f.c !== 'w') return +f.v;
   if (f.c === 'w') return ['wild'].includes(f.v) ? 25 : 35;
   if (['d4', 'd5', 'skipall'].includes(f.v)) return 20;
@@ -130,18 +131,29 @@ const FUSE_TURNS = 3, LEAD_DRAW = 2, FUSE_HIT = 4, LEECH_MEALS = 3;
 const isBad = f => !!f && f.c === 'x';
 // tokens sold in the shop; price in chips
 // ---- deals: the angel (light, by day) and the demon (dark, by night). One active at a time, one of each per match. ----
-const LIGHT_DEALS = ['rosary', 'candle', 'wind', 'halo', 'confess', 'alms', 'clean', 'grace', 'guardian', 'penance'];
-const DARK_DEALS = ['double', 'usury', 'chains', 'blood', 'bail', 'devour', 'mark', 'drum', 'puppet', 'sharp'];
+// ids kept from the old set where the deal stayed; 'wind' is Ascension now, 'sharp' the Cardsharp
+const LIGHT_DEALS = ['confess', 'candle', 'penance', 'wind', 'clean', 'grace', 'alms', 'guardian', 'halo', 'rosary'];
+const DARK_DEALS = ['usury', 'double', 'chains', 'exactor', 'bail', 'mark', 'blood', 'nighttax', 'drum', 'desecrate', 'puppet', 'sharp', 'devour'];
+// strength 1-4, for balance only (the bots use it to rank); deals are offered evenly at random
+const DEAL_TIER = { confess: 1, candle: 2, penance: 2, wind: 2, clean: 3, grace: 3, alms: 3, guardian: 4, halo: 4, rosary: 4,
+  usury: 1, double: 2, chains: 2, exactor: 2, bail: 3, mark: 3, blood: 3, nighttax: 3, drum: 3, desecrate: 3, puppet: 3, sharp: 4, devour: 4 };
+const DEAL_TARGET = ['mark', 'exactor']; // deals that name a rival when signed
 // per-turn debt: at the start of your turn you pay for every card past the free ones
 const DEBT_TURN = { free: 10, rate: 0.5, cap: 4 };
-const ANGEL_STEP = 1.25, DEMON_BASE = 10, DEMON_STEP = 1.5, DEMON_MIN = 10;
+// the angel: +0.5% a quiet day turn up to 25%; an attack halves it and stalls it for 2 turns; taking a 5+ stack +1%
+const ANGEL_STEP = 0.5, ANGEL_CAP = 25, ANGEL_BLOCK = 2, ANGEL_STACK = 1;
+// the demon: a rival takes 5+ cards from your attack: 8% + 2% per card past 5; +1% each night; +2% a turn with 15+ cards; +3% per 25% of the limit in debt
+const DEMON_BASE = 8, DEMON_STEP = 2, DEMON_MIN = 5, DEMON_NIGHT = 1, DEMON_BIG = 2, DEMON_DEBT = 3, FALL_DEMON = 5;
+const CROSS_TURNS = 15, DJ_VALUE = 35;
 const ATTACK_FACES = new Set(['mirror', 'mul2', 'mul3', 'glass', 'bomb', 'gift', 'sacr']);
 const TOKENS = ['safe', 'sharp', 'pad', 'counter', 'light', 'debtor', 'license', 'luck', 'usurer'];
 const PRICES = { token: 20, pay: 10, payAmount: 25, setup: 15, interest: 25, candle: 10, blood: 10 };
 const DEBT_LIMITS = [250, 500, 1000];
 // ---- the Dark shop's items: kept in a separate inventory, used by hand at any moment (two trigger on their own) ----
 const ITEMS = ['rent', 'veil', 'dawn', 'shell', 'oven', 'eclipse', 'twoface', 'ward'];
-const ITEM_PRICE = { rent: 10, veil: 25, dawn: 25, shell: 25, oven: 25, eclipse: 25, twoface: 40, ward: 25 };
+const ITEM_PRICE = { rent: 10, veil: 25, dawn: 25, shell: 25, oven: 25, eclipse: 25, twoface: 40, ward: 25, penance: 0, bail: 0, cross: 0 };
+// items that come from deals, never from the shop
+const DEAL_ITEMS = ['penance', 'bail', 'cross'];
 const ITEM_AUTO = { twoface: true }; // fires by itself when a deal is offered
 // ---- the Horsemen: once per match, when anyone's debt reaches 70% of their limit, one rides in for 10 table turns ----
 const HORSEMEN = { death: ['curse'], war: ['timer', 'fury', 'arms'], famine: ['two', 'tithe'], plague: ['blank', 'rot'] };
@@ -163,9 +175,9 @@ const DRAW_VAL = { d1: 1, d2: 2, wd2: 2, d4: 4, wd4: 4, wrd4: 4, d5: 5, wd6: 6, 
 // Weights for each side. Light = classic UNO + Flip light side + No Mercy. Dark = Flip dark side, nastier.
 const SIDE_WEIGHTS = {
   L: { colored: { '0': 2, '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skip: 2, rev: 2, d1: 2, d2: 2, flip: 2, d4: 1, discall: 2, skipall: 1, mirror: 1.5, shield: 1, dflip: 1, lucky: 1, glass: 1, loan: 1, gift: 1, pill: 1 },
-       wild: { wild: 4, wd2: 2, wd4: 2, wrd4: 2, wd6: 1, wd10: 0.5, roul: 1.5, mul2: 1.5, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0 }, bad: { lead: 1.2, leech: 1, fuse: 1 } },
+       wild: { wild: 4, wd2: 2, wd4: 2, wrd4: 2, wd6: 1, wd10: 0.5, roul: 1.5, mul2: 1.5, spin: 2, echo: 2, d6: 1, swind: 0, sacr: 0, djoker: 0 }, bad: { lead: 1.2, leech: 1, fuse: 1 } },
   D: { colored: { '1': 4, '2': 4, '3': 4, '4': 4, '5': 4, '6': 4, '7': 4, '8': 4, '9': 4, skipall: 2, rev: 2, d5: 1.5, flip: 2, discall: 2, dflip: 1, glass: 1, freeze: 1, bomb: 1, maze: 1 },
-       wild: { wild: 4, wdc: 2, wd6: 1.5, wd10: 1, wrd8: 1, roul: 1.5, wd15: 0.5, mul3: 1, deal: 1, swind: 0, sacr: 0 }, bad: { lead: 1.2, leech: 1, fuse: 1 } }
+       wild: { wild: 4, wdc: 2, wd6: 1.5, wd10: 1, wrd8: 1, roul: 1.5, wd15: 0.5, mul3: 1, deal: 1, swind: 0, sacr: 0, djoker: 0 }, bad: { lead: 1.2, leech: 1, fuse: 1 } }
 };
 const FACES = {}, FACE_W = {};
 for (const s of ['L', 'D']) {
@@ -183,8 +195,13 @@ const pick2 = list => list.slice().sort(() => Math.random() - 0.5).slice(0, 2);
 const DEAL_MAX = { light: 2, dark: 3 };
 function hasDeal(p, id) { return !!(p && p.deals && p.deals.includes(id)); }
 function nLight(p) { return p && p.deals ? p.deals.filter(d => LIGHT_DEALS.includes(d)).length : 0; }
-function nDark(p) { return p && p.deals ? p.deals.filter(d => DARK_DEALS.includes(d)).length : 0; }
-function canLight(p) { return !p.fallen && nLight(p) < DEAL_MAX.light; }
+// Desecration takes no slot
+function nDark(p) { return p && p.deals ? p.deals.filter(d => DARK_DEALS.includes(d) && d !== 'desecrate').length : 0; }
+function canLight(p) { return !p.fallen && !p.noAngel && nLight(p) < DEAL_MAX.light; }
+// what the demon can offer: Desecration only to someone who never took a light deal
+function darkPool(p) { return DARK_DEALS.filter(d => !hasDeal(p, d) && (d !== 'desecrate' || !p.tookLight)); }
+// attack multipliers add up instead of multiplying: x2 and x2 make x3
+const multSum = ms => 1 + ms.reduce((a, m) => a + (m - 1), 0);
 // one deal signed per hand dealt: after that the visitors wait for the next deal
 function offerOpen(p) { return !p.signedNow; }
 function canDark(p) { return nDark(p) < DEAL_MAX.dark; }
@@ -220,10 +237,13 @@ class Game {
     const ds = Array.isArray(rules.deals) ? rules.deals : [];
     this.players.forEach((p, i) => {
       const d = ds[i] || {};
-      Object.assign(p, { angel: d.angel || 0, demon: d.demon || 0, inv: Array.isArray(d.inv) ? d.inv.slice() : [], fx: {}, buff: d.buff || 0, deals: Array.isArray(d.deals) ? d.deals.slice() : (d.deal ? [d.deal] : []), fallen: !!d.fallen, markT: d.markT ?? null,
-        debt: d.debt || 0, limit: d.limit || 0, used: {}, peace: null, dayAt: null, skipNext: false, broke: false });
+      // an unused demon charge carries into the next deal at half
+      Object.assign(p, { angel: d.angel || 0, demon: (d.demon || 0) / (d.fresh ? 1 : 2), demonX: (d.demonX || 0) / (d.fresh ? 1 : 2), inv: Array.isArray(d.inv) ? d.inv.slice() : [], fx: {}, buff: d.buff || 0, deals: Array.isArray(d.deals) ? d.deals.slice() : (d.deal ? [d.deal] : []), fallen: !!d.fallen, markT: d.markT ?? null, exT: d.exT ?? null,
+        debt: d.debt || 0, limit: d.limit || 0, used: {}, peace: null, dayAt: null, skipNext: false, broke: false,
+        angelBlock: 0, angelSlow: Math.max(0, (d.angelSlow || 0) - (d.fresh ? 0 : 1)), tookLight: !!d.tookLight, noAngel: !!d.noAngel, puppetLast: null, nightSeen: -1, djGiven: !!d.djGiven });
     });
     delete this.rules.deals;
+    this.crossLeft = 0; this.nightNo = 0;
     this.horse = rules.horse && rules.horse.left > 0 ? JSON.parse(JSON.stringify(rules.horse)) : null;
     this.horseCount = rules.horseCount || 0;
     this.horseUsed = !!rules.horseUsed || !!this.horse;
@@ -245,6 +265,7 @@ class Game {
     this.events = []; this.evSeq = 0;
     this.addLog(`First card: ${faceName(top.L)}. ${this.players[this.turn].name} starts.`, '', 'first', { f: top.L, n: this.players[this.turn].name });
     this.ev('start');
+    this.dealStart();
   }
   newCard() {
     const c = randCard(), off = this.rules.off || [];
@@ -381,10 +402,50 @@ class Game {
     return true;
   }
   // ================= DEALS =================
-  dmul(pi) { const p = this.players[pi]; return p && hasDeal(p, 'double') ? 2 : 1; }
+  // light deals stop working while an Inverted Cross burns
+  hasL(p, id) { return hasDeal(p, id) && !(this.crossLeft > 0); }
+  // the attacker's multiplier (Heavy Hand; the Fangs of the fallen on the first attack that lands in a deal)
+  dmul(pi, landing) {
+    const p = this.players[pi]; if (!p) return 1;
+    const ms = [];
+    if (hasDeal(p, 'double')) ms.push(2);
+    if (landing && p.fallen && !p.used.fangs) ms.push(2);
+    return multSum(ms);
+  }
+  // the first attack of a deal that really lands spends the Fangs
+  spendFangs(pi) { const p = this.players[pi]; if (p && p.fallen && !p.used.fangs) { p.used.fangs = true; this.ev('fangs', { pi }); } }
+  // "+X% of your debt (at least N)"
+  pctDebt(p, x, min) { return Math.max(min, Math.ceil((p.debt || 0) * x)); }
+  // chained cards: never more than half the hand
+  chainUp(p, cards, turns) {
+    const cap = Math.floor(p.hand.length / 2) - p.hand.filter(c => c.lock || c.chain).length;
+    let n = 0;
+    for (const c of cards) { if (n >= cap) break; if (c.lock || c.chain) continue; if (turns) c.chain = turns; else c.lock = true; n++; }
+    return n;
+  }
+  // the deal starts: Eternal Debtor and the Exactor collect
+  dealStart() {
+    this.players.forEach((p, i) => {
+      if (p.out || !(p.limit > 0)) return;
+      if (hasDeal(p, 'usury')) {
+        this.payDebt(i, 5, 'usury');
+        this.players.forEach((q, j) => { if (j !== i && !q.out && q.limit > 0) this.payDebt(j, 10, 'usury'); });
+      }
+      if (hasDeal(p, 'exactor') && Number.isInteger(p.exT) && this.players[p.exT] && !this.players[p.exT].out) {
+        const t = this.players[p.exT]; this.payDebt(p.exT, this.pctDebt(t, 0.1, 15), 'exactor');
+      }
+    });
+  }
+  // Alms: 8 off your debt for every card you give away, 2 cards an action at most, 32 a deal
+  alms(pi, n) {
+    const p = this.players[pi]; if (!p || !this.hasL(p, 'alms')) return 0;
+    const left = 32 - (p.used.alms || 0), k = Math.min(left, 8 * Math.min(2, n));
+    if (k <= 0) return 0;
+    p.used.alms = (p.used.alms || 0) + k; this.payDebt(pi, -k, 'alms'); return k;
+  }
   payDebt(pi, amt, why) {
     const p = this.players[pi]; if (!p) return 0;
-    if (amt > 0 && hasDeal(p, 'rosary')) amt = Math.round(amt * 0.85);
+    if (amt > 0 && this.hasL(p, 'rosary')) amt = Math.round(amt * 0.7);
     p.debt = Math.max(0, Math.round((p.debt || 0) + amt));
     if (amt) this.ev('debt', { pi, k: amt, why });
     return amt;
@@ -392,33 +453,35 @@ class Game {
   // a player used an attack card: the angel turns away, Double Strike charges its price
   attacked(pi) {
     const p = this.players[pi]; if (!p) return;
-    p.peace = false; p.angel = 0;
-    if (hasDeal(p, 'double')) { const add = Math.ceil((p.debt || 0) * 0.05); if (add) this.payDebt(pi, add, 'double'); }
+    p.peace = false; p.angel = (p.angel || 0) / 2; p.angelBlock = ANGEL_BLOCK;
+    if (hasDeal(p, 'double')) this.payDebt(pi, this.pctDebt(p, 0.05, 5), 'double');
   }
   // cards forced on someone by an attack: deals bend the number, then the demon and friends take note
   hit(from, to, n) {
     const a = this.players[from], t = this.players[to];
     if (!t || t.out || n <= 0) return 0;
     if (from === to || !a) { t.oweN = (t.oweN || 0) + n; return n; }
-    n *= this.dmul(from);
+    const ms = [this.dmul(from, true)];
+    if (hasDeal(t, 'chains')) ms.push(1.5);
+    n = Math.ceil(n * multSum(ms));
     if (this.horseOn('war', 'fury', to)) n += 3;
-    if (hasDeal(t, 'chains')) n = Math.ceil(n * 1.5);
     if (hasDeal(a, 'mark') && a.markT === to) n += 2;
     if (hasDeal(t, 'mark') && t.markT === from) n += 2;
-    if (hasDeal(t, 'guardian') && !t.used.guardian) {
+    if (this.hasL(t, 'guardian') && !t.used.guardian) {
       t.used.guardian = true; a.oweN = (a.oweN || 0) + n;
       this.addLog(`${t.name}'s guardian turns the hit back on ${a.name}: +${n}.`, 'win', 'guardian', { n: t.name, t: a.name, k: n });
       this.ev('guardian', { pi: to, t: from, k: n });
       return 0;
     }
     t.oweN = (t.oweN || 0) + n;
+    this.spendFangs(from);
     this.afterHit(from, to, n);
     return n;
   }
   afterHit(from, to, n) {
     const a = this.players[from]; if (!a || from === to || from < 0) return;
-    if (n >= DEMON_MIN && canDark(a) && !a.out) { const ch = DEMON_BASE + (n - DEMON_MIN) * DEMON_STEP; if (ch > (a.demon || 0)) { a.demon = ch; this.ev('demonCharge', { pi: from, k: ch }); } }
-    if (hasDeal(a, 'blood') && this.chipsWon) this.chipsWon[from] += n;
+    if (n >= DEMON_MIN && canDark(a) && !a.out) { const ch = DEMON_BASE + (n - DEMON_MIN) * DEMON_STEP; if (ch > (a.demon || 0)) { a.demon = ch; this.ev('demonCharge', { pi: from, k: this.demonChance(from) }); } }
+    if (hasDeal(a, 'blood')) { if (this.chipsWon) this.chipsWon[from] += n; this.payDebt(to, 2 * n, 'blood'); }
     if (n >= 10) this.players.forEach((q, i) => { if (i !== to && !q.out && hasDeal(q, 'devour')) this.payDebt(i, -10, 'devour'); });
   }
   // a stack lands on pi; returns true if a guardian bounced it back to whoever sent it
@@ -427,9 +490,11 @@ class Game {
     if (this.horseOn('war', 'fury', pi)) this.pending += 3;
     if (a && sf !== pi) {
       if (hasDeal(p, 'chains')) this.pending = Math.ceil(this.pending * 1.5);
+      // the Fangs: the stack is the attack landing; the attacker's first of the deal doubles (added to Heavy Hand, never multiplied)
+      if (a.fallen && !a.used.fangs) { this.pending = Math.ceil(this.pending * (hasDeal(a, 'double') ? 1.5 : 2)); this.spendFangs(sf); }
       if (hasDeal(a, 'mark') && a.markT === pi) this.pending += 2;
       if (hasDeal(p, 'mark') && p.markT === sf) this.pending += 2;
-      if (hasDeal(p, 'guardian') && !p.used.guardian && !a.out) {
+      if (this.hasL(p, 'guardian') && !p.used.guardian && !a.out) {
         p.used.guardian = true; const n = this.pending;
         a.oweN = (a.oweN || 0) + n;
         this.addLog(`${p.name}'s guardian turns the +${n} stack back on ${a.name}.`, 'win', 'guardian', { n: p.name, t: a.name, k: n });
@@ -439,20 +504,33 @@ class Game {
         return true;
       }
     }
-    if (hasDeal(p, 'halo') && !p.used.halo) {
+    if (this.hasL(p, 'halo') && !p.used.halo) {
       p.used.halo = true; this.pending = Math.ceil(this.pending / 2);
       this.addLog(`${p.name}'s halo takes half the hit: +${this.pending}.`, 'win', 'halo', { n: p.name, k: this.pending });
       this.ev('halo', { pi, k: this.pending });
     }
+    // the Burning Veil of the fallen: the first stack of the deal that reaches you splits, the rest goes to a random rival
+    if (p.fallen && !p.used.veil && this.pending > 1) {
+      const rivals = this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out);
+      if (rivals.length) {
+        p.used.veil = true; const half = Math.floor(this.pending / 2), to = rivals[Math.floor(Math.random() * rivals.length)];
+        this.pending -= half; this.players[to].oweN = (this.players[to].oweN || 0) + half;
+        this.addLog(`${p.name}'s burning veil throws ${half} of the stack on ${this.players[to].name}.`, 'bad', 'veilBurn', { n: p.name, t: this.players[to].name, k: half });
+        this.ev('veilBurn', { pi, t: to, k: half });
+      }
+    }
+    // taking a big stack moves the angel a little
+    if (this.pending >= 5 && canLight(p) && !(this.crossLeft > 0)) p.angel = Math.min(ANGEL_CAP, (p.angel || 0) + ANGEL_STACK);
     return false;
   }
   // per-turn debt for pi's hand right now
   turnDebt(pi) {
     const p = this.players[pi];
-    const counted = p.hand.filter(c => { if (c.uniq) return false; if (!hasDeal(p, 'clean')) return true; const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length;
+    const counted = p.hand.filter(c => { if (c.uniq) return false; if (!this.hasL(p, 'clean')) return true; const f = this.f(c); return !(/^\d$/.test(f.v) && f.c !== 'w'); }).length;
     let d = Math.min(DEBT_TURN.cap, Math.max(0, counted - DEBT_TURN.free) * DEBT_TURN.rate);
     if (this.players.some((q, i) => i !== pi && !q.out && hasDeal(q, 'usury'))) d *= 1.5;
-    if (hasDeal(p, 'blood')) d *= 1.25;
+    // Blood Chips and the Exactor both cost 1.25x: added, not multiplied
+    d *= multSum([hasDeal(p, 'blood') ? 1.25 : 1, hasDeal(p, 'exactor') ? 1.25 : 1]);
     if (p.fx.shell) d *= 0.8;
     if (p.fx.veil && this.side === 'D') d *= 0.6;
     if (p.fx.dawn && this.side === 'L') d *= 0.6;
@@ -471,11 +549,19 @@ class Game {
     this.wardCheck();
     this.horseTurn(pi);
     this.prevTurnPi = pi;
-    // the angel counts the turn you just finished: peaceful, and by day
-    if (p.peace === true) {
-      if (p.dayAt === 'L' && canLight(p)) p.angel = Math.min(100, (p.angel || 0) + ANGEL_STEP);
-      if (hasDeal(p, 'candle') && p.debt > 0) this.payDebt(pi, -5, 'candle');
-    }
+    if (this.crossLeft > 0) { this.crossLeft--; if (!this.crossLeft) { this.addLog('The inverted cross burns out.', 'n', 'crossEnd', {}); this.ev('crossEnd', {}); } }
+    // the angel counts the turn you just finished: peaceful, and by day; an attack stalls it for two turns
+    if (p.angelBlock > 0) p.angelBlock--;
+    else if (p.peace === true && p.dayAt === 'L' && canLight(p) && !(this.crossLeft > 0)) p.angel = Math.min(ANGEL_CAP, (p.angel || 0) + ANGEL_STEP * (p.angelSlow > 0 ? 0.5 : 1));
+    if (p.peace === true && this.hasL(p, 'candle') && p.debt > 0) this.payDebt(pi, -5, 'candle');
+    // the demon notices a fat hand
+    if (p.hand.length >= 15 && canDark(p)) p.demonX = (p.demonX || 0) + DEMON_BIG;
+    // Night Tax: rivals pay 3 at the start of their night turns, its owner 3 on their own day turns
+    if (p.limit > 0) this.players.forEach((q, i) => {
+      if (q.out || !hasDeal(q, 'nighttax')) return;
+      if (this.side === 'D' && i !== pi) this.payDebt(pi, 3, 'nighttax');
+      if (this.side === 'L' && i === pi) this.payDebt(pi, 3, 'nighttax');
+    });
     // chains: cards from a Sacrifice count down; anything else from last turn falls off
     for (const c of p.hand) { if (c.chain > 0) { c.lock = true; c.chain--; } else c.lock = false; }
     this.badTurn(pi);
@@ -488,13 +574,18 @@ class Game {
     // the demon's chains on an opponent's hand, for this turn
     if (this.players.some((q, i) => i !== pi && !q.out && hasDeal(q, 'chains')) && p.hand.length > 1) {
       const free = p.hand.filter(c => !c.lock).sort(() => Math.random() - 0.5);
-      const n = Math.max(1, Math.floor(p.hand.length * 0.2));
-      for (const c of free.slice(0, n)) c.lock = true;
-      this.ev('chained', { pi, k: Math.min(n, free.length) });
+      const n = this.chainUp(p, free.slice(0, Math.max(1, Math.floor(p.hand.length * 0.2))));
+      if (n) this.ev('chained', { pi, k: n });
     }
-    // a puppet's string
+    // a puppet's string: the turn is lost, and a stack waiting for this player can't be answered: it's all taken
     if (p.skipNext) {
       p.skipNext = false;
+      if (this.pending > 0) {
+        const k = this.pending; p.oweN = (p.oweN || 0) + k;
+        this.afterHit(this.stackFrom, pi, k);
+        this.pending = 0; this.stackMin = 0; this.stackFrom = -1;
+        this.addLog(`${p.name} is on a string and takes the +${k} stack.`, 'bad', 'puppetTake', { n: p.name, k });
+      }
       this.addLog(`${p.name} dances on a string and misses the turn.`, 'stk', 'puppetSkip', { n: p.name });
       this.ev('skip', { pi });
       p.peace = null; this.turn = this.nextIdx(pi, 1);
@@ -503,11 +594,16 @@ class Game {
     // the visitors: the demon only by night, the angel only by day
     const roll = x => Math.random() * 100 < x;
     if (!(p.limit > 0)) { /* single deal: no house, no visitors */ }
-    else if (this.side === 'D' && ((canDark(p) && offerOpen(p)) || p.inv.includes('twoface')) && (p.demon || 0) > 0) {
-      const ch = Math.min(100, p.demon + this.dealBonus(pi)); p.demon = 0;
-      if (roll(ch)) this.offer = { pi, kind: 'dark', opts: pick2(DARK_DEALS.filter(d => !hasDeal(p, d))) };
-      else this.ev('demonMiss', { pi, k: ch });
-    } else if (this.side === 'L' && ((canLight(p) && offerOpen(p)) || (p.inv.includes('twoface') && !p.fallen)) && (p.angel || 0) > 0 && roll(p.angel + this.dealBonus(pi))) {
+    // the demon: once a night, on your first night turn, the whole charge is rolled and spent
+    else if (this.side === 'D' && p.nightSeen !== this.nightNo && ((canDark(p) && offerOpen(p)) || p.inv.includes('twoface'))) {
+      p.nightSeen = this.nightNo;
+      const ch = Math.min(100, this.demonChance(pi) + this.dealBonus(pi));
+      if (ch > 0) {
+        p.demon = 0; p.demonX = 0;
+        if (roll(ch)) this.offer = { pi, kind: 'dark', opts: pick2(darkPool(p)) };
+        else this.ev('demonMiss', { pi, k: ch });
+      }
+    } else if (this.side === 'L' && !(this.crossLeft > 0) && ((canLight(p) && offerOpen(p)) || (p.inv.includes('twoface') && !p.fallen && !p.noAngel)) && (p.angel || 0) > 0 && roll(p.angel + this.dealBonus(pi))) {
       this.offer = { pi, kind: 'light', opts: pick2(LIGHT_DEALS.filter(d => !hasDeal(p, d))) };
     }
     this.twoFace();
@@ -528,7 +624,7 @@ class Game {
     if (o.kind === 'both') {
       // Two-faced: whichever is picked, no fall, no limits, and it doesn't count as this hand's deal
       const lightPick = LIGHT_DEALS.includes(id);
-      if (lightPick) p.angel = 0; else p.demon = 0;
+      if (lightPick) { p.angel = 0; p.tookLight = true; } else { p.demon = 0; p.demonX = 0; }
       p.deals.push(id);
       this.dealEffect(pi, id, target);
       this.addLog(`${p.name} takes a ${lightPick ? 'light' : 'dark'} deal: ${id}.`, lightPick ? 'win' : 'bad', 'dealTaken', { n: p.name, d: id, kind: lightPick ? 'light' : 'dark', t: p.markT != null && id === 'mark' ? this.players[p.markT].name : null });
@@ -540,16 +636,10 @@ class Game {
       this.ev('dealNo', { pi });
       return true;
     }
-    if (o.kind === 'light') { p.angel = 0; }
+    if (o.kind === 'light') { p.angel = 0; p.angelSlow = 2; p.tookLight = true; }
     else {
-      if (nLight(p)) {
-        // the fall: the light deal burns and a Sacrifice is left in your hand
-        this.addLog(`${p.name}'s light deal burns. A Sacrifice is left behind.`, 'bad', 'fall', { n: p.name });
-        this.ev('fall', { pi });
-        p.hand.push(uniqueCard('sacr'));
-        p.deals = p.deals.filter(d => !LIGHT_DEALS.includes(d));
-      }
-      p.fallen = true; p.angel = 0; p.demon = 0;
+      if (nLight(p) && id !== 'desecrate') this.fall(pi);
+      p.demon = 0; p.demonX = 0;
     }
     p.deals.push(id); p.signedNow = true;
     this.dealEffect(pi, id, target);
@@ -559,17 +649,47 @@ class Game {
   }
   dealEffect(pi, id, target) {
     const p = this.players[pi];
+    const pickT = () => {
+      const ok = Number.isInteger(target) && target !== pi && this.players[target] && !this.players[target].out;
+      return ok ? target : this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out).sort((a, b) => this.players[a].hand.length - this.players[b].hand.length)[0] ?? null;
+    };
     switch (id) {
-      case 'wind': p.hand.push(uniqueCard('swind')); break;
-      case 'penance': this.payDebt(pi, -Math.round(p.debt * 0.25), 'penance'); break;
-      case 'usury': p.debt = Math.round(p.debt * 1.2); this.ev('debt', { pi, k: 0, why: 'usury' }); break;
-      case 'bail': p.debt = Math.round(p.debt * 0.6); p.limit = Math.round(p.limit * 0.8); this.ev('debt', { pi, k: 0, why: 'bail' }); break;
-      case 'mark': {
-        const ok = Number.isInteger(target) && target !== pi && this.players[target] && !this.players[target].out;
-        p.markT = ok ? target : this.players.map((q, i) => i).filter(i => i !== pi && !this.players[i].out).sort((a, b) => this.players[a].hand.length - this.players[b].hand.length)[0] ?? null;
+      case 'penance': p.inv.push('penance'); break;
+      case 'usury': this.payDebt(pi, this.pctDebt(p, 0.15, 20), 'usury'); break;
+      case 'bail': p.limit = Math.round(p.limit * 0.85); p.inv.push('bail'); this.ev('debt', { pi, k: 0, why: 'bail' }); break;
+      case 'mark': p.markT = pickT(); break;
+      case 'exactor': p.exT = pickT(); break;
+      case 'desecrate': {
+        // the price: the angel never comes again, unless a dark deal is already signed
+        if (!(nDark(p) > 0)) { p.noAngel = true; p.angel = 0; }
+        p.inv.push('cross');
         break;
       }
     }
+  }
+  // signing a dark deal while holding light ones
+  fall(pi) {
+    const p = this.players[pi];
+    const burnt = p.deals.filter(d => LIGHT_DEALS.includes(d));
+    let relief = 0, chips = 0;
+    for (const d of burnt) {
+      if (d === 'penance') { if (p.inv.includes('penance')) { p.inv.splice(p.inv.indexOf('penance'), 1); relief += 5; chips += 5; } }
+      else { relief += 10; chips += 10; }
+    }
+    p.deals = p.deals.filter(d => !LIGHT_DEALS.includes(d));
+    p.fallen = true; p.angel = 0;
+    if (relief) this.payDebt(pi, -relief, 'fall');
+    if (chips && this.chipsWon) this.chipsWon[pi] += chips;
+    // the demonic joker, once a match
+    if (!p.djGiven) { p.djGiven = true; p.hand.push(uniqueCard('djoker')); }
+    this.addLog(`${p.name} falls: ${burnt.length} light deal${burnt.length === 1 ? '' : 's'} burn. A demonic joker is left behind.`, 'bad', 'fall', { n: p.name, k: burnt.length });
+    this.ev('fall', { pi, r: relief, c: chips });
+  }
+  // the demon's chance at your next night roll
+  demonChance(pi) {
+    const p = this.players[pi]; if (!p || !canDark(p)) return 0;
+    const debt = p.limit > 0 ? Math.floor((p.debt || 0) / (p.limit * 0.25)) * DEMON_DEBT : 0;
+    return Math.round(((p.demon || 0) + (p.demonX || 0) + (p.fallen ? FALL_DEMON : 0) + debt) * 10) / 10;
   }
   // ================= ITEMS =================
   dealBonus(pi) {
@@ -579,8 +699,11 @@ class Game {
   canUseItem(pi, id) {
     const p = this.players[pi];
     if (!p || p.out || this.winner !== null || this.offer || !p.inv.includes(id) || ITEM_AUTO[id]) return false;
-    if (p.fx[id] !== undefined && id !== 'eclipse' && id !== 'oven') return false; // already running this hand
+    if (p.fx[id] !== undefined && id !== 'eclipse' && id !== 'oven' && !DEAL_ITEMS.includes(id)) return false; // already running this hand
     if (id === 'oven' && p.hand.length < 30) return false;
+    if (id === 'cross' && this.crossLeft > 0) return false; // one cross at a time
+    if (id === 'penance' && this.crossLeft > 0) return false; // an angel's gift
+    if ((id === 'penance' || id === 'bail') && !(p.debt > 0)) return false;
     return true;
   }
   useItem(pi, id) {
@@ -591,6 +714,8 @@ class Game {
     this.ev('item', { pi, id });
     switch (id) {
       case 'rent': p.fx.rent = 0; break;
+      case 'penance': case 'bail': this.payDebt(pi, -Math.round(p.debt * 0.4), id); break;
+      case 'cross': this.crossLeft = CROSS_TURNS; this.ev('cross', { pi, k: CROSS_TURNS }); break;
       case 'veil': case 'dawn': case 'shell': case 'ward': p.fx[id] = true; break;
       case 'oven': {
         const pool = p.hand.filter(c => !c.uniq), n = Math.floor(p.hand.length / 2);
@@ -609,9 +734,9 @@ class Game {
         this.addLog(`Eclipse: ${p.name} turns the table to the ${this.side === 'D' ? 'dark' : 'light'} side.`, 'flip', 'eclipse', { n: p.name, dk: this.side === 'D' ? 1 : 0 });
         this.ev('flip', { side: this.side });
         const dark = this.side === 'D', tf = p.inv.includes('twoface');
-        const ok = dark ? (canDark(p) && offerOpen(p)) || tf : (canLight(p) && offerOpen(p)) || (tf && !p.fallen);
+        const ok = dark ? (canDark(p) && offerOpen(p)) || tf : !(this.crossLeft > 0) && ((canLight(p) && offerOpen(p)) || (tf && !p.fallen && !p.noAngel));
         if (ok && Math.random() < 0.25) {
-          this.offer = { pi, kind: dark ? 'dark' : 'light', opts: pick2((dark ? DARK_DEALS : LIGHT_DEALS).filter(d => !hasDeal(p, d))) };
+          this.offer = { pi, kind: dark ? 'dark' : 'light', opts: pick2(dark ? darkPool(p) : LIGHT_DEALS.filter(d => !hasDeal(p, d))) };
           this.addLog(`${dark ? 'The demon' : 'The angel'} comes to ${p.name}.`, 'n', dark ? 'demonCome' : 'angelCome', { n: p.name });
           this.ev('offer', { pi, kind: this.offer.kind });
           this.twoFace();
@@ -627,7 +752,7 @@ class Game {
     const p = this.players[o.pi]; if (!p.inv.includes('twoface')) return;
     p.inv.splice(p.inv.indexOf('twoface'), 1);
     o.kind = 'both';
-    o.opts = pick2(LIGHT_DEALS.filter(d => !hasDeal(p, d))).concat(pick2(DARK_DEALS.filter(d => !hasDeal(p, d))));
+    o.opts = (p.noAngel ? [] : pick2(LIGHT_DEALS.filter(d => !hasDeal(p, d)))).concat(pick2(darkPool(p)));
     this.addLog(`${p.name} is two-faced: both visitors lay out their deals.`, 'n', 'twoface', { n: p.name });
     this.ev('item', { pi: o.pi, id: 'twoface' });
   }
@@ -650,17 +775,27 @@ class Game {
   // the deals you use by hand, on your own turn
   ability(pi, k, cards) {
     const p = this.players[pi];
-    if (!p || p.out || this.turn !== pi || this.winner !== null || this.offer || this.roulette !== null || this.debt || this.pending > 0 || this.owes(pi)) return false;
-    if (k === 'confess' && hasDeal(p, 'confess') && !p.used.confess && Array.isArray(cards)) {
-      const pick = []; for (const id of cards.slice(0, 3)) { const c = p.hand.find(x => x.id === id && !x.lock && !pick.includes(x)); if (c) pick.push(c); }
+    if (!p || p.out || this.turn !== pi || this.winner !== null || this.offer || this.roulette !== null || this.debt || (this.pending > 0 && k !== 'puppet') || this.owes(pi)) return false;
+    if (k === 'confess' && this.hasL(p, 'confess') && !p.used.confess && Array.isArray(cards)) {
+      const pick = []; for (const id of cards.slice(0, 3)) { const c = p.hand.find(x => x.id === id && !x.lock && !x.uniq && !pick.includes(x)); if (c) pick.push(c); }
       if (!pick.length || p.hand.length - pick.length < 1) return false;
       p.hand = p.hand.filter(c => !pick.includes(c)); p.used.confess = true;
       this.addLog(`${p.name} confesses: ${pick.length} cards are let go.`, 'win', 'confess', { n: p.name, k: pick.length });
       this.ev('confess', { pi, k: pick.length }); this.seq++; return true;
     }
-    if (k === 'puppet' && hasDeal(p, 'puppet') && !p.used.puppet) {
-      const t = this.nextIdx(pi, 1); if (t === pi) return false;
-      this.players[t].skipNext = true; p.used.puppet = true; this.payDebt(pi, 15, 'puppet');
+    // Ascension: once a deal, with 6+ cards, two thirds of the hand turn into jokers
+    if (k === 'wind' && this.hasL(p, 'wind') && !p.used.wind && p.hand.length >= 6) {
+      const free = p.hand.filter(c => !c.lock && !c.uniq && this.f(c).c !== 'w').sort(() => Math.random() - 0.5);
+      const n2 = Math.min(free.length, Math.round(p.hand.length * 2 / 3));
+      for (const c of free.slice(0, n2)) { c.L = { c: 'w', v: 'wild' }; c.D = { c: 'w', v: 'wild' }; }
+      p.used.wind = true;
+      this.addLog(`${p.name} ascends: ${n2} cards turn into jokers.`, 'win', 'swind', { n: p.name, k: n2 });
+      this.ev('swind', { pi, k: n2 }); this.seq++; return true;
+    }
+    // the Puppeteer: block the next player's turn, any number of times, never the same player twice running; 5 debt each
+    if (k === 'puppet' && hasDeal(p, 'puppet')) {
+      const t = this.nextIdx(pi, 1); if (t === pi || p.puppetLast === t || this.players[t].skipNext) return false;
+      this.players[t].skipNext = true; p.puppetLast = t; this.payDebt(pi, 5, 'puppet');
       this.addLog(`${p.name} pulls the strings: ${this.players[t].name} will miss a turn.`, 'bad', 'puppet', { n: p.name, t: this.players[t].name });
       this.ev('puppet', { pi, t }); this.seq++; return true;
     }
@@ -810,10 +945,10 @@ class Game {
         break;
       case 'skipall': steps = 0; this.ev('skipall', { pi }); break;
       case 'd1': case 'd2': case 'd4': case 'd5': case 'wd2': case 'wd4': case 'wd6': case 'wd10': case 'wd15':
-        this.pending += DRAW_VAL[face.v] * k * (this.inflate > 0 ? 2 : 1) * this.multNext * this.dmul(pi); this.multNext = 1; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; break;
+        this.pending += DRAW_VAL[face.v] * k * (this.inflate > 0 ? 2 : 1) * this.multNext * this.dmul(pi, false); this.multNext = 1; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; break;
       case 'wrd4': case 'wrd8':
         if (k % 2) { this.dir *= -1; this.ev('reverse', { dir: this.dir }); }
-        this.pending += DRAW_VAL[face.v] * k * (this.inflate > 0 ? 2 : 1) * this.multNext * this.dmul(pi); this.multNext = 1; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; break;
+        this.pending += DRAW_VAL[face.v] * k * (this.inflate > 0 ? 2 : 1) * this.multNext * this.dmul(pi, false); this.multNext = 1; this.stackMin = DRAW_VAL[face.v]; this.stackFrom = pi; break;
       case 'mirror':
         if (this.pending > 0) {
           const back = this.stackFrom;
@@ -880,8 +1015,8 @@ class Game {
         // give 2 random cards per Gift to a chosen player (never your last card)
         const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
         let given = 0;
-        for (let r = 0; r < 2 * k && p.hand.length > 1; r++) { const free = p.hand.filter(c => !c.lock); if (!free.length) break; const c = free[Math.floor(Math.random() * free.length)]; p.hand.splice(p.hand.indexOf(c), 1); this.players[tgt].hand.push(c); given++; }
-        if (given && hasDeal(p, 'alms')) this.payDebt(pi, -10, 'alms');
+        for (let r = 0; r < 2 * k && p.hand.length > 1; r++) { const free = p.hand.filter(c => !c.lock && !c.uniq); if (!free.length) break; const c = free[Math.floor(Math.random() * free.length)]; p.hand.splice(p.hand.indexOf(c), 1); this.players[tgt].hand.push(c); given++; }
+        if (given) this.alms(pi, given);
         this.addLog(`${p.name} gives ${this.players[tgt].name} ${given} cards.`, 'swap', 'gift', { n: p.name, t: this.players[tgt].name, g: given });
         this.ev('gift', { a: pi, b: tgt, g: given });
         break;
@@ -890,7 +1025,7 @@ class Game {
         // repeats the card it was played on: draw cards, skips and reverses
         const pv = prevFace ? prevFace.v : null;
         if (pv && DRAW_VAL[pv]) {
-          this.pending += DRAW_VAL[pv] * k * (this.inflate > 0 ? 2 : 1) * this.multNext * this.dmul(pi); this.multNext = 1; this.stackMin = DRAW_VAL[pv]; this.stackFrom = pi;
+          this.pending += DRAW_VAL[pv] * k * (this.inflate > 0 ? 2 : 1) * this.multNext * this.dmul(pi, false); this.multNext = 1; this.stackMin = DRAW_VAL[pv]; this.stackFrom = pi;
           if (pv === 'wrd4' || pv === 'wrd8') { if (k % 2) { this.dir *= -1; this.ev('reverse', { dir: this.dir }); } }
         } else if (pv === 'skip' || pv === 'freeze') { steps = 1 + k * (pv === 'freeze' ? 2 : 1); for (let s = 1; s < steps; s++) this.ev('skip', { pi: this.nextIdx(pi, s) }); }
         else if (pv === 'skipall') { steps = 0; this.ev('skipall', { pi }); }
@@ -923,7 +1058,7 @@ class Game {
       }
       case 'd6': {
         // reroll: your whole hand is replaced by the same number of fresh cards
-        const keep = p.hand.filter(c => c.lock || c.chain), cnt = p.hand.length - keep.length;
+        const keep = p.hand.filter(c => c.lock || c.chain || c.uniq), cnt = p.hand.length - keep.length;
         p.hand = keep; for (let r = 0; r < cnt; r++) p.hand.push(this.newCard());
         this.addLog(`${p.name} rolls the D6: a fresh hand of ${cnt}.`, 'flip', 'd6', { n: p.name, k: cnt });
         this.ev('d6', { pi, k: cnt });
@@ -950,11 +1085,19 @@ class Game {
         break;
       case 'deal': {
         // a contract: half your hand burns (chained cards stay), and the demon takes notice: +15% to its charge
-        const gone = Math.floor(p.hand.filter(c => !c.lock).length / 2);
-        for (let r = 0; r < gone; r++) { const free = p.hand.filter(c => !c.lock); p.hand.splice(p.hand.indexOf(free[Math.floor(Math.random() * free.length)]), 1); }
+        const gone = Math.floor(p.hand.filter(c => !c.lock && !c.uniq).length / 2);
+        for (let r = 0; r < gone; r++) { const free = p.hand.filter(c => !c.lock && !c.uniq); p.hand.splice(p.hand.indexOf(free[Math.floor(Math.random() * free.length)]), 1); }
         if (canDark(p)) p.demon = (p.demon || 0) + 15;
         this.addLog(`${p.name} signs a contract: ${gone} cards burn. The demon takes notice.`, 'bad', 'deal2', { n: p.name, g: gone });
         this.ev('deal', { pi, g: gone });
+        break;
+      }
+      case 'djoker': {
+        // the demonic joker: everyone gets 3 random cards chained for 2 turns (never past half a hand)
+        let tot = 0;
+        this.players.forEach((q, i) => { if (q.out) return; const free = q.hand.filter(c => !c.lock && !c.chain).sort(() => Math.random() - 0.5); tot += this.chainUp(q, free.slice(0, 3), 2); });
+        this.addLog(`${p.name} plays the demonic joker: chains on every hand.`, 'bad', 'djoker', { n: p.name, k: tot });
+        this.ev('djoker', { pi, k: tot });
         break;
       }
       case 'swind': {
@@ -970,7 +1113,8 @@ class Game {
         // Sacrifice: the target takes 10 cards, chained for 2 of their turns. Nothing blocks it.
         const tgt = opts.target != null && opts.target !== pi && this.players[opts.target] && !this.players[opts.target].out ? opts.target : this.nextIdx(pi, 1);
         const t = this.players[tgt];
-        for (let r = 0; r < 10; r++) { const c = this.next; this.next = this.newCard(); c.chain = 2; t.hand.push(c); }
+        const add = []; for (let r = 0; r < 10; r++) { const c = this.next; this.next = this.newCard(); t.hand.push(c); add.push(c); }
+        this.chainUp(t, add, 2);
         this.addLog(`${p.name} offers a sacrifice: ${t.name} takes 10 chained cards.`, 'bad', 'sacr', { n: p.name, t: t.name });
         this.ev('sacr', { pi, t: tgt }); this.ev('draw', { pi: tgt, k: 10 });
         if (this.chipsWon && hasDeal(p, 'blood')) this.chipsWon[pi] += 10;
@@ -1051,7 +1195,7 @@ class Game {
   }
   applyShield() {
     const t = this.players[this.turn];
-    if (this.pending > 0 && t && t.shield && !t.out) {
+    if (this.pending > 0 && t && t.shield && !t.out && !t.skipNext) { // a player on the Puppeteer's strings can't raise the vest
       t.shield = false;
       this.addLog(`${t.name}'s shield breaks the +${this.pending} stack.`, 'swap', 'shieldBreak', { n: t.name, k: this.pending });
       this.ev('shield', { pi: this.turn, k: this.pending });
@@ -1277,19 +1421,39 @@ const Bot = {
     if (big && g.side === 'D' && has('veil')) return 'veil';
     if (big && g.side === 'L' && has('dawn')) return 'dawn';
     if (has('eclipse') && Math.random() < 0.1) return 'eclipse';
+    const room = p.limit ? p.debt / p.limit : 0;
+    if (room > 0.55 && has('penance')) return 'penance';
+    if (room > 0.6 && has('bail')) return 'bail';
+    // the cross: when a rival leans on light deals
+    if (has('cross') && g.players.some((q, i) => i !== pi && !q.out && nLight(q) > 0) && Math.random() < 0.3) return 'cross';
     return null;
   },
   deal(g, pi) {
     const o = g.offer, p = g.players[pi]; if (!o || o.pi !== pi) return null;
-    const LP = ['penance', 'rosary', 'grace', 'guardian', 'halo', 'wind', 'clean', 'candle', 'confess', 'alms'], DP = ['bail', 'double', 'blood', 'mark', 'drum', 'devour', 'chains', 'usury', 'puppet', 'sharp'];
-    const pref = o.kind === 'light' ? LP : o.kind === 'dark' ? DP : LP.concat(DP);
-    const best = o.opts.slice().sort((a, b) => pref.indexOf(a) - pref.indexOf(b))[0];
+    // the strongest first; Desecration is free for someone already dark, otherwise the bot weighs losing the angel
+    const tier = d => (DEAL_TIER[d] || 1) + (d === 'desecrate' ? (nDark(p) ? 1 : -1.5) : 0) + Math.random() * 0.8;
+    const best = o.opts.slice().sort((a, b) => tier(b) - tier(a))[0];
     if (o.kind === 'dark') {
       const room = p.limit ? p.debt / p.limit : 0;
       if (best !== 'bail' && (room > 0.65 || Math.random() < 0.35)) return { id: null };
     }
     const tgt = g.players.map((q, i) => i).filter(i => i !== pi && !g.players[i].out).sort((a, b) => g.players[a].hand.length - g.players[b].hand.length)[0];
     return { id: best, target: tgt };
+  },
+  // deals used by hand: Ascension with a fat hand, the Puppeteer before a stack hits the next player, Redemption on the worst cards
+  ability(g, pi) {
+    const p = g.players[pi]; if (!p || g.turn !== pi) return null;
+    if (g.hasL(p, 'wind') && !p.used.wind && p.hand.length >= 8) return { k: 'wind' };
+    if (g.hasL(p, 'confess') && !p.used.confess && p.hand.length >= 6) {
+      const worst = p.hand.filter(c => !c.lock && !c.uniq).sort((a, b) => debtValue(g.f(b)) - debtValue(g.f(a))).slice(0, 3);
+      if (worst.length) return { k: 'confess', cards: worst.map(c => c.id) };
+    }
+    // the Puppeteer first, then the draw card: the next player can't answer it
+    if (hasDeal(p, 'puppet') && g.pending === 0) {
+      const t = g.nextIdx(pi, 1), q = g.players[t];
+      if (t !== pi && p.puppetLast !== t && !q.skipNext && q.hand.length <= 5 && (p.debt || 0) < p.limit * 0.7 && g.playable(pi).some(c => DRAW_VAL[g.f(c).v])) return { k: 'puppet' };
+    }
+    return null;
   },
   strength(f) { if (!f) return 0; if (f.c === 'w') return 3 + (DRAW_VAL[f.v] || 0) / 2; if (DRAW_VAL[f.v]) return 1.5 + DRAW_VAL[f.v] / 2; return isNaN(+f.v) ? 2 : 1; },
   bestColor(g, hand, side) {
@@ -1390,14 +1554,14 @@ function serialize(g, viewer = -1, logN = 8) {
       (viewer < 0 || i === viewer) ? p.hand.map(cardCode).join('') : '!' + p.hand.map(c => ALPHA[faceIdx(ob, c[ob])]).join(''),
       (p.out ? 1 : 0) | (p.elim ? 2 : 0) | (p.human ? 16 : 0) | (p.shield ? 32 : 0) | (p.left ? 64 : 0), (p.oweN || 0) + ((p.owed && p.owed.length) || 0), p.loan || 0,
       p.hand.map((c, k) => (c.lock || c.chain ? [k, c.chain || 0, c.lock ? 1 : 0] : null)).filter(Boolean),
-      [Math.round((p.angel || 0) * 10) / 10, p.demon || 0, (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0) | (p.signedNow ? 32 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(',')],
+      [Math.round((p.angel || 0) * 10) / 10, g.demonChance ? g.demonChance(i) : (p.demon || 0), (p.deals || []).join('+'), (p.fallen ? 4 : 0) | (p.broke ? 8 : 0) | (p.skipNext ? 16 : 0) | (p.signedNow ? 32 : 0) | (p.noAngel ? 64 : 0) | (p.tookLight ? 128 : 0), p.debt || 0, p.limit || 0, p.markT ?? -1, Object.keys(p.used || {}).join(','), p.exT ?? -1, p.puppetLast ?? -1, p.angelBlock || 0],
       p.hand.map(c => (c.uniq ? 1 : 0)).join(''),
       [(p.inv || []).join(','), Object.entries(p.fx || {}).map(([k, v]) => v === true ? k : k + ':' + v).join(','), p.buff || 0],
       (viewer < 0 || i === viewer) ? p.hand.map(c => c.id) : null]),
     of: g.offer ? [g.offer.pi, g.offer.kind, g.offer.opts] : null,
     hz: g.horse && g.horse.left > 0 ? [g.horse.k, g.horse.v, g.horse.left, (g.horse.curses || []).join(',')] : null,
     nf: viewer >= 0 && g.players[viewer] && hasDeal(g.players[viewer], 'sharp') ? cardCode(g.next) : null,
-    t: cardCode(g.top), ti: g.top.id, cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
+    t: cardCode(g.top), ti: g.top.id, cx: [g.chaosIn || 0, g.inflate || 0, g.lock || 0, g.multNext || 1, g.maze || 0, g.potato && g.potato.fuse > 0 ? (g.potato.fuse <= 2 ? 2 : 1) : 0, g.turnNo || 0, g.crossLeft || 0], db: g.debt ? [g.debt.pi, g.debt.n || 0, g.debt.until || '', g.debt.got || 0, g.debt.kind] : null, pl: (g.pile || []).slice(-5), pn: g.pileN || 1, nb: ALPHA[faceIdx(ob, g.next[ob])], c: g.color, d: g.dir, u: g.turn, k: g.pending, m: g.stackMin, sf: g.stackFrom, dr: [g.drawRunPi == null ? -1 : g.drawRunPi, g.drawRun || 0], fb: g.flipBack ? [g.flipBack.pi, g.flipBack.seq] : null,
     o: g.roulette === null ? -1 : g.roulette, w: g.drewBy, x: g.winner === null ? -1 : g.winner, s: g.seq,
     l: g.log.slice(-logN).map(l => [String(l.msg).slice(0, 200), l.cls, l.k || null, l.a || null]),
     ev: g.events.slice(-12), es: g.evSeq
@@ -1414,7 +1578,7 @@ function deserialize(st) {
     else { hand = []; for (let i = 0; i + 1 < hs.length; i += 2) hand.push(codeCard(hs.slice(i, i + 2))); }
     return { name: String(a[0]).slice(0, 20), av: String(a[1]).slice(0, 8), peer: String(a[2] || ''), hand,
       out: !!(a[4] & 1), elim: !!(a[4] & 2), human: !!(a[4] & 16), shield: !!(a[4] & 32), left: !!(a[4] & 64), oweN: a[5] || 0, owed: [], loan: a[6] || 0,
-      ...(() => { const d = Array.isArray(a[8]) ? a[8] : []; return { angel: d[0] || 0, demon: d[1] || 0, deals: String(d[2] || '').split('+').filter(Boolean), fallen: !!(d[3] & 4), broke: !!(d[3] & 8), skipNext: !!(d[3] & 16), signedNow: !!(d[3] & 32), debt: d[4] || 0, limit: d[5] || 0, markT: d[6] >= 0 ? d[6] : null, used: Object.fromEntries(String(d[7] || '').split(',').filter(Boolean).map(k => [k, true])) }; })(),
+      ...(() => { const d = Array.isArray(a[8]) ? a[8] : []; return { angel: d[0] || 0, demon: d[1] || 0, deals: String(d[2] || '').split('+').filter(Boolean), fallen: !!(d[3] & 4), broke: !!(d[3] & 8), skipNext: !!(d[3] & 16), signedNow: !!(d[3] & 32), debt: d[4] || 0, limit: d[5] || 0, markT: d[6] >= 0 ? d[6] : null, used: Object.fromEntries(String(d[7] || '').split(',').filter(Boolean).map(k => [k, true])), exT: d[8] >= 0 ? d[8] : null, puppetLast: d[9] >= 0 ? d[9] : null, angelBlock: d[10] || 0, noAngel: !!(d[3] & 64), tookLight: !!(d[3] & 128) }; })(),
       ...(() => { const d = Array.isArray(a[10]) ? a[10] : []; return { inv: String(d[0] || '').split(',').filter(Boolean), fx: Object.fromEntries(String(d[1] || '').split(',').filter(Boolean).map(x => { const [k, v] = x.split(':'); return [k, v === undefined ? true : +v]; })), buff: d[2] || 0 }; })() };
   });
   // chains and unique cards travel by position in the hand
@@ -1426,7 +1590,7 @@ function deserialize(st) {
   });
   g.horse = Array.isArray(st.hz) ? { k: st.hz[0], v: st.hz[1], left: st.hz[2], curses: String(st.hz[3] || '').split(',').filter(Boolean) } : null;
   g.offer = Array.isArray(st.of) ? { pi: st.of[0], kind: st.of[1], opts: st.of[2] || [] } : null;
-  g.top = codeCard(st.t); g.top.wid = st.ti; if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
+  g.top = codeCard(st.t); g.top.wid = st.ti; if (Array.isArray(st.cx)) { g.chaosIn = st.cx[0]; g.inflate = st.cx[1]; g.lock = st.cx[2]; g.multNext = st.cx[3] || 1; g.maze = st.cx[4] || 0; g.potatoState = st.cx[5] || 0; g.turnNo = st.cx[6] || 0; g.crossLeft = st.cx[7] || 0; } g.debt = Array.isArray(st.db) ? { pi: st.db[0], n: st.db[1], until: st.db[2] || null, got: st.db[3], kind: st.db[4] } : null; g.pile = Array.isArray(st.pl) ? st.pl.map(String) : []; g.pileN = st.pn || 1;
   g.next = { id: 0, hidden: true }; g.next[ob] = Object.assign({}, FACES[ob][ALPHA.indexOf(st.nb)] || { c: 'w', v: 'wild' });
   if (typeof st.nf === 'string' && st.nf.length === 2) g.next = codeCard(st.nf);
   g.color = st.c; g.dir = st.d; g.turn = st.u; g.pending = st.k; g.stackMin = st.m; g.stackFrom = typeof st.sf === 'number' ? st.sf : -1; if (Array.isArray(st.dr)) { g.drawRunPi = st.dr[0]; g.drawRun = st.dr[1]; } g.flipBack = Array.isArray(st.fb) ? { pi: st.fb[0], seq: st.fb[1] } : null;
@@ -1436,10 +1600,22 @@ function deserialize(st) {
   return g;
 }
 
+// every time the table turns to night: a new night (the demon rolls once per night) and +1% to every demon charge
+Object.defineProperty(Game.prototype, 'side', {
+  get() { return this._side; },
+  set(v) {
+    const was = this._side; this._side = v;
+    if (was === 'L' && v === 'D' && Array.isArray(this.players)) {
+      this.nightNo = (this.nightNo || 0) + 1;
+      for (const p of this.players) if (!p.out && p.limit > 0 && canDark(p)) p.demonX = (p.demonX || 0) + DEMON_NIGHT;
+    }
+  },
+  configurable: true
+});
 // every handover of the turn ticks the Last Call clock
 Object.defineProperty(Game.prototype, 'turn', {
   get() { return this._turn; },
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { comboCands, comboWorth, BAD, BAD_VALUE, isBad, FUSE_TURNS, LEAD_DRAW, FUSE_HIT, LEECH_MEALS, comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
+if (typeof module !== 'undefined') module.exports = { DEAL_TIER, DEAL_TARGET, DEAL_ITEMS, darkPool, CROSS_TURNS, ANGEL_CAP, comboCands, comboWorth, BAD, BAD_VALUE, isBad, FUSE_TURNS, LEAD_DRAW, FUSE_HIT, LEECH_MEALS, comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };

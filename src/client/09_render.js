@@ -87,6 +87,7 @@ function render() {
     <span class="row"><span class="chip">${suitSVG(G.color)}</span><span>${G.roulette !== null ? t('colorPending') : colorName(G.color)}</span></span>
     <span class="row dirtxt">${G.dir === 1 ? UI_ICON.cw : UI_ICON.ccw} ${t(G.dir === 1 ? 'cw' : 'ccw')}</span>
     ${G.rules.chaos ? (G.side === 'L' || G.inflate || G.lock ? `<span class="chaosline ${G.inflate || G.lock || G.chaosIn <= 2 ? 'warn' : ''}">${G.inflate ? t('inflated', G.inflate) : G.lock ? t('locked', G.lock) : t('chaosIn', G.chaosIn)}</span>` : `<span class="chaosline dim">${t('slotsClosed')}</span>`) : ''}
+    ${G.crossLeft > 0 ? `<span class="chaosline warn">${t('crossOn', G.crossLeft)}</span>` : ''}
     ${G.potatoState && G.side === 'D' ? `<span class="chaosline ${G.potatoState === 2 ? 'warn potato hot' : 'potato'}">${t(G.potatoState === 2 ? 'potatoHot' : 'potatoOn')}</span>` : ''}
     ${lcLeft !== null && lcLeft <= 10 && G.winner === null ? `<span class="chaosline warn lastcall">${lcLeft ? t('lastCallIn', lcLeft) : t('lastCallNow')}</span>` : ''}
     ${G.maze > 0 ? `<span class="chaosline warn">${t('mazeLeft', G.maze)}</span>` : ''}
@@ -135,8 +136,11 @@ function render() {
   // deals you use by hand
   const ab = $('abBar'), free = myTurn && G.pending === 0 && !G.debt && !G.offer && !G.owes(ME);
   const abBtns = [];
-  if (hasDeal(me, 'confess') && !me.used.confess) abBtns.push(`<button class="btn ab" data-ab="confess" ${free ? '' : 'disabled'}>${DEAL_ICON.confess}${confessSel ? t('abConfessGo', confessSel.size) : t('abConfess')}</button>`);
-  if (hasDeal(me, 'puppet') && !me.used.puppet) abBtns.push(`<button class="btn ab" data-ab="puppet" ${free ? '' : 'disabled'}>${DEAL_ICON.puppet}${t('abPuppet')}</button>`);
+  const crossed = G.crossLeft > 0;
+  if (hasDeal(me, 'wind') && !me.used.wind) abBtns.push(`<button class="btn ab" data-ab="wind" ${free && !crossed && me.hand.length >= 6 ? '' : 'disabled'} title="${esc(t('abWindTip'))}">${DEAL_ICON.wind}${t('abWind')}</button>`);
+  if (hasDeal(me, 'confess') && !me.used.confess && !crossed) abBtns.push(`<button class="btn ab" data-ab="confess" ${free ? '' : 'disabled'}>${DEAL_ICON.confess}${confessSel ? t('abConfessGo', confessSel.size) : t('abConfess')}</button>`);
+  if (hasDeal(me, 'puppet')) { const nx = G.nextIdx(ME, 1), okP = myTurn && !G.debt && !G.offer && !G.owes(ME) && nx !== ME && me.puppetLast !== nx && !G.players[nx].skipNext;
+    abBtns.push(`<button class="btn ab" data-ab="puppet" ${okP ? '' : 'disabled'} title="${esc(t('abPuppetTip'))}">${DEAL_ICON.puppet}${t('abPuppet')}</button>`); }
   if (hasDeal(me, 'sharp')) abBtns.push(`<button class="btn ab" data-ab="burn" ${free ? '' : 'disabled'}>${DEAL_ICON.sharp}${t('abBurn')}</button>`);
   setHTML(ab, abBtns.join('')); ab.classList.toggle('hidden', !abBtns.length || !!(MATCH && MATCH.col[ME]));
   // the Dark shop's items: a separate inventory, usable at any moment

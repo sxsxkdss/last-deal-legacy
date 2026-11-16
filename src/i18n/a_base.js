@@ -19,7 +19,7 @@ const NAMES = {
       wdc: 'Draw Till Color', roul: 'Color Roulette', mul2: 'Double Down', mul3: 'Triple Down', lucky: 'Horseshoe', glass: 'Shot Glass',
       spin: 'Jackpot', loan: 'Loan', gift: 'Tip', echo: 'Encore', freeze: 'Handcuffs', bomb: 'Shotgun', d6: 'Redeal',
       pill: 'Scratch Card', maze: 'Spinner', deal: 'Contract',
-      swind: 'Second Wind', sacr: 'Sacrifice', lead: 'Lead', leech: 'Leech', fuse: 'Lit Fuse'
+      swind: 'Second Wind', sacr: 'Sacrifice', djoker: 'Demonic Joker', lead: 'Lead', leech: 'Leech', fuse: 'Lit Fuse'
     }
   },
   ru: {
@@ -30,7 +30,7 @@ const NAMES = {
       wdc: 'Тяни до цвета', roul: 'Цветная рулетка', mul2: 'Дабл', mul3: 'Трипл', lucky: 'Подкова', glass: 'Рюмка',
       spin: 'Джекпот', loan: 'Займ', gift: 'Чаевые', echo: 'Бис', freeze: 'Наручники', bomb: 'Обрез', d6: 'Пересдача',
       pill: 'Лотерейка', maze: 'Вертушка', deal: 'Контракт',
-      swind: 'Второе дыхание', sacr: 'Жертва', lead: 'Свинец', leech: 'Пиявка', fuse: 'Фитиль'
+      swind: 'Второе дыхание', sacr: 'Жертва', djoker: 'Демонический джокер', lead: 'Свинец', leech: 'Пиявка', fuse: 'Фитиль'
     }
   }
 };
@@ -41,9 +41,9 @@ const CARD_TXT = {
   en: { flip: 'shift', dflip: 'eclipse', discall: 'discard', skipall: 'everyone', mirror: 'mirror', shield: 'vest', wild: 'wild', reverse: 'reverse', wdc: 'till color', roul: 'roulette',
     mult: 'double', mult3: 'triple', lucky: 'horseshoe', glass: 'shot', spin: 'jackpot', loan: 'loan', gift: 'tip', echo: 'encore', freeze: 'cuffs',
     bomb: 'shotgun', d6: 'redeal', pill: 'scratch',
-    maze: 'spinner', deal: 'contract', swind: 'second wind', sacr: 'sacrifice', lead: 'lead', leech: 'leech', fuse: 'fuse' },
+    maze: 'spinner', deal: 'contract', swind: 'second wind', sacr: 'sacrifice', djoker: 'demonic joker', lead: 'lead', leech: 'leech', fuse: 'fuse' },
   ru: { flip: 'смена', dflip: 'затмение', discall: 'сброс', skipall: 'всех', mirror: 'зеркало', shield: 'жилет', wild: 'джокер', reverse: 'разворот', wdc: 'до цвета', roul: 'рулетка',
     mult: 'дабл', mult3: 'трипл', lucky: 'подкова', glass: 'рюмка', spin: 'джекпот', loan: 'займ', gift: 'чаевые', echo: 'бис', freeze: 'наручники',
     bomb: 'обрез', d6: 'пересдача', pill: 'лотерейка',
-    maze: 'вертушка', deal: 'контракт', swind: 'второе дыхание', sacr: 'жертва', lead: 'свинец', leech: 'пиявка', fuse: 'фитиль' }
+    maze: 'вертушка', deal: 'контракт', swind: 'второе дыхание', sacr: 'жертва', djoker: 'демонический джокер', lead: 'свинец', leech: 'пиявка', fuse: 'фитиль' }
 };

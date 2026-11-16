@@ -44,12 +44,15 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
     <li>The last player under the limit beats the House.</li>
     <li><b>Chips</b>: the deal's winner gets 5¢ plus 10% of what the others paid. Poker hands pay chips too. Between deals, spend them in the <b>House shop</b>: tokens for the whole match (3 slots), paying off debt, or dirty tricks on a rival.</li></ul>
   <h3>The angel and the demon</h3><ul>
-    <li><b>The angel</b> comes by day. Every quiet day turn (no attack played) adds <b>1.25%</b> to the chance it shows up at the start of your turn. Any attack resets it. The angel offers 2 light deals and you have to take one.</li>
-    <li><b>The demon</b> comes at night. Make a rival pick up <b>10+ cards</b> at once and it charges: 10.0%, plus 1.5% for every card past 10. The charge waits for night and is rolled at the start of your first night turn. The demon offers 2 dark deals with a price. Sign one or tear it up.</li>
-    <li>An <b>attack</b> is any card that makes someone else pick up.</li>
-    <li>You can hold up to <b>2 light</b> and <b>3 dark</b> deals at once, all different, for the whole match. <b>One deal per hand</b>: after you sign, the visitors wait for the next deal.</li>
-    <li>Sign a dark deal while holding light ones and the light ones burn. The angel never comes back. You keep a <b>Sacrifice</b>: a one-off card that gives a player you pick 10 cards, chained for 2 of their turns.</li>
-    <li>Chained cards can't be played or dropped, but you still pay debt on them.</li></ul>
+    <li><b>The angel</b> comes by day. Every quiet day turn (no attack played) adds <b>0.5%</b> to the chance it shows up at the start of your turn, up to <b>25.0%</b>. Any attack halves the chance and stalls it for 2 turns. Taking a stack of 5+ cards adds 1.0%. After an angel deal the chance grows half as fast for 2 deals. The angel offers 2 light deals and you have to take one.</li>
+    <li><b>The demon</b> comes at night. A rival takes <b>5+ cards</b> from your attack: it charges 8.0% plus 2.0% for every card past 5. Every turn of the table to night +1.0%, every turn you start with 15+ cards +2.0%, and +3.0% for every 25% of your limit in debt. The charge is rolled at the start of your first night turn; an unused charge carries into the next deal at half. The demon offers 2 dark deals with a price. Sign one or tear both up.</li>
+    <li>An <b>attack</b> is any card that makes someone else pick up. Attack multipliers add up instead of multiplying: ×2 and ×2 make ×3.</li>
+    <li>You can hold up to <b>2 light</b> and <b>3 dark</b> deals, all different, for the whole match. <b>One deal per hand</b>. A price like "+X% debt (at least N)" takes whichever is bigger.</li>
+    <li><b>Desecration</b> takes no dark slot and is never offered to someone who took a light deal. Its price: the angel never comes again (free if you already hold a dark deal). It gives the <b>Inverted Cross</b>: any time, even on someone else's turn, every angel deal and angel chance is off for everyone for 15 table turns. One cross at a time.</li>
+    <li><b>The fall</b>: sign a dark deal while holding light ones. They burn (each gives back 10 debt and 10¢; an unused Penance only 5 and 5¢), the angel never comes back, the demon +5.0% for good. Dark items stay.</li>
+    <li>The fallen carry a <b>seal</b> every deal: <b>Fangs</b> (the first attack of the deal that lands hits twice as hard) and the <b>Burning Veil</b> (the first stack of the deal that reaches you splits, half goes to a random rival).</li>
+    <li>The fall leaves a <b>demonic joker</b>, one a match: a joker of any colour, day and night, good in poker hands and multi-drops. Played, it chains 3 random cards in every hand for 2 turns (not if it's your last card). It stays with you between deals, can't be burned or passed on, and counts 35 in debt.</li>
+    <li>Chained cards (never more than half a hand) can't be played or dropped, but you still pay debt on them.</li></ul>
   <h3>The Dark shop</h3><ul>
     <li>After every deal each player gets their own Dark shop with 3 random items. Buy as many as you can afford: 25¢ each, Rent 10¢, Two-Faced 40¢.</li>
     <li>Items wait in your inventory from deal to deal. Use one whenever you like, even on someone else's turn. It works till the end of the hand or at once, then it's gone. Two-Faced and Ward go off by themselves.</li>
@@ -109,12 +112,15 @@ RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконеч
     <li>Последний, кто остался под лимитом, обыгрывает Дом.</li>
     <li><b>Фишки</b>: победитель раздачи получает 5¢ и 10% от того, что заплатили остальные. Комбинации тоже платят фишками. Между раздачами их тратят в <b>лавке Дома</b>: жетоны на весь матч (3 места), погашение долга или пакости сопернику.</li></ul>
   <h3>Ангел и демон</h3><ul>
-    <li><b>Ангел</b> приходит днём. Каждый тихий дневной ход (без атак) прибавляет <b>1,25%</b> к шансу, что он появится в начале вашего хода. Любая атака обнуляет шанс. Ангел предлагает 2 светлые сделки, и одну нужно взять.</li>
-    <li><b>Демон</b> приходит ночью. Заставьте соперника взять <b>10+ карт</b> за раз, и демон заряжается: 10,0% и ещё 1,5% за каждую карту сверх 10. Заряд ждёт ночи и проверяется в начале вашего первого ночного хода. Демон предлагает 2 тёмные сделки с ценой. Подпишите одну или порвите.</li>
-    <li><b>Атака</b> — любая карта, из-за которой кто-то другой берёт карты.</li>
-    <li>Одновременно можно держать до <b>2 светлых</b> и <b>3 тёмных</b> сделок, все разные, на весь матч. <b>Одна сделка за раздачу</b>: после подписи гости ждут следующей.</li>
-    <li>Подписали тёмную, держа светлые, — светлые сгорают, и ангел больше не придёт. Остаётся <b>Жертва</b>: разовая карта, после которой выбранный игрок берёт 10 карт в цепях на 2 его хода.</li>
-    <li>Карты в цепях нельзя сыграть или скинуть, но долг за них идёт.</li></ul>
+    <li><b>Ангел</b> приходит днём. Каждый тихий дневной ход (без атак) прибавляет <b>0,5%</b> к шансу, что он появится в начале вашего хода, но не выше <b>25,0%</b>. Любая атака делит шанс пополам и на 2 хода останавливает рост. Взяли стопку 5+ карт: +1,0%. После сделки с ангелом шанс 2 раздачи растёт вдвое медленнее. Ангел предлагает 2 светлые сделки, и одну нужно взять.</li>
+    <li><b>Демон</b> приходит ночью. Соперник взял от вашей атаки <b>5+ карт</b>: заряд 8,0% и ещё 2,0% за каждую карту сверх 5. Каждая смена стола на ночь +1,0%, каждый ход с 15+ картами в руке +2,0%, и +3,0% за каждые 25% лимита в долге. Заряд проверяется в начале вашего первого ночного хода; неиспользованный переходит в следующую раздачу вдвое меньше. Демон предлагает 2 тёмные сделки с ценой. Подпишите одну или порвите обе.</li>
+    <li><b>Атака</b> — любая карта, из-за которой кто-то другой берёт карты. Множители атак не перемножаются: ×2 и ×2 дают ×3.</li>
+    <li>Можно держать до <b>2 светлых</b> и <b>3 тёмных</b> сделок, все разные, на весь матч. <b>Одна сделка за раздачу</b>. Цена вида «+X% долга (мин. +N)» берёт большее из двух.</li>
+    <li><b>Осквернение</b> не занимает слот тёмной сделки и не предлагается тому, кто брал светлую. Цена: ангел больше не придёт (бесплатно, если тёмная сделка уже есть). Даёт <b>Перевёрнутый крест</b>: в любой момент, даже в чужой ход, на 15 ходов стола у всех выключены ангельские сделки и шансы ангела. Одновременно горит только один крест.</li>
+    <li><b>Падение</b>: подписали тёмную, держа светлые. Они сгорают (каждая возвращает 10 долга и 10¢, неиспользованное Покаяние только 5 и 5¢), ангел больше не придёт, демон +5,0% навсегда. Тёмные предметы остаются.</li>
+    <li>У падших каждую раздачу есть <b>печать</b>: <b>Клыки</b> (первая атака за раздачу, которая дошла, вдвое сильнее) и <b>Пылающий покров</b> (первая стопка за раздачу, дошедшая до вас, делится: половина уходит случайному сопернику).</li>
+    <li>После падения остаётся <b>демонический джокер</b>, один на матч: джокер любого цвета днём и ночью, годится в комбинации и мультисброс. Сыгран: на каждой руке 3 случайные карты в цепях на 2 хода (если он последний, цепей нет). Переходит из раздачи в раздачу, не сгорает и не передаётся, в долг идёт 35.</li>
+    <li>Карты в цепях (не больше половины руки) нельзя сыграть или скинуть, но долг за них идёт.</li></ul>
   <h3>Тёмная лавка</h3><ul>
     <li>После каждой раздачи у каждого своя Тёмная лавка: 3 случайных предмета. Покупайте сколько хватит: 25¢ за штуку, Рента 10¢, Двуличие 40¢.</li>
     <li>Предметы лежат в инвентаре и переходят из раздачи в раздачу. Включайте когда угодно, хоть в чужой ход. Действует до конца раздачи или сразу, потом пропадает. Двуличие и Оберег срабатывают сами.</li>

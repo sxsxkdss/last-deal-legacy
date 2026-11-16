@@ -28,6 +28,7 @@ const ICON = (() => {
     deal: s('<path d="M5.5 3h9.5l3.5 3.5V21h-13z"/><path d="M8.5 9h7M8.5 12.5h7"/>' + dot(14.5, 17, 2.2)),
     swind: s('<path d="M3 9h11a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h6"/>'),
     sacr: s('<path d="M12 2.5v13M8.5 6.5h7M9.5 15.5h5L12 21.5z"/>'),
+    djoker: s('<path d="M6 20 4 6l5 5 3-7 3 7 5-5-2 14z"/><path d="M8 4 6.5 1.5M16 4l1.5-2.5"/>' + dot(12, 15, 1.6)),
   };
 })();
 // deals: small stencil glyphs, one per deal
@@ -57,6 +58,9 @@ const DEAL_ICON = (() => {
     mark: s('<path d="M16 2a14 14 0 1 0 0 28 14 14 0 0 0 0-28zm0 4.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19z" fill-rule="evenodd"/><circle cx="16" cy="16" r="3"/><path d="M14.8 0h2.4v8h-2.4zM14.8 24h2.4v8h-2.4zM0 14.8h8v2.4H0zM24 14.8h8v2.4h-8z"/>'),
     drum: s('<path d="M16 3a13 13 0 1 0 0 26 13 13 0 0 0 0-26z"/>' + cut('M16 9.2m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M22.2 13.8m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M9.8 13.8m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M19.8 21.4m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M12.2 21.4m-2.6 0a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0') + '<circle cx="16" cy="16" r="1.4"/>'),
     puppet: s('<path d="M4 3h24v3H4z"/><path d="M9 6h1v9H9zM22 6h1v7h-1zM15.5 6h1v5h-1z"/><circle cx="16" cy="14" r="3.2"/><path d="M12.5 18.5h7l1.5 6h-3v6h-1.5v-5h-1v5H14v-6h-3z"/><path d="M8.5 15h2l2 4-1.6.8zM21.5 13h2l-2.5 6.5-1.6-.8z"/>'),
+    exactor: s('<path d="M6 3h16l4 4v22H6z"/><path d="M20 15c3 0 5 2 5 5s-2 5-5 5" stroke="currentColor" stroke-width="2.4" fill="none"/>' + cut('M10 9h9M10 13h6M10 17h4M19 25l-2 3')),
+    nighttax: s('<path d="M14 2A10 10 0 1 0 23 15 8 8 0 1 1 14 2z"/><circle cx="22" cy="23" r="7"/>' + cut('M22 19.5v7M19.8 21.2c.8-1 4.4-1 4.4.6s-4.4 1.2-4.4 2.8 3.6 1.6 4.4.6')),
+    desecrate: s('<path d="M16 3c7 0 12 1.8 12 4.2S23 11.4 16 11.4 4 9.6 4 7.2 9 3 16 3zm0 2.6c-5 0-8.4 1-8.4 1.6S11 8.8 16 8.8s8.4-1 8.4-1.6S21 5.6 16 5.6z" fill-rule="evenodd"/><path d="M14.5 13h3v4h5v3h-5v10h-3V20h-5v-3h5z"/>' + cut('M17 3l-2 3 2 2')),
     sharp: s('<path d="M2 16S7.5 6 16 6s14 10 14 10-5.5 10-14 10S2 16 2 16z"/>' + cut('M16 16m-4.6 0a4.6 4.6 0 1 0 9.2 0 4.6 4.6 0 1 0-9.2 0') + '<circle cx="16" cy="16" r="1.8" fill="var(--cut, #000)" opacity=".55"/>')
   };
 })();
@@ -144,9 +148,9 @@ const SYM = {
   mul2: ['×2', 'mult'], mul3: ['×3', 'mult3'], lucky: [ICON.lucky, 'lucky'], glass: [ICON.glass, 'glass'], spin: ['777', 'spin', 'sm'], loan: [ICON.loan, 'loan'],
   gift: [ICON.gift, 'gift'], echo: [ICON.echo, 'echo'], freeze: [ICON.freeze, 'freeze'], bomb: [ICON.bomb, 'bomb'],
   lead: [ICON.lead, 'lead'], leech: [ICON.leech, 'leech'], fuse: [ICON.fuse, 'fuse'],
-  d6: [ICON.d6, 'd6'], pill: [ICON.pill, 'pill', 'sm'], maze: [ICON.maze, 'maze'], deal: [ICON.deal, 'deal'], swind: [ICON.swind, 'swind'], sacr: [ICON.sacr, 'sacr'],
+  d6: [ICON.d6, 'd6'], pill: [ICON.pill, 'pill', 'sm'], maze: [ICON.maze, 'maze'], deal: [ICON.deal, 'deal'], swind: [ICON.swind, 'swind'], sacr: [ICON.sacr, 'sacr'], djoker: [ICON.djoker, 'djoker'],
 };
-const CORNER = { lead: ICON.lead, leech: ICON.leech, fuse: ICON.fuse, swind: ICON.swind, sacr: ICON.sacr, skip: ICON.skip, rev: ICON.rev, d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: ICON.flip, dflip: ICON.dflip, discall: 'A', skipall: ICON.skipall, mirror: ICON.mirror, shield: ICON.shield, wild: 'W', wd2: '+2', wd4: '+4', wrd4: '+4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '+8', wdc: '+?', roul: '?', mul2: '×2', mul3: '×3', lucky: ICON.lucky, glass: ICON.glass, spin: '7', loan: '$', gift: ICON.gift, echo: ICON.echo, freeze: ICON.freeze, bomb: ICON.bomb, d6: ICON.d6, pill: ICON.pill, maze: ICON.maze, deal: ICON.deal };
+const CORNER = { lead: ICON.lead, leech: ICON.leech, fuse: ICON.fuse, swind: ICON.swind, sacr: ICON.sacr, djoker: ICON.djoker, skip: ICON.skip, rev: ICON.rev, d1: '+1', d2: '+2', d4: '+4', d5: '+5', flip: ICON.flip, dflip: ICON.dflip, discall: 'A', skipall: ICON.skipall, mirror: ICON.mirror, shield: ICON.shield, wild: 'W', wd2: '+2', wd4: '+4', wrd4: '+4', wd6: '+6', wd10: '+10', wd15: '+15', wrd8: '+8', wdc: '+?', roul: '?', mul2: '×2', mul3: '×3', lucky: ICON.lucky, glass: ICON.glass, spin: '7', loan: '$', gift: ICON.gift, echo: ICON.echo, freeze: ICON.freeze, bomb: ICON.bomb, d6: ICON.d6, pill: ICON.pill, maze: ICON.maze, deal: ICON.deal };
 // every colour also has a shape, so a card never depends on colour alone
 const SUIT_PATH = { r: 'M5 1L9.5 9H.5z', y: 'M5 .8a4.2 4.2 0 1 0 0 8.4A4.2 4.2 0 1 0 5 .8z', g: 'M1.3 1.3h7.4v7.4H1.3z', b: 'M5 .3L9.7 5 5 9.7.3 5z',
   p: 'M3.6 .8h2.8v2.8h2.8v2.8H6.4v2.8H3.6V6.4H.8V3.6h2.8z', t: 'M5 .6a4.4 4.4 0 1 0 0 8.8A4.4 4.4 0 1 0 5 .6zm0 2.5a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 1 1 0-3.8z', o: 'M1 .8h8L5 5zM1 9.2h8L5 5z', v: 'M6.3.6A4.4 4.4 0 1 0 9.4 7.3 3.5 3.5 0 1 1 6.3.6z' };
@@ -259,7 +263,7 @@ function faceHTML(f, side, cls = '', id = '', wk = null) {
   const [m, subKey, sz] = SYM[f.v] || [esc(f.v)];
   const sub = subKey ? CARD_TXT[LANG][subKey] : '';
   const cor = CORNER[f.v] || esc(f.v);
-  const uniq = f.v === 'swind' || f.v === 'sacr' || /\buniq\b/.test(cls) ? ' uniq' : '';
+  const uniq = f.v === 'swind' || f.v === 'sacr' || f.v === 'djoker' || /\buniq\b/.test(cls) ? ' uniq' : '';
   // how rare the face is decides its shine: plain lacquer, a gold foil for wilds, prism for house cards, a living opal for the unique ones
   const tier = uniq ? ' tier-u' : EXTRA_CARDS.includes(f.v) ? ' tier-h' : f.c === 'w' ? ' tier-w' : '';
   const chainN = (cls.match(/\bch(\d)\b/) || [])[1];

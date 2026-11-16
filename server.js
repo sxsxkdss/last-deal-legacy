@@ -121,7 +121,7 @@ function makeRoom(hostToken) {
     rules: Object.assign({}, PRESETS.den.rules),
     cards: Object.assign({}, PRESETS.den.cards),
     G: null, seats: [], timer: null, emptySince: null,
-    mode: 'debt', limit: 500, M: null
+    mode: 'debt', limit: 250, M: null
   };
   rooms.set(room.code, room);
   return room;
@@ -218,6 +218,7 @@ function nextBotJob(room) {
   if (!isBot(pi)) return null;
   return { wait: rnd(650, 1150), run: () => {
     const it = Bot.item(G, pi); if (it && G.useItem(pi, it)) return;
+    const ab = Bot.ability(G, pi); if (ab && G.ability(pi, ab.k, ab.cards)) return;
     const m = Bot.choose(G, pi);
     if (m) { G.play(pi, m.cardId, m); return; }
     if (G.drewBy === pi) { G.pass(pi); return; }
@@ -298,7 +299,7 @@ function newDeal(room) {
   for (let i = 0; i < n; i++) if (M.col[i] && isBotSeat(room, i)) setTimeout(() => { if (room.M === M && room.G === G && M.phase === 'play' && G.winner === null && !M.colUsed[i]) { collector(room, i, Math.random() < 0.6 ? 'give' : 'lever', null); sync(room); } }, 25000 + Math.random() * 50000);
 }
 function botPass(G, i) {
-  const h = G.players[i].hand.slice();
+  const h = G.players[i].hand.filter(c => !c.uniq);
   const cnt = {}; for (const c of h) { const f = G.f(c); cnt[f.c] = (cnt[f.c] || 0) + 1; }
   // bad cards go first, then numbers of the thinnest colour
   h.sort((a, b) => { const fa = G.f(a), fb = G.f(b); const ba = fa.c === 'x' ? 0 : 1, bb = fb.c === 'x' ? 0 : 1; const na = /^\d$/.test(fa.v) ? 0 : 1, nb = /^\d$/.test(fb.v) ? 0 : 1; return ba - bb || na - nb || (cnt[fa.c] || 0) - (cnt[fb.c] || 0); });
@@ -308,11 +309,12 @@ function maybeEndDraft(room) { const M = room.M; if (alive(M).every(i => M.pass[
 function endDraft(room) {
   const M = room.M, G = room.G; if (!M || M.phase !== 'draft') return;
   const live = alive(M);
-  for (const i of live) if (!M.pass[i]) M.pass[i] = G.players[i].hand.slice().sort(() => Math.random() - 0.5).slice(0, 2);
-  const give = live.map(i => ({ to: G.nextIdx(i, 1), cards: M.pass[i].filter(c => G.players[i].hand.includes(c)) }));
+  for (const i of live) if (!M.pass[i]) M.pass[i] = G.players[i].hand.filter(c => !c.uniq).sort(() => Math.random() - 0.5).slice(0, 2);
+  // the demonic joker (and every unique card) never changes hands
+  const give = live.map(i => ({ to: G.nextIdx(i, 1), cards: M.pass[i].filter(c => G.players[i].hand.includes(c) && !c.uniq) }));
   live.forEach((i, k) => { G.players[i].hand = G.players[i].hand.filter(c => !give[k].cards.includes(c)); });
   for (const g of give) G.players[g.to].hand.push(...g.cards);
-  for (const i of live) if (hasDeal(G.players[i], 'alms')) G.payDebt(i, -10, 'alms');
+  for (let k = 0; k < live.length; k++) if (give[k].cards.length) G.alms(live[k], give[k].cards.length);
   G.addLog('Everyone passes two cards along. The deal begins.', 'n', 'draftDone', {});
   M.phase = 'play'; clearTimeout(room.phaseTimer); M.deadline = 0;
   sync(room);
@@ -325,10 +327,11 @@ function settle(room) {
     const p = G.players[i];
     turnD[i] = Math.max(0, (p.debt || 0) - M.debt[i]);
     M.carry[i] = p.hand.filter(c => c.uniq).map(c => G.f(c).v);
-    let vals = p.hand.filter(c => !c.uniq).map(c => debtValue(G.f(c)));
-    if (hasDeal(p, 'grace')) vals = vals.sort((a, b) => b - a).slice(3);
+    // the demonic joker counts 35; every other unique card is free
+    let vals = p.hand.filter(c => !c.uniq || G.f(c).v === 'djoker').map(c => debtValue(G.f(c)));
+    if (G.hasL(p, 'grace')) vals = vals.sort((a, b) => b - a).slice(4);
     paid[i] = i === G.winner ? 0 : vals.reduce((a, b) => a + b, 0);
-    if (hasDeal(p, 'rosary')) paid[i] = Math.round(paid[i] * 0.85);
+    if (G.hasL(p, 'rosary')) paid[i] = Math.round(paid[i] * 0.7);
   }
   const total = paid.reduce((a, b) => a + b, 0);
   for (const i of live) {
@@ -336,7 +339,8 @@ function settle(room) {
     let chips = (G.chipsWon && G.chipsWon[i]) || 0;
     if (i === G.winner) chips += 5 + Math.round(total * 0.1);
     M.chips[i] += chips; M.debt[i] = (p.debt || 0) + paid[i];
-    M.ds[i] = { angel: p.angel, demon: p.demon, deals: (p.deals || []).slice(), fallen: p.fallen, markT: p.markT, buff: p.buff || 0, limitAdj: hasDeal(p, 'bail') ? p.limit : 0 };
+    M.ds[i] = { angel: p.angel, demon: p.demon, demonX: p.demonX || 0, deals: (p.deals || []).slice(), fallen: p.fallen, markT: p.markT, exT: p.exT, buff: p.buff || 0, limitAdj: hasDeal(p, 'bail') ? p.limit : 0,
+      angelSlow: p.angelSlow || 0, tookLight: !!p.tookLight, noAngel: !!p.noAngel, djGiven: !!p.djGiven };
     M.inv[i] = (p.inv || []).slice();
     rows.push({ i, cards: p.hand.length, paid: paid[i], turn: turnD[i], chips });
     M.hist[i].push(M.debt[i]);
@@ -387,11 +391,11 @@ function buy(M, i, a) {
   }
   if (a.k === 'candle') {
     const d = M.ds[i]; if (M.chips[i] < PRICES.candle || !canLight(d)) return false;
-    M.chips[i] -= PRICES.candle; d.angel = Math.min(100, (d.angel || 0) + 5); return true;
+    M.chips[i] -= PRICES.candle; d.angel = Math.min(25, (d.angel || 0) + 5); return true;
   }
   if (a.k === 'blood') {
     const d = M.ds[i]; if (M.chips[i] < PRICES.blood || !canDark(d)) return false;
-    M.chips[i] -= PRICES.blood; d.demon = (d.demon || 0) + 10; return true;
+    M.chips[i] -= PRICES.blood; d.demonX = (d.demonX || 0) + 10; d.fresh = true; return true;
   }
   if (a.k === 'setup' || a.k === 'interest') {
     const t = a.target;

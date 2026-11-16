@@ -99,6 +99,10 @@ function processEvents() {
       case 'dealTaken': SFX.play(e.kind === 'dark' ? 'devil' : 'win'); bump(6, t('tDealTaken', nm(e.pi), t('deal_' + e.d))); break;
       case 'fall': SFX.play('devil'); JUICE.shake(6); bump(8, t('tFall', nm(e.pi))); break;
       case 'guardian': SFX.play('swap'); bump(6, t('tGuardian', nm(e.pi))); break;
+      case 'veilBurn': SFX.play('bad'); floatText(e.t, '', '+' + e.k); break;
+      case 'fangs': floatText(e.pi, '', '×2'); break;
+      case 'djoker': SFX.play('devil'); JUICE.shake(6); bump(8, t('tDjoker', nm(e.pi))); break;
+      case 'cross': SFX.play('devil'); bump(8, t('tCross', nm(e.pi))); break;
       case 'sacr': SFX.play('bang'); JUICE.shake(8); bump(9, t('tSacr', nm(e.t))); break;
       case 'swind': SFX.play('win'); bump(6, t('tSwind', nm(e.pi))); break;
       case 'broke': SFX.play('ko'); bump(9, t('tBroke', nm(e.pi))); break;
