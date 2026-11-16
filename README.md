@@ -6,11 +6,16 @@ A two-sided shedding card game played in a back room under a casino. Day on the 
 
 | File | What it is |
 | --- | --- |
-| `index.html` | The whole game client (one file). |
+| `index.html` | The whole game client (one file), built from `src/`. Don't edit it by hand. |
+| `src/` | Client sources: `ui.html`, `style.css`, `i18n/` (all text), `client/` (code split by area), `build.py`. |
 | `server.js` | The game server. It serves `index.html` and runs the matches over WebSockets. |
 | `engine.js` | The rules engine, used by the server (and built into `index.html`). |
 | `package.json` | Tells the host to install `ws` and run `node server.js`. |
 | `render.yaml` | Optional one-click setup for Render. |
+
+## Editing the client
+
+Change files in `src/` (or `engine.js`), then run `python3 src/build.py` from the repo root. It rebuilds `index.html`; commit both. The server needs no build step.
 
 ## Deploy on Render (free)
 
