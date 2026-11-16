@@ -12,13 +12,18 @@ const VALUE_NAME = {
   d6: 'Wild Redeal', pill: 'Scratch Card', maze: 'Spinner', deal: 'Wild Contract', lead: 'Lead', leech: 'Leech', fuse: 'Lit Fuse'
 };
 // ---------- Balatro combos: number cards played together in one drop ----------
-// d = extra random cards you throw away, m = cards every opponent picks up (the big hands only)
+// d: cards thrown away by day / slapped on the next player by night; m: everyone else picks up; r: debt the House forgives by day.
+// Ordered by how rare the hand is in a real hand (rarer pays more). The runs pay by length, see comboPlain.
 const COMBOS = {
-  // d: cards thrown away by day / slapped on the next player by night; m: everyone else picks up; r: debt the house forgives by day
-  pair: { d: 0, m: 0, r: 2 }, twopair: { d: 1, m: 0, r: 4 }, three: { d: 1, m: 0, r: 4 }, straight: { d: 1, m: 0, r: 3 }, flush: { d: 2, m: 0, r: 8 },
-  fullhouse: { d: 2, m: 1, r: 10 }, four: { d: 1, m: 1, r: 10 }, rainbow: { d: 2, m: 1, r: 12 }, straightflush: { d: 2, m: 2, r: 15 }, five: { d: 2, m: 2, r: 15 }
+  pair: { d: 0, m: 0, r: 1 }, twopair: { d: 1, m: 0, r: 2 }, three: { d: 1, m: 0, r: 3 },
+  straight: { d: 1, m: 0, r: 3 },      // 4+ in a row, any colours: drop n-3, 6+ also hits everyone 1
+  fullhouse: { d: 2, m: 1, r: 6 }, threepair: { d: 1, m: 0, r: 5 },
+  cstraight: { d: 1, m: 0, r: 4 },     // 3-4 in a row of one colour: drop n-2
+  four: { d: 2, m: 1, r: 7 }, flush: { d: 2, m: 1, r: 7 }, twothree: { d: 2, m: 1, r: 8 }, rainbow: { d: 2, m: 2, r: 9 },
+  straightflush: { d: 3, m: 2, r: 10 }, // 5+ in a row of one colour: drop n-2
+  five: { d: 3, m: 2, r: 12 }
 };
-const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'flush', 'fullhouse', 'four', 'rainbow', 'straightflush', 'five'];
+const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'fullhouse', 'threepair', 'cstraight', 'four', 'flush', 'twothree', 'rainbow', 'straightflush', 'five'];
 // a plain Wild (no draw on it) can stand in for any number in a hand, one per hand
 const isJoker = f => f && f.c === 'w' && f.v === 'wild';
 function comboPlain(faces) {
@@ -28,17 +33,23 @@ function comboPlain(faces) {
   const oneColor = faces.every(f => f.c === faces[0].c);
   const sorted = nums.slice().sort((a, b) => a - b);
   const run = cnt[0] === 1 && sorted.every((x, i) => !i || x === sorted[i - 1] + 1);
+  const shape = cnt.join('');
   let key = null;
-  if (cnt[0] === n && n === 4 && new Set(faces.map(f => f.c)).size === 4) key = 'rainbow';
-  else if (cnt[0] === n) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
-  else if (oneColor && run && n >= 3) key = n >= 5 ? 'straightflush' : 'straight';
-  else if (n === 4 && cnt[0] === 2 && cnt[1] === 2) key = 'twopair';
-  else if (n === 5 && cnt[0] === 3 && cnt[1] === 2) key = 'fullhouse';
+  if (cnt[0] === n && n <= 5) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 5 ? 'five' : new Set(faces.map(f => f.c)).size === 4 ? 'rainbow' : 'four';
+  else if (run && oneColor && n >= 3) key = n >= 5 ? 'straightflush' : 'cstraight';
+  else if (run && n >= 4) key = 'straight';
+  else if (shape === '22') key = 'twopair';
+  else if (shape === '32') key = 'fullhouse';
+  else if (shape === '222') key = 'threepair';
+  else if (shape === '33') key = 'twothree';
   else if (oneColor && n >= 5) key = 'flush';
   if (!key) return null;
   const C = COMBOS[key];
-  const d = key === 'straight' ? n - 2 : C.d, r = key === 'straight' ? C.r * (n - 2) : C.r;
-  return { key, d, m: C.m, r, chips: chips + n * 5, mult: Math.max(1, d + C.m * 2) };
+  let d = C.d, m = C.m, r = C.r;
+  if (key === 'straight') { d = n - 3; m = n >= 6 ? 1 : 0; }
+  else if (key === 'cstraight') d = n - 2;
+  else if (key === 'straightflush') d = n - 2;
+  return { key, d, m, r, chips: chips + n * 5, mult: Math.max(1, d + m * 2) };
 }
 // faces: [{c, v}] in play order. Returns { key, d, m, r, chips, mult } for a valid hand, null otherwise.
 function comboOf(faces) {
@@ -57,6 +68,46 @@ function comboOf(faces) {
   }
   return best ? Object.assign(best, { joker: true }) : null;
 }
+// Candidate poker hands in a hand of cards (f gives a card's face). Not every one is valid: comboOf decides.
+// Used by the bots and by the hint button, so both see the same hands.
+function comboCands(cards, f) {
+  const isNum = x => /^\d$/.test(x.v) && x.c !== 'w';
+  const nums = cards.filter(c => !c.lock && isNum(f(c))), jok = cards.find(c => !c.lock && isJoker(f(c)));
+  const out = [], byV = {}, byC = {};
+  for (const c of nums) { const x = f(c); (byV[x.v] = byV[x.v] || []).push(c); (byC[x.c] = byC[x.c] || []).push(c); }
+  const add = cs => { if (cs.length >= 2) { out.push(cs); if (jok && cs.length < 6) out.push(cs.concat([jok])); } };
+  const groups = Object.values(byV).sort((a, b) => b.length - a.length || +f(b[0]).v - +f(a[0]).v);
+  for (const g of groups) {
+    for (let k = 2; k <= Math.min(5, g.length); k++) add(g.slice(0, k));
+    if (jok && g.length === 1) out.push([g[0], jok]);
+    const cols = [], seen = new Set(); for (const c of g) if (!seen.has(f(c).c)) { seen.add(f(c).c); cols.push(c); }
+    if (cols.length >= 3) add(cols.slice(0, 4));
+  }
+  const pairs = groups.filter(g => g.length >= 2), trips = groups.filter(g => g.length >= 3), singles = groups.filter(g => g.length === 1);
+  if (pairs.length >= 2) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)));
+  if (pairs.length >= 3) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2), pairs[2].slice(0, 2)));
+  if (pairs.length === 2 && singles.length) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2), singles[0])); // + joker: three pairs
+  if (pairs.length && singles.length) add(pairs[0].slice(0, 2).concat(singles[0]));                              // + joker: two pair
+  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) { add(t3.slice(0, 3).concat(p2.slice(0, 2))); if (p2.length >= 3) add(t3.slice(0, 3).concat(p2.slice(0, 3))); }
+  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) add(t3.slice(0, 3).concat(p2.slice(0, 2))); // + joker: two sets
+  if (pairs.length >= 2) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)).slice(0, 4));             // + joker: full house
+  // runs: the longest stretch of values, with the joker filling one gap
+  const runs = (by) => {
+    for (let lo = 0; lo <= 9; lo++) {
+      const run = []; let used = false;
+      for (let v = lo; v <= 9; v++) { if (by[v]) run.push(by[v]); else if (jok && !used && run.length) { run.push(jok); used = true; } else break; }
+      if (run.length >= 3) out.push(run);
+    }
+  };
+  for (const g of Object.values(byC)) {
+    if (g.length >= 5 || (jok && g.length >= 4)) out.push(jok && g.length < 5 ? g.concat([jok]) : g.slice());
+    const by = {}; for (const c of g) by[+f(c).v] = by[+f(c).v] || c; runs(by);
+  }
+  const any = {}; for (const c of nums) any[+f(c).v] = any[+f(c).v] || c; runs(any);
+  return out;
+}
+// how much a hand is worth to the one laying it down: cards out of the hand, plus what it does to the others
+function comboWorth(cb, n, side, rivals) { return n * 3 + (side === 'L' ? cb.d * 3 : cb.d * 2) + cb.m * rivals * 2 + cb.r * 0.3; }
 // The House's own cards. Each has one job; overlapping ones were cut.
 const EXTRA_CARDS = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const LAST_CALL = 150;
@@ -717,7 +768,7 @@ class Game {
     this.ev('play', { pi, code: cardCode(last), side: this.side, k });
     if (k > 1) this.ev('multi', { pi, k });
     let combo = k > 1 && this.rules.combos !== false ? comboOf(chain.map(c => this.f(c))) : null;
-    if (combo && combo.key === 'pair' && this.hasPerk(pi, 'sharp')) combo = Object.assign({}, combo, { key: 'three', d: COMBOS.three.d, mult: Math.max(1, COMBOS.three.d) }); // Sharp: a pair plays as three of a kind
+    if (combo && combo.key === 'pair' && this.hasPerk(pi, 'sharp')) combo = Object.assign({}, combo, { key: 'three', d: COMBOS.three.d, r: COMBOS.three.r, mult: Math.max(1, COMBOS.three.d) }); // Sharp: a pair plays as three of a kind
     if (combo && this.chipsWon && !hasDeal(p, 'devour')) this.chipsWon[pi] += Math.max(1, Math.round(combo.chips * combo.mult / 10));
     if (!blank && (DRAW_VAL[face.v] || ATTACK_FACES.has(face.v)) || (face.v === 'echo' && DRAW_VAL[this.f(this.top).v]) || (combo && (combo.m || (this.side === 'D' && combo.d)))) this.attacked(pi);
     if (this.chipsWon && !/^\d$/.test(face.v) && this.hasPerk(pi, 'counter')) this.chipsWon[pi] += 1; // Bookkeeper
@@ -1302,16 +1353,23 @@ const Bot = {
       }
       if (s > bestScore) { bestScore = s; best = card; }
     }
+    // a poker hand that can start with a card that fits beats the single card when it's worth more
+    if (g.rules.multi && g.rules.combos !== false && g.pending === 0 && !g.horseOn('famine', 'two', pi)) {
+      let top = null, topW = 0;
+      for (const cs of comboCands(p.hand, c => g.f(c))) {
+        const cb = comboOf(cs.map(c => g.f(c))); if (!cb) continue;
+        const lead = cs.find(c => opts.includes(c)); if (!lead) continue;
+        const w = comboWorth(cb, cs.length, g.side, others.length);
+        if (w > topW) { topW = w; top = { lead, cs }; }
+      }
+      if (top && topW + 4 >= bestScore - 10) {
+        const extra = top.cs.filter(c => c !== top.lead), lf = g.f(top.lead), rest = p.hand.filter(c => !top.cs.includes(c));
+        return { cardId: top.lead.id, extra: extra.map(c => c.id), color: lf.c === 'w' ? this.bestColor(g, rest, g.side) : null, flipColor: null, target: null };
+      }
+    }
     const bf = g.f(best);
     // drop every matching card when the table allows it
     let extra = g.rules.multi ? p.hand.filter(c => c !== best && g.f(c).v === bf.v && (g.f(c).c === 'w') === (bf.c === 'w')) : [];
-    if (g.rules.multi && g.rules.combos !== false && /^\d$/.test(bf.v) && bf.c !== 'w') {
-      // a same-color run through the chosen card beats a plain pair
-      const same = p.hand.filter(c => c !== best && g.f(c).c === bf.c && /^\d$/.test(g.f(c).v));
-      const byNum = {}; for (const c of same) byNum[+g.f(c).v] = byNum[+g.f(c).v] || c;
-      let lo = +bf.v, hi = +bf.v; while (byNum[lo - 1]) lo--; while (byNum[hi + 1]) hi++;
-      if (hi - lo + 1 >= 3 && hi - lo + 1 > extra.length + 1) { extra = []; for (let x = lo; x <= hi; x++) if (x !== +bf.v) extra.push(byNum[x]); }
-    }
     const rest = p.hand.filter(c => c !== best && !extra.includes(c));
     return {
       cardId: best.id, extra: extra.map(c => c.id),
@@ -1384,4 +1442,4 @@ Object.defineProperty(Game.prototype, 'turn', {
   set(v) { if (v !== this._turn) { if (this._turn !== undefined) this.turnNo = (this.turnNo || 0) + 1; this._turn = v; } },
   configurable: true
 });
-if (typeof module !== 'undefined') module.exports = { BAD, BAD_VALUE, isBad, FUSE_TURNS, LEAD_DRAW, FUSE_HIT, LEECH_MEALS, comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };
+if (typeof module !== 'undefined') module.exports = { comboCands, comboWorth, BAD, BAD_VALUE, isBad, FUSE_TURNS, LEAD_DRAW, FUSE_HIT, LEECH_MEALS, comboOf, isJoker, COMBOS, COMBO_RANK, Game, Bot, serialize, deserialize, cardCode, faceName, FACES, comboOf, PRESETS, RULE_ALL, debtValue, TOKENS, PRICES, DEBT_LIMITS, EXTRA_CARDS, LIGHT_DEALS, DARK_DEALS, DEBT_TURN, hasDeal, nLight, nDark, canLight, canDark, offerOpen, ITEMS, ITEM_PRICE, ITEM_AUTO, DEAL_MAX, HORSEMEN, CURSES, HORSE_TURNS, HORSE_AT, WAR_SECS };

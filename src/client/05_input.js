@@ -65,37 +65,34 @@ function selInfo(list) {
 // the best poker hand you could lay down right now (for the hint)
 function bestCombo(hand) {
   if (!G || G.rules.combos === false || !G.rules.multi) return null;
-  const nums = hand.filter(c => !c.lock && isNumF(G.f(c))), jok = hand.find(c => !c.lock && isJoker(G.f(c)));
-  const cands = [], byV = {}, byC = {};
-  for (const c of nums) { const f = G.f(c); (byV[f.v] = byV[f.v] || []).push(c); (byC[f.c] = byC[f.c] || []).push(c); }
-  for (const g of Object.values(byV)) { const x = g.slice(0, 5); cands.push(x); if (jok && x.length < 5) cands.push(x.concat([jok])); const cols = []; const seen = new Set(); for (const c of g) if (!seen.has(G.f(c).c)) { seen.add(G.f(c).c); cols.push(c); } if (cols.length >= 3) cands.push(cols.length >= 4 ? cols.slice(0, 4) : (jok ? cols.concat([jok]) : cols)); }
-  const pairs = Object.values(byV).filter(g => g.length >= 2), trips = Object.values(byV).filter(g => g.length >= 3);
-  if (pairs.length >= 2) cands.push(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)));
-  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) cands.push(t3.slice(0, 3).concat(p2.slice(0, 2)));
-  for (const g of Object.values(byC)) {
-    if (g.length + (jok ? 1 : 0) >= 5) cands.push(jok && g.length < 5 ? g.concat([jok]) : g.slice());
-    const by = {}; for (const c of g) by[+G.f(c).v] = by[+G.f(c).v] || c;
-    for (let lo = 0; lo <= 9; lo++) { const run = []; let used = false; for (let v = lo; v <= 9; v++) { if (by[v]) run.push(by[v]); else if (jok && !used && run.length) { run.push(jok); used = true; } else break; } if (run.length >= 3) cands.push(run); }
-  }
   let best = null, bestScore = -1;
-  for (const cs of cands) { const cb = comboOf(cs.map(c => G.f(c))); if (!cb) continue; const sc = (cs.some(c => fits(c) && (isNumF(G.f(c)) || isJoker(G.f(c)))) ? 10000 : 0) + COMBO_RANK.indexOf(cb.key) * 100 + cs.length * 10 + cb.mult; if (sc > bestScore) { bestScore = sc; best = { cards: cs, cb }; } }
+  for (const cs of comboCands(hand, c => G.f(c))) {
+    const cb = comboOf(cs.map(c => G.f(c))); if (!cb) continue;
+    const sc = (cs.some(c => fits(c)) ? 10000 : 0) + comboWorth(cb, cs.length, G.side, 1) * 10 + COMBO_RANK.indexOf(cb.key);
+    if (sc > bestScore) { bestScore = sc; best = { cards: cs, cb }; }
+  }
   return best;
 }
 // every poker hand, always on view next to the log; the one your picked cards make lights up
 // example hands for the reference, as mini cards: [value, colour slot 0..3]
 const COMBO_EX = {
   five: [[7, 0], [7, 1], [7, 2], [7, 3], [7, 0]], straightflush: [[3, 2], [4, 2], [5, 2], [6, 2], [7, 2]], rainbow: [[5, 0], [5, 1], [5, 2], [5, 3]],
-  four: [[5, 0], [5, 3], [5, 0], [5, 1]], fullhouse: [[2, 0], [2, 1], [2, 3], [8, 2], [8, 0]], flush: [[1, 3], [4, 3], [6, 3], [8, 3], [9, 3]],
-  straight: [[3, 1], [4, 1], [5, 1], ['+', 1]], three: [[6, 0], [6, 2], [6, 3]], twopair: [[4, 1], [4, 3], [9, 0], [9, 2]], pair: [[7, 2], [7, 0]]
+  twothree: [[5, 0], [5, 1], [5, 3], [3, 2], [3, 0], [3, 1]], flush: [[1, 3], [4, 3], [6, 3], [8, 3], [9, 3]], four: [[5, 0], [5, 3], [5, 0], [5, 1]],
+  cstraight: [[3, 1], [4, 1], [5, 1]], threepair: [[5, 0], [5, 2], [3, 1], [3, 3], [6, 0], [6, 1]], fullhouse: [[2, 0], [2, 1], [2, 3], [8, 2], [8, 0]],
+  straight: [[3, 1], [4, 3], [5, 0], [6, 2], ['+', 1]], three: [[6, 0], [6, 2], [6, 3]], twopair: [[4, 1], [4, 3], [9, 0], [9, 2]], pair: [[7, 2], [7, 0]]
 };
+// what the runs pay depends on their length: shown as a formula
+const COMBO_VAR = { straight: ['n−3', '(+1)', '−' + COMBOS.straight.r], cstraight: ['n−2', '', '−' + COMBOS.cstraight.r], straightflush: ['n−2', '+' + COMBOS.straightflush.m, '−' + COMBOS.straightflush.r] };
 let comboRefKey = '';
 function comboRefHTML(active) {
   const cols = SIDE_COLORS[G ? G.side : 'L'];
   const mini = k => COMBO_EX[k].map(([v, c]) => `<i class="mc c-${cols[c]}${v === '+' ? ' more' : ''}">${v === '+' ? '…' : v}</i>`).join('');
   const num = (n, cls) => n ? `<span class="${cls}">${n}</span>` : '<span class="nil">·</span>';
-  const rows = COMBO_RANK.slice().reverse().map((k, i) => { const c = COMBOS[k], st = k === 'straight';
+  const vr = (v, cls) => v ? `<span class="${cls}">${v}</span>` : '<span class="nil">·</span>';
+  const rows = COMBO_RANK.slice().reverse().map(k => { const c = COMBOS[k], vv = COMBO_VAR[k];
     return `<div class="cr${k === active ? ' on' : ''}"><b class="cnm">${t('combo_' + k)}</b><span class="mcs">${mini(k)}</span>`
-      + `${st ? '<span class="toss">n−2</span>' : num(c.d ? '−' + c.d : 0, 'toss')}${num(c.m ? '+' + c.m : 0, 'hit')}${st ? '<span class="debt">−3n</span>' : num(c.r ? '−' + c.r : 0, 'debt')}</div>`; }).join('');
+      + (vv ? vr(vv[0], 'toss') + vr(vv[1], 'hit') + vr(vv[2], 'debt')
+        : `${num(c.d ? '−' + c.d : 0, 'toss')}${num(c.m ? '+' + c.m : 0, 'hit')}${num(c.r ? '−' + c.r : 0, 'debt')}`) + `</div>`; }).join('');
   return `<div class="crhead"><span class="label">${t('refTitle')}</span>${active ? `<span class="crnow">${t('combo_' + active)}</span>` : ''}</div>`
     + `<div class="cr crcols"><span>${t('refColHand')}</span><span></span><span title="${esc(t('refTossTip'))}">${t('refColToss')}</span><span title="${esc(t('refHitTip'))}">${t('refColHit')}</span><span title="${esc(t('refDebtTip'))}">${t('refColDebt')}</span></div>`
     + rows
