@@ -1034,6 +1034,24 @@ body.kick .opp.turn { animation: none; }
 .opp.turn::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0; will-change: opacity; box-shadow: 0 0 0 3px #ff3a2a, 0 0 36px rgba(230, 40, 25, .85); }
 body.kick .opp.turn::after { animation: kickGlowB .32s ease-out; }
 @keyframes kickGlowB { 0% { opacity: .75; } 100% { opacity: 0; } }
+/* the shop: two columns on a wide screen (results, wallet, paying and tricks on the left; visitors and the dark shop on the right),
+   compact rows; the whole dialog shrinks to fit the window (fitModal) */
+.dialog.shop { max-width: 900px; padding: 20px 22px 16px; }
+.dialog.shop h2 { margin-bottom: 8px; }
+.shopgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 4px 24px; align-items: start; }
+.shopgrid > div > .sublabel:first-child { margin-top: 0; }
+.dialog.shop .settle .li { padding: 6px 0; font-size: 12px; line-height: 16px; }
+.dialog.shop .settle .spark { width: 64px; height: 18px; }
+.dialog.shop .wallet { margin-top: 10px; }
+.dialog.shop .sublabel { margin: 12px 0 4px; }
+.dialog.shop .goods .btn { height: auto; min-height: 48px; padding: 6px 10px; }
+.dialog.shop .darkshop .item span { font-size: 10.5px; line-height: 14px; }
+.dialog.shop .btn.wide { margin-top: 12px; height: 44px; }
+.dialog.shop #phaseClock { margin-top: 6px; text-align: center; }
+@media (max-width: 820px) { .shopgrid { grid-template-columns: minmax(0, 1fr); } }
+.dialog.shop .trick { display: grid; grid-template-columns: minmax(70px, auto) 1fr 1fr; gap: 6px; }
+.dialog.shop .trick .btn { height: auto; min-height: 30px; padding: 4px 6px; white-space: normal; line-height: 13px; }
+@media (max-width: 820px) { .dialog.shop .trick { grid-template-columns: 1fr 1fr; } .dialog.shop .trick > span { grid-column: 1 / -1; } }
 
 </style>
 </head>
@@ -2754,7 +2772,7 @@ STR.en = {
   tok_debtor: 'Debtor', tokD_debtor: 'Number cards never count as debt.',
   tok_license: 'Licence', tokD_license: 'Start every deal with a House card.',
   tok_luck: 'Luck', tokD_luck: 'The revolver clicks for you 2 times out of 3.',
-  tok_usurer: 'Usurer', tokD_usurer: 'You get 10% of what the player on your right pays.',
+  tok_usurer: 'Usurer', tokD_usurer: 'You get 10.0% of what the player on your right pays.',
 
   // the angel and the demon
   angelTitle: 'The angel', angelSub: 'The angel left a note. It wants nothing back, but you have to pick one.', angelMust: "You don't say no to the angel.",
@@ -2768,8 +2786,8 @@ STR.en = {
   tAngelCame: n => `The angel visits ${n}`, tDemonCame: n => `The demon visits ${n}`, tDealTaken: (n, d) => `${n}: ${d}`, tFall: n => `${n} falls`,
   tGuardian: n => `${n}'s guardian`, tSacr: n => `${n}: SACRIFICE`, tSwind: n => `${n}: second wind`, tBroke: n => `${n} is broke`, tChained: k => `${k} in chains`,
   tPuppet: n => `${n} on strings`, signed: 'SIGNED', blessed: 'BLESSED', tOverLimit: 'OVER THE LIMIT',
-  shopVisitors: 'Call a visitor', buyCandle: p => `Light a candle: angel +5% (${p}¢)`, buyBlood: p => `Bleed a little: demon +10% (${p}¢)`,
-  deal_rosary: 'Rosary', dealD_rosary: 'All debt coming your way is 15% smaller.', dealP_rosary: '',
+  shopVisitors: 'Call a visitor', buyCandle: p => `Light a candle: angel +5.0% (${p}¢)`, buyBlood: p => `Bleed a little: demon +10.0% (${p}¢)`,
+  deal_rosary: 'Rosary', dealD_rosary: 'All debt coming your way is 15.0% smaller.', dealP_rosary: '',
   deal_candle: 'Candle', dealD_candle: 'Every quiet turn takes 5 off your debt.', dealP_candle: '',
   deal_wind: 'Second Wind', dealD_wind: 'A one-off card: half the rest of your hand turns wild.', dealP_wind: '',
   deal_halo: 'Halo', dealD_halo: 'The first stack that reaches you each deal is halved.', dealP_halo: '',
@@ -2778,12 +2796,12 @@ STR.en = {
   deal_clean: 'Clean Hands', dealD_clean: 'Number cards never count toward your per-turn debt.', dealP_clean: '',
   deal_grace: 'Grace', dealD_grace: 'At the end of a deal your 3 most expensive cards are free.', dealP_grace: '',
   deal_guardian: 'Guardian', dealD_guardian: 'The first attack on you each deal goes back to whoever sent it.', dealP_guardian: '',
-  deal_penance: 'Penance', dealD_penance: '25% of your debt goes, right now.', dealP_penance: '',
-  deal_double: 'Heavy Hand', dealD_double: 'Your attacks hit twice as hard.', dealP_double: 'every attack adds 5% to your debt',
-  deal_usury: 'Usury', dealD_usury: 'Everyone else pays 1.5× debt per turn.', dealP_usury: 'your debt grows 20% right now',
-  deal_chains: 'Chains', dealD_chains: "At the start of each rival's turn, 20% of their hand is chained.", dealP_chains: 'attacks on you hit 1.5× harder',
+  deal_penance: 'Penance', dealD_penance: '25.0% of your debt goes, right now.', dealP_penance: '',
+  deal_double: 'Heavy Hand', dealD_double: 'Your attacks hit twice as hard.', dealP_double: 'every attack adds 5.0% to your debt',
+  deal_usury: 'Usury', dealD_usury: 'Everyone else pays 1.5× debt per turn.', dealP_usury: 'your debt grows 20.0% right now',
+  deal_chains: 'Chains', dealD_chains: "At the start of each rival's turn, 20.0% of their hand is chained.", dealP_chains: 'attacks on you hit 1.5× harder',
   deal_blood: 'Blood Chips', dealD_blood: 'Every card a rival takes from your attacks pays you a chip.', dealP_blood: 'your per-turn debt ×1.25',
-  deal_bail: 'Bail', dealD_bail: '40% of your debt goes, right now.', dealP_bail: 'your debt limit drops 20%',
+  deal_bail: 'Bail', dealD_bail: '40.0% of your debt goes, right now.', dealP_bail: 'your debt limit drops 20.0%',
   deal_devour: 'Glutton', dealD_devour: 'When a rival takes 10+ cards at once, 10 of your debt goes.', dealP_devour: 'poker hands stop paying you chips',
   deal_mark: 'The Mark', dealD_mark: 'Pick a rival: your attacks on them +2.', dealP_mark: 'their attacks on you +2',
   deal_drum: 'Cursed Drum', dealD_drum: 'The revolver clicks for you 2 times out of 3.', dealP_drum: 'when it fires, the stack triples',
@@ -2811,11 +2829,11 @@ STR.en = {
   twofaceSub: "Both visitors put their papers down. Take any one: no fall, no limits, and it doesn't count as this hand's deal.",
   item_rent: 'Rent', item_veil: 'Night Cover', item_dawn: 'Day Cover', item_shell: 'Shell', item_oven: 'Oven', item_eclipse: 'Breaker', item_twoface: 'Two-Faced', item_ward: 'Ward',
   itemD_rent: '+3¢ every time day turns to night or back, up to 10 times. Till the end of the hand.',
-  itemD_veil: 'At night: hand debt −40% and the demon +2%. Till the end of the hand.',
-  itemD_dawn: 'By day: hand debt −40% and the angel +2%. Till the end of the hand.',
-  itemD_shell: 'Hand debt −20%, day or night. Till the end of the hand.',
+  itemD_veil: 'At night: hand debt −40.0% and the demon +2.0%. Till the end of the hand.',
+  itemD_dawn: 'By day: hand debt −40.0% and the angel +2.0%. Till the end of the hand.',
+  itemD_shell: 'Hand debt −20.0%, day or night. Till the end of the hand.',
   itemD_oven: 'Only with 30+ cards in hand: half of them (rounded down) burn.',
-  itemD_eclipse: 'Day turns to night, or night to day, like a Shift. 25%: that side’s visitor comes at once. Otherwise both visitors +5% until your next deal.',
+  itemD_eclipse: 'Day turns to night, or night to day, like a Shift. 25.0%: that side’s visitor comes at once. Otherwise both visitors +5.0% until your next deal.',
   itemD_twoface: 'Goes off by itself when a visitor comes: both lay out their deals and you take one. No fall, no limits, not this hand’s deal.',
   itemD_ward: 'Goes off by itself when a horseman rides in (or use it early): no horseman touches you till the end of the hand.',
   itemKind_rent: 'Use · till end of hand', itemKind_veil: 'Use · till end of hand', itemKind_dawn: 'Use · till end of hand', itemKind_shell: 'Use · till end of hand',
@@ -2955,7 +2973,7 @@ STR.ru = {
   tok_debtor: 'Должник', tokD_debtor: 'Цифры не идут в долг.',
   tok_license: 'Лицензия', tokD_license: 'В начале каждой раздачи у вас карта Дома.',
   tok_luck: 'Фарт', tokD_luck: 'Револьвер щёлкает вхолостую 2 раза из 3.',
-  tok_usurer: 'Ростовщик', tokD_usurer: 'Вам идёт 10% от того, что платит игрок справа.',
+  tok_usurer: 'Ростовщик', tokD_usurer: 'Вам идёт 10,0% от того, что платит игрок справа.',
 
   // ангел и демон
   angelTitle: 'Ангел', angelSub: 'Ангел оставил записку. Взамен ничего не просит, но выбрать придётся.', angelMust: 'Ангелу не отказывают.',
@@ -2969,8 +2987,8 @@ STR.ru = {
   tAngelCame: n => `К ${n} пришёл ангел`, tDemonCame: n => `К ${n} пришёл демон`, tDealTaken: (n, d) => `${n}: ${d}`, tFall: n => `${n} падает`,
   tGuardian: n => `Хранитель ${n}`, tSacr: n => `${n}: ЖЕРТВА`, tSwind: n => `${n}: второе дыхание`, tBroke: n => `${n} разорён`, tChained: k => `${k} в цепях`,
   tPuppet: n => `${n} на нитках`, signed: 'ПОДПИСАНО', blessed: 'БЛАГОСЛОВЛЕНО', tOverLimit: 'ЗА ЛИМИТОМ',
-  shopVisitors: 'Позвать гостя', buyCandle: p => `Поставить свечку: ангел +5% (${p}¢)`, buyBlood: p => `Пустить кровь: демон +10% (${p}¢)`,
-  deal_rosary: 'Чётки', dealD_rosary: 'Весь долг, который на вас падает, меньше на 15%.', dealP_rosary: '',
+  shopVisitors: 'Позвать гостя', buyCandle: p => `Поставить свечку: ангел +5,0% (${p}¢)`, buyBlood: p => `Пустить кровь: демон +10,0% (${p}¢)`,
+  deal_rosary: 'Чётки', dealD_rosary: 'Весь долг, который на вас падает, меньше на 15,0%.', dealP_rosary: '',
   deal_candle: 'Свеча', dealD_candle: 'Каждый тихий ход списывает 5 долга.', dealP_candle: '',
   deal_wind: 'Второе дыхание', dealD_wind: 'Разовая карта: половина остальной руки становится джокерами.', dealP_wind: '',
   deal_halo: 'Нимб', dealD_halo: 'Первая стопка за раздачу, дошедшая до вас, вдвое меньше.', dealP_halo: '',
@@ -2979,12 +2997,12 @@ STR.ru = {
   deal_clean: 'Чистые руки', dealD_clean: 'Цифры не считаются в долг за ход.', dealP_clean: '',
   deal_grace: 'Благодать', dealD_grace: 'В конце раздачи 3 самые дорогие карты бесплатно.', dealP_grace: '',
   deal_guardian: 'Хранитель', dealD_guardian: 'Первая атака на вас за раздачу возвращается тому, кто её послал.', dealP_guardian: '',
-  deal_penance: 'Покаяние', dealD_penance: 'Минус 25% долга, сразу.', dealP_penance: '',
-  deal_double: 'Тяжёлая рука', dealD_double: 'Ваши атаки бьют вдвое сильнее.', dealP_double: 'каждая атака добавляет 5% к долгу',
-  deal_usury: 'Ростовщичество', dealD_usury: 'Все остальные платят за ход в полтора раза больше.', dealP_usury: 'ваш долг сразу растёт на 20%',
-  deal_chains: 'Цепи', dealD_chains: 'В начале хода каждого соперника 20% его руки в цепях.', dealP_chains: 'атаки на вас бьют в полтора раза сильнее',
+  deal_penance: 'Покаяние', dealD_penance: 'Минус 25,0% долга, сразу.', dealP_penance: '',
+  deal_double: 'Тяжёлая рука', dealD_double: 'Ваши атаки бьют вдвое сильнее.', dealP_double: 'каждая атака добавляет 5,0% к долгу',
+  deal_usury: 'Ростовщичество', dealD_usury: 'Все остальные платят за ход в полтора раза больше.', dealP_usury: 'ваш долг сразу растёт на 20,0%',
+  deal_chains: 'Цепи', dealD_chains: 'В начале хода каждого соперника 20,0% его руки в цепях.', dealP_chains: 'атаки на вас бьют в полтора раза сильнее',
   deal_blood: 'Кровавые фишки', dealD_blood: 'За каждую карту, которую соперник берёт от вашей атаки, вам фишка.', dealP_blood: 'долг за ход ×1,25',
-  deal_bail: 'Залог', dealD_bail: 'Минус 40% долга, сразу.', dealP_bail: 'лимит долга −20%',
+  deal_bail: 'Залог', dealD_bail: 'Минус 40,0% долга, сразу.', dealP_bail: 'лимит долга −20,0%',
   deal_devour: 'Обжора', dealD_devour: 'Когда соперник берёт 10+ карт за раз, ваш долг −10.', dealP_devour: 'комбинации больше не платят вам фишки',
   deal_mark: 'Метка', dealD_mark: 'Выберите соперника: ваши атаки на него +2.', dealP_mark: 'его атаки на вас +2',
   deal_drum: 'Проклятый барабан', dealD_drum: 'Револьвер щёлкает вхолостую 2 раза из 3.', dealP_drum: 'если выстрелит, стопка ×3',
@@ -3012,11 +3030,11 @@ STR.ru = {
   twofaceSub: 'Оба гостя кладут бумаги на стол. Берите любую: без падения, без лимитов, и она не считается сделкой этой раздачи.',
   item_rent: 'Рента', item_veil: 'Ночная крыша', item_dawn: 'Дневная крыша', item_shell: 'Панцирь', item_oven: 'Печь', item_eclipse: 'Рубильник', item_twoface: 'Двуличие', item_ward: 'Оберег',
   itemD_rent: '+3¢ каждый раз, когда день сменяется ночью или обратно, до 10 раз. До конца раздачи.',
-  itemD_veil: 'Ночью: долг за руку −40% и демон +2%. До конца раздачи.',
-  itemD_dawn: 'Днём: долг за руку −40% и ангел +2%. До конца раздачи.',
-  itemD_shell: 'Долг за руку −20%, днём и ночью. До конца раздачи.',
+  itemD_veil: 'Ночью: долг за руку −40,0% и демон +2,0%. До конца раздачи.',
+  itemD_dawn: 'Днём: долг за руку −40,0% и ангел +2,0%. До конца раздачи.',
+  itemD_shell: 'Долг за руку −20,0%, днём и ночью. До конца раздачи.',
   itemD_oven: 'Только при 30+ картах в руке: половина из них (с округлением вниз) сгорает.',
-  itemD_eclipse: 'День сменяется ночью или ночь днём, как от Смены. 25%: гость этой стороны приходит сразу. Иначе оба гостя +5% до вашей следующей сделки.',
+  itemD_eclipse: 'День сменяется ночью или ночь днём, как от Смены. 25,0%: гость этой стороны приходит сразу. Иначе оба гостя +5,0% до вашей следующей сделки.',
   itemD_twoface: 'Срабатывает само, когда приходит гость: оба выкладывают сделки, вы берёте одну. Без падения, без лимитов, не считается сделкой раздачи.',
   itemD_ward: 'Срабатывает само, когда въезжает всадник (можно и заранее): до конца раздачи всадники вас не трогают.',
   itemKind_rent: 'Включить · до конца раздачи', itemKind_veil: 'Включить · до конца раздачи', itemKind_dawn: 'Включить · до конца раздачи', itemKind_shell: 'Включить · до конца раздачи',
@@ -3401,7 +3419,7 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
     <li><b>Chips</b>: the deal's winner gets 5¢ plus 10% of what the others paid. Poker hands pay chips too. Between deals, spend them in the <b>House shop</b>: tokens for the whole match (3 slots), paying off debt, or dirty tricks on a rival.</li></ul>
   <h3>The angel and the demon</h3><ul>
     <li><b>The angel</b> comes by day. Every quiet day turn (no attack played) adds <b>1.25%</b> to the chance it shows up at the start of your turn. Any attack resets it. The angel offers 2 light deals and you have to take one.</li>
-    <li><b>The demon</b> comes at night. Make a rival pick up <b>10+ cards</b> at once and it charges: 10%, plus 1.5% for every card past 10. The charge waits for night and is rolled at the start of your first night turn. The demon offers 2 dark deals with a price. Sign one or tear it up.</li>
+    <li><b>The demon</b> comes at night. Make a rival pick up <b>10+ cards</b> at once and it charges: 10.0%, plus 1.5% for every card past 10. The charge waits for night and is rolled at the start of your first night turn. The demon offers 2 dark deals with a price. Sign one or tear it up.</li>
     <li>An <b>attack</b> is any card that makes someone else pick up.</li>
     <li>You can hold up to <b>2 light</b> and <b>3 dark</b> deals at once, all different, for the whole match. <b>One deal per hand</b>: after you sign, the visitors wait for the next deal.</li>
     <li>Sign a dark deal while holding light ones and the light ones burn. The angel never comes back. You keep a <b>Sacrifice</b>: a one-off card that gives a player you pick 10 cards, chained for 2 of their turns.</li>
@@ -3466,7 +3484,7 @@ RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконеч
     <li><b>Фишки</b>: победитель раздачи получает 5¢ и 10% от того, что заплатили остальные. Комбинации тоже платят фишками. Между раздачами их тратят в <b>лавке Дома</b>: жетоны на весь матч (3 места), погашение долга или пакости сопернику.</li></ul>
   <h3>Ангел и демон</h3><ul>
     <li><b>Ангел</b> приходит днём. Каждый тихий дневной ход (без атак) прибавляет <b>1,25%</b> к шансу, что он появится в начале вашего хода. Любая атака обнуляет шанс. Ангел предлагает 2 светлые сделки, и одну нужно взять.</li>
-    <li><b>Демон</b> приходит ночью. Заставьте соперника взять <b>10+ карт</b> за раз, и демон заряжается: 10% и ещё 1,5% за каждую карту сверх 10. Заряд ждёт ночи и проверяется в начале вашего первого ночного хода. Демон предлагает 2 тёмные сделки с ценой. Подпишите одну или порвите.</li>
+    <li><b>Демон</b> приходит ночью. Заставьте соперника взять <b>10+ карт</b> за раз, и демон заряжается: 10,0% и ещё 1,5% за каждую карту сверх 10. Заряд ждёт ночи и проверяется в начале вашего первого ночного хода. Демон предлагает 2 тёмные сделки с ценой. Подпишите одну или порвите.</li>
     <li><b>Атака</b> — любая карта, из-за которой кто-то другой берёт карты.</li>
     <li>Одновременно можно держать до <b>2 светлых</b> и <b>3 тёмных</b> сделок, все разные, на весь матч. <b>Одна сделка за раздачу</b>: после подписи гости ждут следующей.</li>
     <li>Подписали тёмную, держа светлые, — светлые сгорают, и ангел больше не придёт. Остаётся <b>Жертва</b>: разовая карта, после которой выбранный игрок берёт 10 карт в цепях на 2 его хода.</li>
@@ -4025,6 +4043,9 @@ const session = {
   clear() { try { localStorage.removeItem('unoFlipNoMercy.room'); } catch (e) {} }
 };
 
+
+// chances on screen always carry one decimal: 10.0%, 2.5%
+const pct = x => { const v = (+x || 0).toFixed(1) + '%'; return LANG === 'ru' ? v.replace('.', ',') : v; };
 
 // ================= SOUND (synthesized, no files) =================
 const SFX = {
@@ -5360,7 +5381,7 @@ function processEvents() {
       case 'item': if (e.pi !== ME) floatText(e.pi, '', ITEM_ICON[e.id]); bump(6, t('itemUsed', nm(e.pi), t('item_' + e.id))); break;
       case 'oven': SFX.play('flip'); JUICE.shake(3); break;
       case 'rent': if (e.pi === ME) { SFX.play('coin'); floatText(e.pi, '+3¢'); } break;
-      case 'eclipseMiss': if (e.pi === ME) floatText(e.pi, '', ITEM_ICON.eclipse + ' +' + e.k + '%'); break;
+      case 'eclipseMiss': if (e.pi === ME) floatText(e.pi, '', ITEM_ICON.eclipse + ' +' + pct(e.k)); break;
       case 'again': if (e.pi === ME) { SFX.play('turn'); bump(7, t('tAgain')); } break;
       case 'horse': SFX.play('lastcall'); JUICE.shake(8); setTimeout(() => horsePop(e.k, e.v), 30); break;
       case 'horseEnd': SFX.play('lucky'); bump(8, t('horseGone', t('horse_' + e.k))); break;
@@ -5375,7 +5396,7 @@ function processEvents() {
       case 'broke': SFX.play('ko'); bump(9, t('tBroke', nm(e.pi))); break;
       case 'chained': if (e.pi === ME) floatText(e.pi, t('tChained', e.k)); break;
       case 'puppet': SFX.play('chaos'); bump(5, t('tPuppet', nm(e.t))); break;
-      case 'demonCharge': if (e.pi === ME) floatText(e.pi, '', DEAL_ICON.demon + ' ' + e.k + '%'); break;
+      case 'demonCharge': if (e.pi === ME) floatText(e.pi, '', DEAL_ICON.demon + ' ' + pct(e.k)); break;
       case 'flip':
         SFX.play('flip'); JUICE.shake(2); bump(TOAST_PRI.flip, e.side === 'D' ? t('tDark') : t('tLight'));
         document.querySelectorAll('#hand .card').forEach(el => { el.classList.remove('new'); el.classList.add('flipin'); });
@@ -5397,10 +5418,23 @@ function openModal(html, o) {
   o = o || modalNext || {}; modalNext = null;
   const key = o.key || '', stayMin = modalState.min && key && key === modalState.key;
   $('modalBody').innerHTML = `<button class="modalx" id="modalX" title="${esc(t('close'))}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 5l14 14M19 5L5 19"/></svg></button>` + html;
-  modalState = { mode: o.mode || 'close', onCancel: o.onCancel || null, min: !!stayMin, key };
+  modalState = { mode: o.mode || 'close', onCancel: o.onCancel || null, min: !!stayMin, key, fit: !!o.fit };
+  $('modalBody').className = 'dialog' + (o.cls ? ' ' + o.cls : '');
   $('modalX').onclick = dismissModal;
   $('modal').classList.toggle('hidden', !!stayMin); $('modalBack').classList.toggle('hidden', !stayMin);
+  fitModal();
 }
+// a dialog that asks to fit (the shop) shrinks as a whole until it fits the window, down to 62%;
+// past that it scrolls as before
+function fitModal() {
+  const d = $('modalBody');
+  if (!modalState.fit || $('modal').classList.contains('hidden')) { d.style.zoom = ''; return; }
+  d.style.zoom = '';
+  const cs = getComputedStyle($('modal')), avail = innerHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 4;
+  const z = Math.max(innerWidth <= 820 ? 0.86 : 0.62, Math.min(1, avail / d.offsetHeight)); // on a phone it scrolls rather than shrinking to unreadable
+  if (z < 1) d.style.zoom = z.toFixed(3);
+}
+addEventListener('resize', () => { if (modalState.fit) fitModal(); });
 function closeModal() { $('modal').classList.add('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; }
 function dismissModal() {
   if ($('modal').classList.contains('hidden')) return;
@@ -5409,7 +5443,7 @@ function dismissModal() {
   const cb = modalState.onCancel; modalState.onCancel = null; closeModal(); if (cb) cb();
 }
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) dismissModal(); });
-$('modalBack').onclick = () => { $('modal').classList.remove('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; };
+$('modalBack').onclick = () => { $('modal').classList.remove('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; fitModal(); };
 const ON_COLOR = { y: 'var(--ink)', t: 'var(--ink)', o: 'var(--ink)' };
 function pickColor(title, sub, side, forced) {
   return new Promise(res => {
@@ -5524,9 +5558,9 @@ function dealBadges(p, mine) {
   for (const d of ds) out.push(`<span class="dealb ${isLightDeal(d) ? 'light' : 'dark'}${compact ? ' ico' : ''}" data-tipdeal="${d}">${DEAL_ICON[d] || ''}${compact ? '' : `<b>${t('deal_' + d)}</b>`}</span>`);
   for (const [k, v] of Object.entries(p.fx || {})) out.push(`<span class="itemb on" data-tipitem="${k}">${ITEM_ICON[k] || ''}${mine ? `<b>${t('item_' + k)}${k === 'rent' ? ' ' + v + '/10' : ''}</b>` : ''}</span>`);
   if ((p.inv || []).length) out.push(`<span class="itemb bag" title="${esc(p.inv.map(id => t('item_' + id)).join(', '))}">${ITEM_ICON.bag}${p.inv.length}</span>`);
-  if (mine && (p.buff || 0) > 0) out.push(`<span class="chance buff" title="${t('eclipseBuff')}">${ITEM_ICON.eclipse}+${p.buff}%</span>`);
-  if (mine && canLight(p)) out.push(`<span class="chance light${(p.angel || 0) >= 20 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('angelChance')}">${DEAL_ICON.angel}${mine ? t('oddsAngel') + ' ' : ''}${Math.round(p.angel || 0)}%</span>`);
-  if (mine && canDark(p) && (p.demon || 0) > 0) out.push(`<span class="chance dark${p.demon >= 30 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('demonChance')}">${DEAL_ICON.demon}${mine ? t('oddsDemon') + ' ' : ''}${Math.min(100, p.demon)}%</span>`);
+  if (mine && (p.buff || 0) > 0) out.push(`<span class="chance buff" title="${t('eclipseBuff')}">${ITEM_ICON.eclipse}+${pct(p.buff)}</span>`);
+  if (mine && canLight(p)) out.push(`<span class="chance light${(p.angel || 0) >= 20 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('angelChance')}">${DEAL_ICON.angel}${mine ? t('oddsAngel') + ' ' : ''}${pct(p.angel || 0)}</span>`);
+  if (mine && canDark(p) && (p.demon || 0) > 0) out.push(`<span class="chance dark${p.demon >= 30 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('demonChance')}">${DEAL_ICON.demon}${mine ? t('oddsDemon') + ' ' : ''}${pct(Math.min(100, p.demon))}</span>`);
   
   return out.length ? `<div class="deals${mine ? ' mine' : ''}">${out.join('')}</div>` : '';
 }
@@ -5717,6 +5751,7 @@ function settleTable(M) {
 }
 function drawShop(M) {
   const L = M.last, won = L && L.winner === ME;
+  modalNext = Object.assign(modalNext || {}, { cls: 'shop', fit: true });
   const head = `<h2>${t('shopTitle', M.round)}</h2>${settleTable(M)}`;
   if (M.col[ME]) return openModal(head + `<p>${t('youCollector')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
   if (M.done[ME]) return openModal(head + `<p>${t('shopWait')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
@@ -5724,20 +5759,22 @@ function drawShop(M) {
   const rivals = G.players.map((p, i) => i).filter(i => i !== ME && !M.col[i]);
   const mine = M.tokens[ME].map(id => `<div class="tok own"><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span></div>`).join('');
   const offers = M.offers.map(id => `<button class="tok" data-tok="${id}" ${chips < P.token || M.tokens[ME].length >= 3 ? 'disabled' : ''}><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span><i>${P.token}¢</i></button>`).join('');
-  openModal(head + `
+  openModal(`<h2>${t('shopTitle', M.round)}</h2><div class="shopgrid"><div class="shopl">${settleTable(M)}
     <div class="wallet"><span>${t('walletChips', chips)}</span><span>${t('walletDebt', M.debt[ME], M.limit)}</span></div>
+    <span class="label sublabel">${t('shopPay')}</span>
+    <button class="btn" id="shopPay" ${chips < P.pay || M.debt[ME] <= 0 ? 'disabled' : ''}>${t('payBtn', P.pay, P.payAmount)}</button>
+    </div><div class="shopr">
     ${M.hope ? `<span class="label sublabel">${t('shopVisitors')}</span><div class="goods">
-      <button class="btn good light" id="buyCandle" ${chips < P.candle || M.hope[2] ? 'disabled' : ''}>${DEAL_ICON.candle}<span>${t('buyCandle', P.candle)}</span><i>${M.hope[2] ? '—' : Math.round(M.hope[0]) + '%'}</i></button>
-      <button class="btn good dark" id="buyBlood" ${chips < P.blood || M.hope[3] ? 'disabled' : ''}>${DEAL_ICON.blood}<span>${t('buyBlood', P.blood)}</span><i>${M.hope[3] ? '—' : Math.min(100, M.hope[1]) + '%'}</i></button></div>` : ''}
+      <button class="btn good light" id="buyCandle" ${chips < P.candle || M.hope[2] ? 'disabled' : ''}>${DEAL_ICON.candle}<span>${t('buyCandle', P.candle)}</span><i>${M.hope[2] ? '—' : pct(M.hope[0])}</i></button>
+      <button class="btn good dark" id="buyBlood" ${chips < P.blood || M.hope[3] ? 'disabled' : ''}>${DEAL_ICON.blood}<span>${t('buyBlood', P.blood)}</span><i>${M.hope[3] ? '—' : pct(Math.min(100, M.hope[1]))}</i></button></div>` : ''}
     ${(M.dark || []).length || (M.inv && M.inv[ME] && M.inv[ME].length) ? `<span class="label sublabel">${t('darkShop')}</span>
       ${(M.dark || []).length ? `<div class="darkshop">${M.dark.map(id => `<button class="item buy" data-item="${id}" data-tipitem="${id}" ${chips < ITEM_PRICE[id] ? 'disabled' : ''}>${ITEM_ICON[id]}<b>${t('item_' + id)}</b><span>${t('itemD_' + id)}</span><i>${ITEM_PRICE[id]}¢</i></button>`).join('')}</div>` : ''}
       ${M.inv && M.inv[ME] && M.inv[ME].length ? `<p class="mono small">${t('invHave')}: ${M.inv[ME].map(id => t('item_' + id)).join(', ')}</p>` : ''}` : ''}
-    <span class="label sublabel">${t('shopPay')}</span>
-    <button class="btn" id="shopPay" ${chips < P.pay || M.debt[ME] <= 0 ? 'disabled' : ''}>${t('payBtn', P.pay, P.payAmount)}</button>
     <span class="label sublabel">${t('shopTricks')}</span>
     <div class="tricks">${rivals.map(i => `<div class="trick"><span>${esc(G.players[i].name)}${M.setup[i] ? ` · +${M.setup[i]}` : ''}</span>
       <button class="btn" data-trick="setup" data-t="${i}" ${chips < P.setup ? 'disabled' : ''}>${t('trickSetup', P.setup)}</button>
       <button class="btn" data-trick="interest" data-t="${i}" ${chips < P.interest ? 'disabled' : ''}>${t('trickInterest', P.interest)}</button></div>`).join('')}</div>
+    </div></div>
     <button class="btn primary wide" id="shopDone">${t('shopDone')}</button>
     <p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
   $('modalBody').querySelectorAll('[data-tok]').forEach(b => b.onclick = () => { SFX.play('coin'); conn.send({ t: 'shop', a: { k: 'token', id: b.dataset.tok } }); });

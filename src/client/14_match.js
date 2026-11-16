@@ -47,6 +47,7 @@ function settleTable(M) {
 }
 function drawShop(M) {
   const L = M.last, won = L && L.winner === ME;
+  modalNext = Object.assign(modalNext || {}, { cls: 'shop', fit: true });
   const head = `<h2>${t('shopTitle', M.round)}</h2>${settleTable(M)}`;
   if (M.col[ME]) return openModal(head + `<p>${t('youCollector')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
   if (M.done[ME]) return openModal(head + `<p>${t('shopWait')}</p><p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
@@ -54,20 +55,22 @@ function drawShop(M) {
   const rivals = G.players.map((p, i) => i).filter(i => i !== ME && !M.col[i]);
   const mine = M.tokens[ME].map(id => `<div class="tok own"><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span></div>`).join('');
   const offers = M.offers.map(id => `<button class="tok" data-tok="${id}" ${chips < P.token || M.tokens[ME].length >= 3 ? 'disabled' : ''}><b>${TOKEN_T(id)[0]}</b><span>${TOKEN_T(id)[1]}</span><i>${P.token}¢</i></button>`).join('');
-  openModal(head + `
+  openModal(`<h2>${t('shopTitle', M.round)}</h2><div class="shopgrid"><div class="shopl">${settleTable(M)}
     <div class="wallet"><span>${t('walletChips', chips)}</span><span>${t('walletDebt', M.debt[ME], M.limit)}</span></div>
+    <span class="label sublabel">${t('shopPay')}</span>
+    <button class="btn" id="shopPay" ${chips < P.pay || M.debt[ME] <= 0 ? 'disabled' : ''}>${t('payBtn', P.pay, P.payAmount)}</button>
+    </div><div class="shopr">
     ${M.hope ? `<span class="label sublabel">${t('shopVisitors')}</span><div class="goods">
-      <button class="btn good light" id="buyCandle" ${chips < P.candle || M.hope[2] ? 'disabled' : ''}>${DEAL_ICON.candle}<span>${t('buyCandle', P.candle)}</span><i>${M.hope[2] ? '—' : Math.round(M.hope[0]) + '%'}</i></button>
-      <button class="btn good dark" id="buyBlood" ${chips < P.blood || M.hope[3] ? 'disabled' : ''}>${DEAL_ICON.blood}<span>${t('buyBlood', P.blood)}</span><i>${M.hope[3] ? '—' : Math.min(100, M.hope[1]) + '%'}</i></button></div>` : ''}
+      <button class="btn good light" id="buyCandle" ${chips < P.candle || M.hope[2] ? 'disabled' : ''}>${DEAL_ICON.candle}<span>${t('buyCandle', P.candle)}</span><i>${M.hope[2] ? '—' : pct(M.hope[0])}</i></button>
+      <button class="btn good dark" id="buyBlood" ${chips < P.blood || M.hope[3] ? 'disabled' : ''}>${DEAL_ICON.blood}<span>${t('buyBlood', P.blood)}</span><i>${M.hope[3] ? '—' : pct(Math.min(100, M.hope[1]))}</i></button></div>` : ''}
     ${(M.dark || []).length || (M.inv && M.inv[ME] && M.inv[ME].length) ? `<span class="label sublabel">${t('darkShop')}</span>
       ${(M.dark || []).length ? `<div class="darkshop">${M.dark.map(id => `<button class="item buy" data-item="${id}" data-tipitem="${id}" ${chips < ITEM_PRICE[id] ? 'disabled' : ''}>${ITEM_ICON[id]}<b>${t('item_' + id)}</b><span>${t('itemD_' + id)}</span><i>${ITEM_PRICE[id]}¢</i></button>`).join('')}</div>` : ''}
       ${M.inv && M.inv[ME] && M.inv[ME].length ? `<p class="mono small">${t('invHave')}: ${M.inv[ME].map(id => t('item_' + id)).join(', ')}</p>` : ''}` : ''}
-    <span class="label sublabel">${t('shopPay')}</span>
-    <button class="btn" id="shopPay" ${chips < P.pay || M.debt[ME] <= 0 ? 'disabled' : ''}>${t('payBtn', P.pay, P.payAmount)}</button>
     <span class="label sublabel">${t('shopTricks')}</span>
     <div class="tricks">${rivals.map(i => `<div class="trick"><span>${esc(G.players[i].name)}${M.setup[i] ? ` · +${M.setup[i]}` : ''}</span>
       <button class="btn" data-trick="setup" data-t="${i}" ${chips < P.setup ? 'disabled' : ''}>${t('trickSetup', P.setup)}</button>
       <button class="btn" data-trick="interest" data-t="${i}" ${chips < P.interest ? 'disabled' : ''}>${t('trickInterest', P.interest)}</button></div>`).join('')}</div>
+    </div></div>
     <button class="btn primary wide" id="shopDone">${t('shopDone')}</button>
     <p class="mono" id="phaseClock">${t('secsLeft', secsLeft())}</p>`);
   $('modalBody').querySelectorAll('[data-tok]').forEach(b => b.onclick = () => { SFX.play('coin'); conn.send({ t: 'shop', a: { k: 'token', id: b.dataset.tok } }); });

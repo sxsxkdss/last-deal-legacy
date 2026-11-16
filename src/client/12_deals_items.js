@@ -6,9 +6,9 @@ function dealBadges(p, mine) {
   for (const d of ds) out.push(`<span class="dealb ${isLightDeal(d) ? 'light' : 'dark'}${compact ? ' ico' : ''}" data-tipdeal="${d}">${DEAL_ICON[d] || ''}${compact ? '' : `<b>${t('deal_' + d)}</b>`}</span>`);
   for (const [k, v] of Object.entries(p.fx || {})) out.push(`<span class="itemb on" data-tipitem="${k}">${ITEM_ICON[k] || ''}${mine ? `<b>${t('item_' + k)}${k === 'rent' ? ' ' + v + '/10' : ''}</b>` : ''}</span>`);
   if ((p.inv || []).length) out.push(`<span class="itemb bag" title="${esc(p.inv.map(id => t('item_' + id)).join(', '))}">${ITEM_ICON.bag}${p.inv.length}</span>`);
-  if (mine && (p.buff || 0) > 0) out.push(`<span class="chance buff" title="${t('eclipseBuff')}">${ITEM_ICON.eclipse}+${p.buff}%</span>`);
-  if (mine && canLight(p)) out.push(`<span class="chance light${(p.angel || 0) >= 20 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('angelChance')}">${DEAL_ICON.angel}${mine ? t('oddsAngel') + ' ' : ''}${Math.round(p.angel || 0)}%</span>`);
-  if (mine && canDark(p) && (p.demon || 0) > 0) out.push(`<span class="chance dark${p.demon >= 30 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('demonChance')}">${DEAL_ICON.demon}${mine ? t('oddsDemon') + ' ' : ''}${Math.min(100, p.demon)}%</span>`);
+  if (mine && (p.buff || 0) > 0) out.push(`<span class="chance buff" title="${t('eclipseBuff')}">${ITEM_ICON.eclipse}+${pct(p.buff)}</span>`);
+  if (mine && canLight(p)) out.push(`<span class="chance light${(p.angel || 0) >= 20 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('angelChance')}">${DEAL_ICON.angel}${mine ? t('oddsAngel') + ' ' : ''}${pct(p.angel || 0)}</span>`);
+  if (mine && canDark(p) && (p.demon || 0) > 0) out.push(`<span class="chance dark${p.demon >= 30 && !p.signedNow ? ' hot' : ''}${p.signedNow ? ' wait' : ''}" title="${p.signedNow ? t('oddsWait') : t('demonChance')}">${DEAL_ICON.demon}${mine ? t('oddsDemon') + ' ' : ''}${pct(Math.min(100, p.demon))}</span>`);
   
   return out.length ? `<div class="deals${mine ? ' mine' : ''}">${out.join('')}</div>` : '';
 }

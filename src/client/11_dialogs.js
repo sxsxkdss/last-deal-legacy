@@ -8,10 +8,23 @@ function openModal(html, o) {
   o = o || modalNext || {}; modalNext = null;
   const key = o.key || '', stayMin = modalState.min && key && key === modalState.key;
   $('modalBody').innerHTML = `<button class="modalx" id="modalX" title="${esc(t('close'))}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"><path d="M5 5l14 14M19 5L5 19"/></svg></button>` + html;
-  modalState = { mode: o.mode || 'close', onCancel: o.onCancel || null, min: !!stayMin, key };
+  modalState = { mode: o.mode || 'close', onCancel: o.onCancel || null, min: !!stayMin, key, fit: !!o.fit };
+  $('modalBody').className = 'dialog' + (o.cls ? ' ' + o.cls : '');
   $('modalX').onclick = dismissModal;
   $('modal').classList.toggle('hidden', !!stayMin); $('modalBack').classList.toggle('hidden', !stayMin);
+  fitModal();
 }
+// a dialog that asks to fit (the shop) shrinks as a whole until it fits the window, down to 62%;
+// past that it scrolls as before
+function fitModal() {
+  const d = $('modalBody');
+  if (!modalState.fit || $('modal').classList.contains('hidden')) { d.style.zoom = ''; return; }
+  d.style.zoom = '';
+  const cs = getComputedStyle($('modal')), avail = innerHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 4;
+  const z = Math.max(innerWidth <= 820 ? 0.86 : 0.62, Math.min(1, avail / d.offsetHeight)); // on a phone it scrolls rather than shrinking to unreadable
+  if (z < 1) d.style.zoom = z.toFixed(3);
+}
+addEventListener('resize', () => { if (modalState.fit) fitModal(); });
 function closeModal() { $('modal').classList.add('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; }
 function dismissModal() {
   if ($('modal').classList.contains('hidden')) return;
@@ -20,7 +33,7 @@ function dismissModal() {
   const cb = modalState.onCancel; modalState.onCancel = null; closeModal(); if (cb) cb();
 }
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) dismissModal(); });
-$('modalBack').onclick = () => { $('modal').classList.remove('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; };
+$('modalBack').onclick = () => { $('modal').classList.remove('hidden'); $('modalBack').classList.add('hidden'); modalState.min = false; fitModal(); };
 const ON_COLOR = { y: 'var(--ink)', t: 'var(--ink)', o: 'var(--ink)' };
 function pickColor(title, sub, side, forced) {
   return new Promise(res => {

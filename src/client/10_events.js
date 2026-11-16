@@ -89,7 +89,7 @@ function processEvents() {
       case 'item': if (e.pi !== ME) floatText(e.pi, '', ITEM_ICON[e.id]); bump(6, t('itemUsed', nm(e.pi), t('item_' + e.id))); break;
       case 'oven': SFX.play('flip'); JUICE.shake(3); break;
       case 'rent': if (e.pi === ME) { SFX.play('coin'); floatText(e.pi, '+3¢'); } break;
-      case 'eclipseMiss': if (e.pi === ME) floatText(e.pi, '', ITEM_ICON.eclipse + ' +' + e.k + '%'); break;
+      case 'eclipseMiss': if (e.pi === ME) floatText(e.pi, '', ITEM_ICON.eclipse + ' +' + pct(e.k)); break;
       case 'again': if (e.pi === ME) { SFX.play('turn'); bump(7, t('tAgain')); } break;
       case 'horse': SFX.play('lastcall'); JUICE.shake(8); setTimeout(() => horsePop(e.k, e.v), 30); break;
       case 'horseEnd': SFX.play('lucky'); bump(8, t('horseGone', t('horse_' + e.k))); break;
@@ -104,7 +104,7 @@ function processEvents() {
       case 'broke': SFX.play('ko'); bump(9, t('tBroke', nm(e.pi))); break;
       case 'chained': if (e.pi === ME) floatText(e.pi, t('tChained', e.k)); break;
       case 'puppet': SFX.play('chaos'); bump(5, t('tPuppet', nm(e.t))); break;
-      case 'demonCharge': if (e.pi === ME) floatText(e.pi, '', DEAL_ICON.demon + ' ' + e.k + '%'); break;
+      case 'demonCharge': if (e.pi === ME) floatText(e.pi, '', DEAL_ICON.demon + ' ' + pct(e.k)); break;
       case 'flip':
         SFX.play('flip'); JUICE.shake(2); bump(TOAST_PRI.flip, e.side === 'D' ? t('tDark') : t('tLight'));
         document.querySelectorAll('#hand .card').forEach(el => { el.classList.remove('new'); el.classList.add('flipin'); });

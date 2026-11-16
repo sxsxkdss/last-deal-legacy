@@ -43,3 +43,6 @@ const session = {
   clear() { try { localStorage.removeItem('unoFlipNoMercy.room'); } catch (e) {} }
 };
 
+
+// chances on screen always carry one decimal: 10.0%, 2.5%
+const pct = x => { const v = (+x || 0).toFixed(1) + '%'; return LANG === 'ru' ? v.replace('.', ',') : v; };

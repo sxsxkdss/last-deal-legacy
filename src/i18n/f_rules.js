@@ -45,7 +45,7 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
     <li><b>Chips</b>: the deal's winner gets 5¢ plus 10% of what the others paid. Poker hands pay chips too. Between deals, spend them in the <b>House shop</b>: tokens for the whole match (3 slots), paying off debt, or dirty tricks on a rival.</li></ul>
   <h3>The angel and the demon</h3><ul>
     <li><b>The angel</b> comes by day. Every quiet day turn (no attack played) adds <b>1.25%</b> to the chance it shows up at the start of your turn. Any attack resets it. The angel offers 2 light deals and you have to take one.</li>
-    <li><b>The demon</b> comes at night. Make a rival pick up <b>10+ cards</b> at once and it charges: 10%, plus 1.5% for every card past 10. The charge waits for night and is rolled at the start of your first night turn. The demon offers 2 dark deals with a price. Sign one or tear it up.</li>
+    <li><b>The demon</b> comes at night. Make a rival pick up <b>10+ cards</b> at once and it charges: 10.0%, plus 1.5% for every card past 10. The charge waits for night and is rolled at the start of your first night turn. The demon offers 2 dark deals with a price. Sign one or tear it up.</li>
     <li>An <b>attack</b> is any card that makes someone else pick up.</li>
     <li>You can hold up to <b>2 light</b> and <b>3 dark</b> deals at once, all different, for the whole match. <b>One deal per hand</b>: after you sign, the visitors wait for the next deal.</li>
     <li>Sign a dark deal while holding light ones and the light ones burn. The angel never comes back. You keep a <b>Sacrifice</b>: a one-off card that gives a player you pick 10 cards, chained for 2 of their turns.</li>
@@ -110,7 +110,7 @@ RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконеч
     <li><b>Фишки</b>: победитель раздачи получает 5¢ и 10% от того, что заплатили остальные. Комбинации тоже платят фишками. Между раздачами их тратят в <b>лавке Дома</b>: жетоны на весь матч (3 места), погашение долга или пакости сопернику.</li></ul>
   <h3>Ангел и демон</h3><ul>
     <li><b>Ангел</b> приходит днём. Каждый тихий дневной ход (без атак) прибавляет <b>1,25%</b> к шансу, что он появится в начале вашего хода. Любая атака обнуляет шанс. Ангел предлагает 2 светлые сделки, и одну нужно взять.</li>
-    <li><b>Демон</b> приходит ночью. Заставьте соперника взять <b>10+ карт</b> за раз, и демон заряжается: 10% и ещё 1,5% за каждую карту сверх 10. Заряд ждёт ночи и проверяется в начале вашего первого ночного хода. Демон предлагает 2 тёмные сделки с ценой. Подпишите одну или порвите.</li>
+    <li><b>Демон</b> приходит ночью. Заставьте соперника взять <b>10+ карт</b> за раз, и демон заряжается: 10,0% и ещё 1,5% за каждую карту сверх 10. Заряд ждёт ночи и проверяется в начале вашего первого ночного хода. Демон предлагает 2 тёмные сделки с ценой. Подпишите одну или порвите.</li>
     <li><b>Атака</b> — любая карта, из-за которой кто-то другой берёт карты.</li>
     <li>Одновременно можно держать до <b>2 светлых</b> и <b>3 тёмных</b> сделок, все разные, на весь матч. <b>Одна сделка за раздачу</b>: после подписи гости ждут следующей.</li>
     <li>Подписали тёмную, держа светлые, — светлые сгорают, и ангел больше не придёт. Остаётся <b>Жертва</b>: разовая карта, после которой выбранный игрок берёт 10 карт в цепях на 2 его хода.</li>
