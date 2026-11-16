@@ -620,7 +620,7 @@ class Game {
     if (o.kind === 'both') {
       // Two-faced: whichever is picked, no fall, no limits, and it doesn't count as this hand's deal
       const lightPick = LIGHT_DEALS.includes(id);
-      if (lightPick) { p.angel = 0; p.tookLight = true; } else { p.demon = 0; p.demonX = 0; }
+      if (lightPick) { p.angel = 0; p.tookLight = true; } else { p.demon = 0; p.demonX = 0; p.noAngel = true; p.angel = 0; } // a dark signature closes the door on the angel
       p.deals.push(id);
       this.dealEffect(pi, id, target);
       this.addLog(`${p.name} takes a ${lightPick ? 'light' : 'dark'} deal: ${id}.`, lightPick ? 'win' : 'bad', 'dealTaken', { n: p.name, d: id, kind: lightPick ? 'light' : 'dark', t: p.markT != null && id === 'mark' ? this.players[p.markT].name : null });
@@ -635,7 +635,8 @@ class Game {
     if (o.kind === 'light') { p.angel = 0; p.angelSlow = 2; p.tookLight = true; }
     else {
       if (nLight(p) && id !== 'desecrate') this.fall(pi);
-      p.demon = 0; p.demonX = 0;
+      // once you sign with the demon, the angel never comes again
+      p.demon = 0; p.demonX = 0; p.noAngel = true; p.angel = 0;
     }
     p.deals.push(id); p.signedNow = true;
     this.dealEffect(pi, id, target);
