@@ -19,7 +19,25 @@ const DROP_OUT_MS = 60000;    // a player disconnected this long is out of the m
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const EXTRA = ['mirror', 'shield', 'dflip', 'wd15', 'mul2', 'mul3', 'lucky', 'glass', 'spin', 'loan', 'gift', 'echo', 'freeze', 'bomb', 'd6', 'pill', 'maze', 'deal'];
 const RULE_KEYS = ['flip', 'stacking', 'multi', 'combos', 'gamble', 'lastCall', 'potato', 'drawUntil', 'chaos'];
-const BOT_NAMES = ['Адидас', 'Марат', 'Пальто', 'Кащей', 'Турбо', 'Зима', 'Ералаш', 'Айгуль', 'Сутулый', 'Жёлтый'];
+// bots get a random nick in the style of a 2000s forum: УбийцаКрови2003, xX_Демон_Xx, DarK_AnGeL
+const NICK = {
+  adj: ['Тёмный', 'Кровавый', 'Злой', 'Мёртвый', 'Чёрный', 'Адский', 'Безумный', 'Ночной', 'Стальной', 'Ледяной', 'Бешеный', 'Тихий', 'Проклятый', 'Дикий'],
+  noun: ['Убийца', 'Ангел', 'Демон', 'Волк', 'Снайпер', 'Призрак', 'Палач', 'Воин', 'Рыцарь', 'Ворон', 'Охотник', 'Киллер', 'Лорд', 'Монах', 'Шаман', 'Кот'],
+  of: ['Крови', 'Тьмы', 'Смерти', 'Ночи', 'Ада', 'Боли', 'Хаоса', 'Теней', 'Зла', 'Пустоты'],
+  lat: ['DarK', 'KiLLeR', 'AnGeL', 'DeMoN', 'SnIpEr', 'GhOsT', 'NiGhT', 'BlOoD', 'ReAPeR', 'WoLf', 'ShAdOw', 'ToXiC'],
+  num: () => ['2003', '2004', '2005', '2002', '2006', '1999', '666', '777', '13', '228', '1337', '007'][Math.floor(Math.random() * 12)]
+};
+const pickN = a => a[Math.floor(Math.random() * a.length)];
+function botNick() {
+  const r = Math.random();
+  const n = r < 0.3 ? pickN(NICK.noun) + pickN(NICK.of) + NICK.num()
+    : r < 0.5 ? pickN(NICK.adj) + pickN(NICK.noun) + (Math.random() < 0.6 ? NICK.num() : '')
+    : r < 0.65 ? 'xX_' + pickN(NICK.noun) + '_Xx'
+    : r < 0.8 ? pickN(NICK.lat) + '_' + pickN(NICK.lat)
+    : r < 0.9 ? pickN(NICK.lat) + NICK.num()
+    : pickN(NICK.noun) + '_' + pickN(NICK.of);
+  return n.slice(0, 20);
+}
 
 const clean = s => String(s || '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁠-⁯]/g, '').trim().slice(0, 14);
 const validToken = t => typeof t === 'string' && /^[a-z0-9]{12,40}$/.test(t);
@@ -567,7 +585,7 @@ function handle(ws, msg) {
     case 'addbot': {
       if (!isHost || (room.G && room.G.winner === null) || room.order.length >= 10) return;
       const used = new Set([...room.members.values()].map(x => x.name));
-      const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot ' + (room.order.length + 1);
+      let name = botNick(); for (let k = 0; k < 20 && used.has(name); k++) name = botNick();
       const token = 'bot' + crypto.randomBytes(8).toString('hex');
       room.members.set(token, { token, name, bot: true, ws: null }); room.order.push(token);
       sync(room); return;
