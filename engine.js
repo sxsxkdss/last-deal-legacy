@@ -16,14 +16,14 @@ const VALUE_NAME = {
 // Ordered by how rare the hand is in a real hand (rarer pays more). The runs pay by length, see comboPlain.
 const COMBOS = {
   pair: { d: 0, m: 0, r: 1 }, twopair: { d: 1, m: 0, r: 2 }, three: { d: 1, m: 0, r: 3 },
-  straight: { d: 1, m: 0, r: 3 },      // 4+ in a row, any colours: drop n-3, 6+ also hits everyone 1
-  fullhouse: { d: 2, m: 1, r: 6 }, threepair: { d: 1, m: 0, r: 5 },
-  cstraight: { d: 1, m: 0, r: 4 },     // 3-4 in a row of one colour: drop n-2
-  four: { d: 2, m: 1, r: 7 }, flush: { d: 2, m: 1, r: 7 }, twothree: { d: 2, m: 1, r: 8 }, rainbow: { d: 2, m: 2, r: 9 },
-  straightflush: { d: 3, m: 2, r: 10 }, // 5+ in a row of one colour: drop n-2
+  straight: { d: 1, m: 0, r: 3 },       // 4+ in a row, any colours: drop n-3, at 6+ everyone picks up 1
+  fullhouse: { d: 2, m: 1, r: 6 },      // a set and a pair (drop 2), or two sets (drop 3)
+  straightflush: { d: 1, m: 0, r: 4 },  // 3+ in a row of one colour: drop n-2, at 5+ everyone picks up 2 and debt -10
+  flush: { d: 2, m: 1, r: 7 },          // 5+ cards of one colour
+  four: { d: 2, m: 1, r: 9 },           // four of one number, any colours (rarer than a flush)
   five: { d: 3, m: 2, r: 12 }
 };
-const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'fullhouse', 'threepair', 'cstraight', 'four', 'flush', 'twothree', 'rainbow', 'straightflush', 'five'];
+const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'fullhouse', 'straightflush', 'flush', 'four', 'five'];
 // a plain Wild (no draw on it) can stand in for any number in a hand, one per hand
 const isJoker = f => f && f.c === 'w' && (f.v === 'wild' || f.v === 'djoker');
 function comboPlain(faces) {
@@ -35,20 +35,18 @@ function comboPlain(faces) {
   const run = cnt[0] === 1 && sorted.every((x, i) => !i || x === sorted[i - 1] + 1);
   const shape = cnt.join('');
   let key = null;
-  if (cnt[0] === n && n <= 5) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 5 ? 'five' : new Set(faces.map(f => f.c)).size === 4 ? 'rainbow' : 'four';
-  else if (run && oneColor && n >= 3) key = n >= 5 ? 'straightflush' : 'cstraight';
+  if (cnt[0] === n && n <= 5) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
+  else if (run && oneColor && n >= 3) key = 'straightflush';
   else if (run && n >= 4) key = 'straight';
   else if (shape === '22') key = 'twopair';
-  else if (shape === '32') key = 'fullhouse';
-  else if (shape === '222') key = 'threepair';
-  else if (shape === '33') key = 'twothree';
+  else if (shape === '32' || shape === '33') key = 'fullhouse';
   else if (oneColor && n >= 5) key = 'flush';
   if (!key) return null;
   const C = COMBOS[key];
   let d = C.d, m = C.m, r = C.r;
   if (key === 'straight') { d = n - 3; m = n >= 6 ? 1 : 0; }
-  else if (key === 'cstraight') d = n - 2;
-  else if (key === 'straightflush') d = n - 2;
+  else if (key === 'straightflush') { d = n - 2; if (n >= 5) { m = 2; r = 10; } }
+  else if (key === 'fullhouse' && n === 6) { d = 3; r = 8; }
   return { key, d, m, r, chips: chips + n * 5, mult: Math.max(1, d + m * 2) };
 }
 // faces: [{c, v}] in play order. Returns { key, d, m, r, chips, mult } for a valid hand, null otherwise.
@@ -85,11 +83,9 @@ function comboCands(cards, f) {
   }
   const pairs = groups.filter(g => g.length >= 2), trips = groups.filter(g => g.length >= 3), singles = groups.filter(g => g.length === 1);
   if (pairs.length >= 2) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)));
-  if (pairs.length >= 3) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2), pairs[2].slice(0, 2)));
-  if (pairs.length === 2 && singles.length) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2), singles[0])); // + joker: three pairs
   if (pairs.length && singles.length) add(pairs[0].slice(0, 2).concat(singles[0]));                              // + joker: two pair
   for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) { add(t3.slice(0, 3).concat(p2.slice(0, 2))); if (p2.length >= 3) add(t3.slice(0, 3).concat(p2.slice(0, 3))); }
-  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) add(t3.slice(0, 3).concat(p2.slice(0, 2))); // + joker: two sets
+  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) add(t3.slice(0, 3).concat(p2.slice(0, 2))); // + joker: a full house of two sets
   if (pairs.length >= 2) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)).slice(0, 4));             // + joker: full house
   // runs: the longest stretch of values, with the joker filling one gap
   const runs = (by) => {

@@ -76,13 +76,12 @@ function bestCombo(hand) {
 // every poker hand, always on view next to the log; the one your picked cards make lights up
 // example hands for the reference, as mini cards: [value, colour slot 0..3]
 const COMBO_EX = {
-  five: [[7, 0], [7, 1], [7, 2], [7, 3], [7, 0]], straightflush: [[3, 2], [4, 2], [5, 2], [6, 2], [7, 2]], rainbow: [[5, 0], [5, 1], [5, 2], [5, 3]],
-  twothree: [[5, 0], [5, 1], [5, 3], [3, 2], [3, 0], [3, 1]], flush: [[1, 3], [4, 3], [6, 3], [8, 3], [9, 3]], four: [[5, 0], [5, 3], [5, 0], [5, 1]],
-  cstraight: [[3, 1], [4, 1], [5, 1]], threepair: [[5, 0], [5, 2], [3, 1], [3, 3], [6, 0], [6, 1]], fullhouse: [[2, 0], [2, 1], [2, 3], [8, 2], [8, 0]],
+  five: [[7, 0], [7, 1], [7, 2], [7, 3], [7, 0]], flush: [[1, 3], [4, 3], [6, 3], [8, 3], [9, 3]], four: [[5, 0], [5, 1], [5, 2], [5, 3]],
+  straightflush: [[3, 2], [4, 2], [5, 2], ['+', 2]], fullhouse: [[2, 0], [2, 1], [2, 3], [8, 2], [8, 0]],
   straight: [[3, 1], [4, 3], [5, 0], [6, 2], ['+', 1]], three: [[6, 0], [6, 2], [6, 3]], twopair: [[4, 1], [4, 3], [9, 0], [9, 2]], pair: [[7, 2], [7, 0]]
 };
-// what the runs pay depends on their length: shown as a formula
-const COMBO_VAR = { straight: ['n−3', '(+1)', '−' + COMBOS.straight.r], cstraight: ['n−2', '', '−' + COMBOS.cstraight.r], straightflush: ['n−2', '+' + COMBOS.straightflush.m, '−' + COMBOS.straightflush.r] };
+// what the runs (and a full house of two sets) pay depends on their length: shown as a formula
+const COMBO_VAR = { straight: ['n−3', '(+1)', '−' + COMBOS.straight.r], straightflush: ['n−2', '(+2)', '−' + COMBOS.straightflush.r + '/−10'], fullhouse: ['−2/−3', '+1', '−6/−8'] };
 let comboRefKey = '';
 function comboRefHTML(active) {
   const cols = SIDE_COLORS[G ? G.side : 'L'];

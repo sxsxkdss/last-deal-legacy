@@ -1169,14 +1169,14 @@ const VALUE_NAME = {
 // Ordered by how rare the hand is in a real hand (rarer pays more). The runs pay by length, see comboPlain.
 const COMBOS = {
   pair: { d: 0, m: 0, r: 1 }, twopair: { d: 1, m: 0, r: 2 }, three: { d: 1, m: 0, r: 3 },
-  straight: { d: 1, m: 0, r: 3 },      // 4+ in a row, any colours: drop n-3, 6+ also hits everyone 1
-  fullhouse: { d: 2, m: 1, r: 6 }, threepair: { d: 1, m: 0, r: 5 },
-  cstraight: { d: 1, m: 0, r: 4 },     // 3-4 in a row of one colour: drop n-2
-  four: { d: 2, m: 1, r: 7 }, flush: { d: 2, m: 1, r: 7 }, twothree: { d: 2, m: 1, r: 8 }, rainbow: { d: 2, m: 2, r: 9 },
-  straightflush: { d: 3, m: 2, r: 10 }, // 5+ in a row of one colour: drop n-2
+  straight: { d: 1, m: 0, r: 3 },       // 4+ in a row, any colours: drop n-3, at 6+ everyone picks up 1
+  fullhouse: { d: 2, m: 1, r: 6 },      // a set and a pair (drop 2), or two sets (drop 3)
+  straightflush: { d: 1, m: 0, r: 4 },  // 3+ in a row of one colour: drop n-2, at 5+ everyone picks up 2 and debt -10
+  flush: { d: 2, m: 1, r: 7 },          // 5+ cards of one colour
+  four: { d: 2, m: 1, r: 9 },           // four of one number, any colours (rarer than a flush)
   five: { d: 3, m: 2, r: 12 }
 };
-const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'fullhouse', 'threepair', 'cstraight', 'four', 'flush', 'twothree', 'rainbow', 'straightflush', 'five'];
+const COMBO_RANK = ['pair', 'twopair', 'three', 'straight', 'fullhouse', 'straightflush', 'flush', 'four', 'five'];
 // a plain Wild (no draw on it) can stand in for any number in a hand, one per hand
 const isJoker = f => f && f.c === 'w' && (f.v === 'wild' || f.v === 'djoker');
 function comboPlain(faces) {
@@ -1188,20 +1188,18 @@ function comboPlain(faces) {
   const run = cnt[0] === 1 && sorted.every((x, i) => !i || x === sorted[i - 1] + 1);
   const shape = cnt.join('');
   let key = null;
-  if (cnt[0] === n && n <= 5) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 5 ? 'five' : new Set(faces.map(f => f.c)).size === 4 ? 'rainbow' : 'four';
-  else if (run && oneColor && n >= 3) key = n >= 5 ? 'straightflush' : 'cstraight';
+  if (cnt[0] === n && n <= 5) key = n === 2 ? 'pair' : n === 3 ? 'three' : n === 4 ? 'four' : 'five';
+  else if (run && oneColor && n >= 3) key = 'straightflush';
   else if (run && n >= 4) key = 'straight';
   else if (shape === '22') key = 'twopair';
-  else if (shape === '32') key = 'fullhouse';
-  else if (shape === '222') key = 'threepair';
-  else if (shape === '33') key = 'twothree';
+  else if (shape === '32' || shape === '33') key = 'fullhouse';
   else if (oneColor && n >= 5) key = 'flush';
   if (!key) return null;
   const C = COMBOS[key];
   let d = C.d, m = C.m, r = C.r;
   if (key === 'straight') { d = n - 3; m = n >= 6 ? 1 : 0; }
-  else if (key === 'cstraight') d = n - 2;
-  else if (key === 'straightflush') d = n - 2;
+  else if (key === 'straightflush') { d = n - 2; if (n >= 5) { m = 2; r = 10; } }
+  else if (key === 'fullhouse' && n === 6) { d = 3; r = 8; }
   return { key, d, m, r, chips: chips + n * 5, mult: Math.max(1, d + m * 2) };
 }
 // faces: [{c, v}] in play order. Returns { key, d, m, r, chips, mult } for a valid hand, null otherwise.
@@ -1238,11 +1236,9 @@ function comboCands(cards, f) {
   }
   const pairs = groups.filter(g => g.length >= 2), trips = groups.filter(g => g.length >= 3), singles = groups.filter(g => g.length === 1);
   if (pairs.length >= 2) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)));
-  if (pairs.length >= 3) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2), pairs[2].slice(0, 2)));
-  if (pairs.length === 2 && singles.length) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2), singles[0])); // + joker: three pairs
   if (pairs.length && singles.length) add(pairs[0].slice(0, 2).concat(singles[0]));                              // + joker: two pair
   for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) { add(t3.slice(0, 3).concat(p2.slice(0, 2))); if (p2.length >= 3) add(t3.slice(0, 3).concat(p2.slice(0, 3))); }
-  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) add(t3.slice(0, 3).concat(p2.slice(0, 2))); // + joker: two sets
+  for (const t3 of trips) for (const p2 of pairs) if (p2 !== t3) add(t3.slice(0, 3).concat(p2.slice(0, 2))); // + joker: a full house of two sets
   if (pairs.length >= 2) add(pairs[0].slice(0, 2).concat(pairs[1].slice(0, 2)).slice(0, 4));             // + joker: full house
   // runs: the longest stretch of values, with the joker filling one gap
   const runs = (by) => {
@@ -2896,8 +2892,7 @@ STR.en = {
 
   // poker hands
   combo_pair: 'Pair', combo_twopair: 'Two Pair', combo_three: 'Three of a Kind', combo_straight: 'Straight', combo_flush: 'Flush', combo_fullhouse: 'Full House',
-  combo_four: 'Four of a Kind', combo_rainbow: 'Rainbow', combo_straightflush: 'Straight Flush', combo_five: 'Five of a Kind',
-  combo_threepair: 'Three Pair', combo_twothree: 'Two Sets', combo_cstraight: 'Colour Run',
+  combo_four: 'Four of a Kind', combo_straightflush: 'Straight Flush', combo_five: 'Five of a Kind',
   comboToss: n => `−${n} ${n === 1 ? 'card' : 'cards'}`, comboHit: n => `everyone +${n}`, comboRelief: n => `debt −${n}`,
   noCombo: 'Not a hand', togetherN: n => `${n} together`, multiOff: 'No multi-drops at this table',
   comboQ: 'Play a hand?', comboSub: 'Number cards that make a poker hand. They go down left to right. Drag to reorder, click to drop one.',
@@ -2905,7 +2900,7 @@ STR.en = {
   refTitle: 'Poker hands', refColHand: 'Hand', refColToss: 'Drop', refColHit: 'All', refColDebt: 'Debt',
   refTossTip: 'Extra cards that go with the hand. By day they leave your hand. At night the next player takes them.',
   refHitTip: 'Every other player picks up this many.', refDebtTip: 'Debt the House lets go. Days only.',
-  refShort: 'Day: extras leave your hand and debt is forgiven · Night: the next player takes them · a straight is 4+ in a row, any colours, (+1) at 6+; a colour run is 3+ of one colour · a plain Wild is any number · n is the run’s length',
+  refShort: 'Day: extras leave your hand and debt is forgiven · Night: the next player takes them · a straight is 4+ in a row, any colours, (+1) at 6+; a straight flush is 3+ in a row of one colour, (+2) and −10 at 5+; a full house is a set and a pair, or two sets · a plain Wild is any number · n is the run’s length',
 
   // dialogs
   pickColor: 'Call a colour', rouletteTitle: 'Colour roulette', rouletteSub: 'Call a colour. You draw till it turns up and keep everything you drew.',
@@ -3102,8 +3097,7 @@ STR.ru = {
 
   // покерные комбинации
   combo_pair: 'Пара', combo_twopair: 'Две пары', combo_three: 'Сет', combo_straight: 'Стрит', combo_flush: 'Флеш', combo_fullhouse: 'Фулл-хаус',
-  combo_four: 'Каре', combo_rainbow: 'Радуга', combo_straightflush: 'Стрит-флеш', combo_five: 'Покер',
-  combo_threepair: 'Три пары', combo_twothree: 'Два сета', combo_cstraight: 'Цветной стрит',
+  combo_four: 'Каре', combo_straightflush: 'Стрит-флеш', combo_five: 'Покер',
   comboToss: n => `−${n} ${cardsAcc(n)}`, comboHit: n => `всем +${n}`, comboRelief: n => `долг −${n}`,
   noCombo: 'Не комбинация', togetherN: n => `${n} вместе`, multiOff: 'За этим столом мультисброса нет',
   comboQ: 'Сыграть комбинацию?', comboSub: 'Числовые карты, которые складываются в покерную комбинацию. Ложатся слева направо. Перетащите, чтобы переставить, нажмите, чтобы убрать.',
@@ -3111,7 +3105,7 @@ STR.ru = {
   refTitle: 'Покерные комбинации', refColHand: 'Комбинация', refColToss: 'Сброс', refColHit: 'Всем', refColDebt: 'Долг',
   refTossTip: 'Сколько лишних карт уходит вместе с комбинацией. Днём уходят из вашей руки, ночью их берёт следующий.',
   refHitTip: 'Столько берёт каждый соперник.', refDebtTip: 'Сколько долга Дом списывает. Только днём.',
-  refShort: 'День: лишние уходят из руки, долг списывается · Ночь: лишние берёт следующий · стрит — от 4 подряд любых цветов, (+1) от 6 карт; цветной — от 3 одного цвета · простой джокер заменяет любую цифру · n — длина ряда',
+  refShort: 'День: лишние уходят из руки, долг списывается · Ночь: лишние берёт следующий · стрит — от 4 подряд любых цветов, (+1) от 6 карт; стрит-флеш — от 3 подряд одного цвета, (+2) и −10 от 5 карт; фулл-хаус — сет и пара или два сета · простой джокер заменяет любую цифру · n — длина ряда',
 
   // диалоги
   pickColor: 'Назовите цвет', rouletteTitle: 'Цветная рулетка', rouletteSub: 'Назовите цвет. Тянете, пока он не выпадет, и всё вытянутое остаётся у вас.',
@@ -3587,7 +3581,7 @@ RULES_HTML.en = `<p class="rulestag">The House deals one endless deck. Every car
     <li><b>Russian roulette</b>: facing a big enough stack, press Roulette and pick a rival. Click (50%): they take the whole stack and play moves on. Bang: you take it doubled.</li></ul>
   <h3>Poker hands</h3><ul>
     <li><b>Picking cards</b>: right-click them (or Ctrl/Shift+click; on a phone press <b>Pick several</b> and tap). The name of the hand shows above your cards. Left-click any picked card, or drag it to the pile, to play them all. A left click on an unpicked card plays only that one.</li>
-    <li>Hands are made of number cards. A <b>straight</b> is 4+ numbers in a row in any colours; at 6+ it hits everyone too. A <b>colour run</b> is 3+ in a row of one colour; at 5+ it's a straight flush. <b>Three pair</b> and <b>two sets</b> take 6 cards. A <b>flush</b> is 5+ cards of one colour. One plain <b>Wild</b> can stand in for any number. The first card has to fit the pile. The last one sets the colour.</li>
+    <li>Hands are made of number cards. A <b>straight</b> is 4+ numbers in a row in any colours; at 6+ it hits everyone too. A <b>straight flush</b> is 3+ in a row of one colour; at 5+ it hits everyone and forgives more. A <b>full house</b> is a set and a pair, or two sets. <b>Four of a kind</b> is four of one number in any colours. A <b>flush</b> is 5+ cards of one colour. One plain <b>Wild</b> can stand in for any number. The first card has to fit the pile. The last one sets the colour.</li>
     <li>The panel under the log shows every hand and what it pays. <b>Drop</b> is how many extra cards go with it. <b>All</b> is what every rival picks up. <b>Debt</b> is what the House lets go.</li>
     <li>By day the extra cards leave your hand and debt is forgiven. At night the next player takes the extras and nothing is forgiven.</li></ul>
   <h3>House cards</h3><ul>
@@ -3655,7 +3649,7 @@ RULES_HTML.ru = `<p class="rulestag">Дом сдаёт одну бесконеч
     <li><b>Русская рулетка</b>: перед большой стопкой нажмите «Рулетка» и выберите соперника. Щелчок (50%): он забирает всю стопку, и ход идёт дальше. Выстрел: берёте её сами вдвое.</li></ul>
   <h3>Покерные комбинации</h3><ul>
     <li><b>Как выбрать карты</b>: правой кнопкой (или Ctrl/Shift+клик; на телефоне кнопка <b>Выбрать несколько</b> и нажатия). Над рукой появится название комбинации. Левый клик по любой выбранной карте или перетаскивание в сброс играет их все. Левый клик по невыбранной карте играет только её.</li>
-    <li>Комбинации собираются из цифр. <b>Стрит</b> — от 4 цифр подряд любых цветов, от 6 он бьёт ещё и всех. <b>Цветной стрит</b> — от 3 подряд одного цвета, от 5 это стрит-флеш. <b>Три пары</b> и <b>два сета</b> — по 6 карт. <b>Флеш</b> — от 5 карт одного цвета. Один простой <b>джокер</b> может заменить любую цифру. Первая карта должна подходить к сбросу, последняя задаёт цвет.</li>
+    <li>Комбинации собираются из цифр. <b>Стрит</b> — от 4 цифр подряд любых цветов, от 6 он бьёт ещё и всех. <b>Стрит-флеш</b> — от 3 подряд одного цвета, от 5 карт он бьёт всех и списывает больше. <b>Фулл-хаус</b> — сет и пара или два сета. <b>Каре</b> — четыре одинаковые цифры любых цветов. <b>Флеш</b> — от 5 карт одного цвета. Один простой <b>джокер</b> может заменить любую цифру. Первая карта должна подходить к сбросу, последняя задаёт цвет.</li>
     <li>Под журналом есть таблица всех комбинаций и того, что они дают. <b>Сброс</b> — сколько лишних карт уходит вместе с ней. <b>Всем</b> — сколько берёт каждый соперник. <b>Долг</b> — сколько Дом списывает.</li>
     <li>Днём лишние карты уходят из руки и долг списывается. Ночью лишние берёт следующий, и ничего не списывается.</li></ul>
   <h3>Карты Дома</h3><ul>
@@ -4703,13 +4697,12 @@ function bestCombo(hand) {
 // every poker hand, always on view next to the log; the one your picked cards make lights up
 // example hands for the reference, as mini cards: [value, colour slot 0..3]
 const COMBO_EX = {
-  five: [[7, 0], [7, 1], [7, 2], [7, 3], [7, 0]], straightflush: [[3, 2], [4, 2], [5, 2], [6, 2], [7, 2]], rainbow: [[5, 0], [5, 1], [5, 2], [5, 3]],
-  twothree: [[5, 0], [5, 1], [5, 3], [3, 2], [3, 0], [3, 1]], flush: [[1, 3], [4, 3], [6, 3], [8, 3], [9, 3]], four: [[5, 0], [5, 3], [5, 0], [5, 1]],
-  cstraight: [[3, 1], [4, 1], [5, 1]], threepair: [[5, 0], [5, 2], [3, 1], [3, 3], [6, 0], [6, 1]], fullhouse: [[2, 0], [2, 1], [2, 3], [8, 2], [8, 0]],
+  five: [[7, 0], [7, 1], [7, 2], [7, 3], [7, 0]], flush: [[1, 3], [4, 3], [6, 3], [8, 3], [9, 3]], four: [[5, 0], [5, 1], [5, 2], [5, 3]],
+  straightflush: [[3, 2], [4, 2], [5, 2], ['+', 2]], fullhouse: [[2, 0], [2, 1], [2, 3], [8, 2], [8, 0]],
   straight: [[3, 1], [4, 3], [5, 0], [6, 2], ['+', 1]], three: [[6, 0], [6, 2], [6, 3]], twopair: [[4, 1], [4, 3], [9, 0], [9, 2]], pair: [[7, 2], [7, 0]]
 };
-// what the runs pay depends on their length: shown as a formula
-const COMBO_VAR = { straight: ['n−3', '(+1)', '−' + COMBOS.straight.r], cstraight: ['n−2', '', '−' + COMBOS.cstraight.r], straightflush: ['n−2', '+' + COMBOS.straightflush.m, '−' + COMBOS.straightflush.r] };
+// what the runs (and a full house of two sets) pay depends on their length: shown as a formula
+const COMBO_VAR = { straight: ['n−3', '(+1)', '−' + COMBOS.straight.r], straightflush: ['n−2', '(+2)', '−' + COMBOS.straightflush.r + '/−10'], fullhouse: ['−2/−3', '+1', '−6/−8'] };
 let comboRefKey = '';
 function comboRefHTML(active) {
   const cols = SIDE_COLORS[G ? G.side : 'L'];

@@ -69,8 +69,7 @@ STR.en = {
 
   // poker hands
   combo_pair: 'Pair', combo_twopair: 'Two Pair', combo_three: 'Three of a Kind', combo_straight: 'Straight', combo_flush: 'Flush', combo_fullhouse: 'Full House',
-  combo_four: 'Four of a Kind', combo_rainbow: 'Rainbow', combo_straightflush: 'Straight Flush', combo_five: 'Five of a Kind',
-  combo_threepair: 'Three Pair', combo_twothree: 'Two Sets', combo_cstraight: 'Colour Run',
+  combo_four: 'Four of a Kind', combo_straightflush: 'Straight Flush', combo_five: 'Five of a Kind',
   comboToss: n => `−${n} ${n === 1 ? 'card' : 'cards'}`, comboHit: n => `everyone +${n}`, comboRelief: n => `debt −${n}`,
   noCombo: 'Not a hand', togetherN: n => `${n} together`, multiOff: 'No multi-drops at this table',
   comboQ: 'Play a hand?', comboSub: 'Number cards that make a poker hand. They go down left to right. Drag to reorder, click to drop one.',
@@ -78,7 +77,7 @@ STR.en = {
   refTitle: 'Poker hands', refColHand: 'Hand', refColToss: 'Drop', refColHit: 'All', refColDebt: 'Debt',
   refTossTip: 'Extra cards that go with the hand. By day they leave your hand. At night the next player takes them.',
   refHitTip: 'Every other player picks up this many.', refDebtTip: 'Debt the House lets go. Days only.',
-  refShort: 'Day: extras leave your hand and debt is forgiven · Night: the next player takes them · a straight is 4+ in a row, any colours, (+1) at 6+; a colour run is 3+ of one colour · a plain Wild is any number · n is the run’s length',
+  refShort: 'Day: extras leave your hand and debt is forgiven · Night: the next player takes them · a straight is 4+ in a row, any colours, (+1) at 6+; a straight flush is 3+ in a row of one colour, (+2) and −10 at 5+; a full house is a set and a pair, or two sets · a plain Wild is any number · n is the run’s length',
 
   // dialogs
   pickColor: 'Call a colour', rouletteTitle: 'Colour roulette', rouletteSub: 'Call a colour. You draw till it turns up and keep everything you drew.',
